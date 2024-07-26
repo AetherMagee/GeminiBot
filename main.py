@@ -1,0 +1,50 @@
+import asyncio
+import os
+
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.filters import Command
+from aiogram.types import Message, User
+from dotenv import load_dotenv
+from loguru import logger
+
+if os.path.exists(".env"):
+    if __name__ == "__main__":
+        logger.debug("Loading a .env file. Are we not running in Docker?")
+    load_dotenv()
+
+bot = Bot(os.getenv("TELEGRAM_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
+dp = Dispatcher()
+
+
+async def main() -> None:
+    global self_entity
+    self_entity = await bot.get_me()
+
+    logger.info("Initializing the database...")
+    import db
+    await db.initialize_connection_pool()
+
+    async with db.shared.pool.acquire() as connection:
+        await db.create_chat_config_table(connection)
+
+    logger.info("DB init complete")
+
+    logger.info("Initializing handlers...")
+    await bot.delete_webhook(drop_pending_updates=True)
+
+    from handlers import handle_normal_message, reset_command
+
+    dp.message.register(reset_command, Command("reset"))
+
+    @dp.message()
+    async def on_any_message(message: Message) -> None:
+        await handle_normal_message(message)
+
+    logger.info("Starting to receive messages...")
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

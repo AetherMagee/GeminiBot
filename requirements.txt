@@ -1,0 +1,6 @@
+aiogram[fast]
+asyncpg
+google-generativeai
+loguru
+python-dotenv
+pillow

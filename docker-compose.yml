@@ -1,0 +1,51 @@
+version: "2"
+
+services:
+  gemini-bot:
+    container_name: gemini-bot
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      - db
+      - ctrld
+    networks:
+      gemininet:
+        ipv4_address: 10.5.0.4
+    dns: 10.5.0.2
+    env_file:
+      - .env
+    volumes:
+      - ./data/bot:/data
+      - ./data/cache:/cache
+
+  db:
+    container_name: gemini-postgres
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    networks:
+      gemininet:
+        ipv4_address: 10.5.0.3
+
+  ctrld:
+    container_name: gemini-ctrld
+    image: controldns/ctrld
+    command: --cd=comss
+    restart: unless-stopped
+    networks:
+      gemininet:
+        ipv4_address: 10.5.0.2
+
+
+networks:
+  gemininet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
+          gateway: 10.5.0.1
