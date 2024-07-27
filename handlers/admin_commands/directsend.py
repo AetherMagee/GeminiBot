@@ -1,5 +1,3 @@
-import os
-
 from aiogram.types import Message, ReactionTypeEmoji
 from loguru import logger
 

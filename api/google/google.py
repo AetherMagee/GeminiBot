@@ -1,14 +1,13 @@
 import asyncio
 import os
 import random
-import traceback
 from typing import Union
 
+import google.generativeai as genai
 from aiogram.types import Message
 from asyncpg import Record
 from google.generativeai.types import AsyncGenerateContentResponse
 from loguru import logger
-import google.generativeai as genai
 
 import db
 from utils import simulate_typing
@@ -138,7 +137,6 @@ async def generate_response(message: Message) -> str:
         return output
     except Exception as e:
         logger.error(f"{request_id} | Failed to generate message. Exception: {e}")
-        logger.error(traceback.format_exc())
         try:
             if response.prompt_feedback.block_reason:
                 logger.debug(f"{request_id} | Block reason: {response.prompt_feedback}")

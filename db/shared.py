@@ -1,6 +1,5 @@
 import os
 import sys
-import traceback
 
 import asyncpg
 from loguru import logger
