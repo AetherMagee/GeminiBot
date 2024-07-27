@@ -1,9 +1,9 @@
 import os
 
 import google.generativeai as genai
-from PIL import Image
 from aiogram.types import Message, VideoNote
 from loguru import logger
+from PIL import Image
 
 from main import bot
 

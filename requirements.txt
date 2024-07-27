@@ -2,5 +2,5 @@ aiogram[fast]~=3.10.0
 asyncpg
 google-generativeai
 loguru
-python-dotenv
 pillow
+python-dotenv

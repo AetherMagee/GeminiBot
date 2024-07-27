@@ -11,7 +11,7 @@ from loguru import logger
 
 import db
 from utils import simulate_typing
-from .media import get_photo, get_other_media
+from .media import get_other_media, get_photo
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 api_keys = os.getenv("GEMINI_API_KEYS").split(", ")
