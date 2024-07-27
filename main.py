@@ -1,7 +1,7 @@
 import asyncio
 import os
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandStart
@@ -21,9 +21,6 @@ adminMessageFilter = F.from_user.id == int(os.getenv("ADMIN_ID"))
 
 
 async def main() -> None:
-    global self_entity
-    self_entity = await bot.get_me()
-
     logger.info("Initializing the database...")
     import db
     await db.initialize_connection_pool()
