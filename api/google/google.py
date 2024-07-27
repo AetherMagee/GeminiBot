@@ -82,15 +82,15 @@ async def generate_response(message: Message) -> str:
     logger.debug(
         f"RID: {request_id} | UID: {message.from_user.id} | CID: {message.chat.id} | MID: {message.message_id}")
 
-    chat_messages = await db.get_messages(message.chat.id)
-    all_messages_list = [await _format_message_for_prompt(message) for message in chat_messages]
-    all_messages = "\n".join(all_messages_list)
-
     prompt_mode = await db.get_chat_parameter(message.chat.id, "system_prompt_mode")
     if prompt_mode == 0:
         prompt = default_prompt
     else:
         prompt = await db.get_chat_parameter(message.chat.id, "custom_system_prompt")
+
+    chat_messages = await db.get_messages(message.chat.id)
+    all_messages_list = [await _format_message_for_prompt(message) for message in chat_messages]
+    all_messages = "\n".join(all_messages_list)
 
     photos = [await get_photo(message)]
     if not photos[0]:
@@ -147,3 +147,21 @@ async def generate_response(message: Message) -> str:
                 return "❌ *Произошел сбой Gemini API.*"
         except Exception:
             return "❌ *Произошел сбой Gemini API.*"
+
+
+async def count_tokens_for_chat(chat_id: int) -> int:
+    key = await _get_api_key()
+    genai.configure(api_key=key)
+    model = genai.GenerativeModel("gemini-1.5-pro-latest")
+
+    chat_messages = await db.get_messages(chat_id)
+    all_messages_list = [await _format_message_for_prompt(message) for message in chat_messages]
+    all_messages = "\n".join(all_messages_list)
+
+    try:
+        token_count = (await model.count_tokens_async(all_messages)).total_tokens
+    except Exception as e:
+        logger.error(f"{chat_id} | Failed to count tokens. Exception: {e}")
+        token_count = 0
+
+    return token_count

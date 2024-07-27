@@ -4,8 +4,8 @@ import os
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.filters import Command
-from aiogram.types import Message, User
+from aiogram.filters import Command, CommandStart
+from aiogram.types import Message
 from dotenv import load_dotenv
 from loguru import logger
 
@@ -34,9 +34,12 @@ async def main() -> None:
     logger.info("Initializing handlers...")
     await bot.delete_webhook(drop_pending_updates=True)
 
-    from handlers import handle_normal_message, reset_command
+    from handlers import handle_normal_message, reset_command, start_command, status_command
 
     dp.message.register(reset_command, Command("reset"))
+    dp.message.register(reset_command, Command("clear"))
+    dp.message.register(start_command, CommandStart())
+    dp.message.register(status_command, Command("status"))
 
     @dp.message()
     async def on_any_message(message: Message) -> None:
