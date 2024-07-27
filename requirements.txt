@@ -1,4 +1,4 @@
-aiogram[fast]
+aiogram[fast]~=3.10.0
 asyncpg
 google-generativeai
 loguru
