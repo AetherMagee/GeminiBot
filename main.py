@@ -17,6 +17,8 @@ if os.path.exists(".env"):
 bot = Bot(os.getenv("TELEGRAM_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
 dp = Dispatcher()
 
+adminMessageFilter = F.from_user.id == int(os.getenv("ADMIN_ID"))
+
 
 async def main() -> None:
     global self_entity
@@ -34,12 +36,16 @@ async def main() -> None:
     logger.info("Initializing handlers...")
     await bot.delete_webhook(drop_pending_updates=True)
 
-    from handlers import handle_normal_message, reset_command, start_command, status_command
+    from handlers import (handle_normal_message, reset_command,
+                          start_command, status_command, directsend_command, sql_command)
 
     dp.message.register(reset_command, Command("reset"))
     dp.message.register(reset_command, Command("clear"))
     dp.message.register(start_command, CommandStart())
     dp.message.register(status_command, Command("status"))
+
+    dp.message.register(directsend_command, Command("directsend"), adminMessageFilter)
+    dp.message.register(sql_command, Command("sql"), adminMessageFilter)
 
     @dp.message()
     async def on_any_message(message: Message) -> None:
