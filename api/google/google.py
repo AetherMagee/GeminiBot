@@ -1,10 +1,12 @@
 import asyncio
 import os
 import random
+from typing import Union
 
 import google.generativeai as genai
 from aiogram.types import Message
 from asyncpg import Record
+from google.generativeai.types import AsyncGenerateContentResponse
 from loguru import logger
 
 import db
@@ -24,7 +26,8 @@ async def _get_api_key() -> str:
     return api_keys[api_key_index % len(api_keys)]
 
 
-async def _call_gemini_api(request_id: int, prompt: list, max_attempts: int, token: str) -> str:
+async def _call_gemini_api(request_id: int, prompt: list, max_attempts: int, token: str) -> Union[
+    AsyncGenerateContentResponse, None]:
     safety = {
         "SEXUALLY_EXPLICIT": "block_none",
         "HARASSMENT": "block_none",

@@ -36,9 +36,7 @@ async def handle_normal_message(message: Message) -> None:
     if (message.reply_to_message and message.reply_to_message.from_user.id == bot_id) \
             or f"@{bot_username}" in text \
             or message.chat.id == message.from_user.id:
-
         output = await api.google.generate_response(message)
-
         try:
             await message.reply(output)
         except Exception as e:
