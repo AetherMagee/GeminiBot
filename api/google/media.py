@@ -34,7 +34,7 @@ async def get_other_media(message: Message, gemini_token: str, recursion: bool =
             uploaded_media.append(upload_result)
 
     if message.reply_to_message and not recursion:
-        uploaded_media.append(await get_other_media(message.reply_to_message, gemini_token, True))
+        uploaded_media = uploaded_media + await get_other_media(message.reply_to_message, gemini_token, True)
 
     return uploaded_media
 
