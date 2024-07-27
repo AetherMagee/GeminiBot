@@ -8,11 +8,16 @@ import db
 import utils
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
-bot_username = os.getenv("BOT_USERNAME")  # This is not the best but I have no idea how do dynamically load it without spamming bot.get_me() requests
+bot_username = os.getenv("BOT_USERNAME")
 
 
 async def handle_normal_message(message: Message) -> None:
-    if not message.text and not message.caption and not message.photo and not message.audio and not message.video:
+    requirement_pass = False
+    for requirement in [message.text, message.caption, message.video, message.photo, message.voice, message.audio]:
+        if requirement:
+            requirement_pass = True
+            break
+    if not requirement_pass:
         return
 
     await db.save_aiogram_message(message)

@@ -1,6 +1,7 @@
 import os
 
 from aiogram.types import Message
+import google.generativeai as genai
 from loguru import logger
 from PIL import Image
 
@@ -13,10 +14,22 @@ async def _download_if_necessary(file_id: str):
         await bot.download(file_id, f"/cache/{file_id}")
 
 
-async def extract_media_artifacts(message: Message) -> list:
-    media_artifacts = []
+async def get_other_media(message: Message, gemini_token: str) -> list:
+    uploaded_media = []
 
-    # Photos
+    genai.configure(api_key=gemini_token)
+    for media_type in [message.audio, message.video, message.voice, message.document]:
+        if media_type and media_type.file_size < 10_000_000:
+            logger.debug(f"Downloading {type(media_type)} | {media_type.mime_type} | {media_type.file_id}")
+            await _download_if_necessary(media_type.file_id)
+            logger.debug(f"Uploading {media_type.file_id}")
+            upload_result = genai.upload_file(path="/cache/" + media_type.file_id, display_name=f"Media file by {message.from_user.id}", mime_type=media_type.mime_type)
+            uploaded_media.append(upload_result)
+
+    return uploaded_media
+
+
+async def get_photo(message: Message) -> Image:
     if message.photo:
         photo_file_id = message.photo[-1].file_id
     elif message.reply_to_message and message.reply_to_message.photo:
@@ -26,34 +39,4 @@ async def extract_media_artifacts(message: Message) -> list:
 
     if photo_file_id:
         await _download_if_necessary(photo_file_id)
-        media_artifacts.append(Image.open(f"/cache/{photo_file_id}"))
-
-    # Audio
-    if message.audio:
-        if message.audio.file_size < 10_000_000:
-            audio_file_id = message.audio.file_id
-        else:
-            audio_file_id = None
-    else:
-        audio_file_id = None
-
-    if audio_file_id:
-        await _download_if_necessary(audio_file_id)
-        with open(f"/cache/{audio_file_id}", "rb") as audio_file:
-            media_artifacts.append(audio_file)
-
-    # Video
-    if message.video:
-        if message.video.file_size < 10_000_000:
-            video_file_id = message.video.file_id
-        else:
-            video_file_id = None
-    else:
-        video_file_id = None
-
-    if video_file_id:
-        await _download_if_necessary(video_file_id)
-        with open(f"/cache/{video_file_id}", "rb") as video_file:
-            media_artifacts.append(video_file)
-
-    return media_artifacts
+        return Image.open(f"/cache/{photo_file_id}")

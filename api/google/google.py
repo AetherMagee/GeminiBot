@@ -12,7 +12,7 @@ import google.generativeai as genai
 
 import db
 from utils import simulate_typing
-from .media import extract_media_artifacts
+from .media import get_photo, get_other_media
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 api_keys = os.getenv("GEMINI_API_KEYS").split(", ")
@@ -27,7 +27,7 @@ async def _get_api_key() -> str:
     return api_keys[api_key_index % len(api_keys)]
 
 
-async def _call_gemini_api(request_id: int, prompt: list, max_attempts: int) -> Union[
+async def _call_gemini_api(request_id: int, prompt: list, max_attempts: int, token: str) -> Union[
     AsyncGenerateContentResponse, None]:
     safety = {
         "SEXUALLY_EXPLICIT": "block_none",
@@ -41,8 +41,6 @@ async def _call_gemini_api(request_id: int, prompt: list, max_attempts: int) -> 
         attempts += 1
         logger.debug(f"{request_id} | Generating, attempt {attempts}")
 
-        token = await _get_api_key()
-        genai.configure(api_key=token)
         model = genai.GenerativeModel("gemini-1.5-pro-latest")
 
         try:
@@ -78,6 +76,8 @@ async def _format_message_for_prompt(message: Record) -> str:
 
 async def generate_response(message: Message) -> str:
     request_id = random.randint(100000, 999999)
+    token = await _get_api_key()
+    genai.configure(api_key=token)
 
     logger.debug(
         f"RID: {request_id} | UID: {message.from_user.id} | CID: {message.chat.id} | MID: {message.message_id}")
@@ -92,7 +92,10 @@ async def generate_response(message: Message) -> str:
     else:
         prompt = await db.get_chat_parameter(message.chat.id, "custom_system_prompt")
 
-    additional_media = await extract_media_artifacts(message)
+    photos = [await get_photo(message)]
+    if not photos[0]:
+        photos = []
+    additional_media = await get_other_media(message, token)
 
     prompt = prompt.format(
         chat_type="direct message (DM)" if message.from_user.id == message.chat.id else "group",
@@ -106,15 +109,17 @@ async def generate_response(message: Message) -> str:
                       "and the User may have additional questions related to the media. If the user speaks to you in "
                       "a language other than English, for example, Russian, adapt. Start your response with \"Это "
                       "изображение содержит\" instead. If it's audio and sounds like a voice message - do what the "
-                      "user asks you to do from it."
+                      "user asks you to do from it." if photos or additional_media else None
     )
 
-    prompt = [prompt] + additional_media
+    prompt = [prompt] + photos + additional_media
 
     api_task = asyncio.create_task(_call_gemini_api(
         request_id,
         prompt,
-        await db.get_chat_parameter(message.chat.id, "max_attempts")))
+        await db.get_chat_parameter(message.chat.id, "max_attempts"),
+        token
+    ))
     typing_task = asyncio.create_task(simulate_typing(message.chat.id))
 
     response = await api_task
