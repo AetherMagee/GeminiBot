@@ -104,8 +104,8 @@ async def generate_response(message: Message) -> str:
         target_message=all_messages_list[-1],
         media_warning="Your target message contains one or several media files. They have been attached with this "
                       "request. Make sure to handle it properly: If it's a video or an image start your response with "
-                      "\"This image contains\" and then describe it in as much detail as you possibly can, for your "
-                      "own sake - you won't be able to see it again, "
+                      "\"This image contains\" or \"This video contains\" and then describe it in as much detail as "
+                      "you possibly can, for your own sake - you won't be able to see it again, "
                       "and the User may have additional questions related to the media. If the user speaks to you in "
                       "a language other than English, for example, Russian, adapt. Start your response with \"Это "
                       "изображение содержит\" instead. If it's audio and sounds like a voice message - do what the "
