@@ -16,8 +16,8 @@ async def reset_command(message: Message):
 
         member = await bot.get_chat_member(message.chat.id, message.from_user.id)
         if member.status not in allowed_statuses:
-            await message.reply("❌ *Доступ запрещён.*")
+            await message.reply(f"❌ <b>Доступ запрещён.</b>")
             return
 
     await db.mark_all_messages_as_deleted(message.chat.id)
-    await message.reply("✅ *Память очищена.*")
+    await message.reply(f"✅ <b>Память очищена.</b>")

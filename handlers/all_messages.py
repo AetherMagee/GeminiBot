@@ -41,7 +41,7 @@ async def handle_normal_message(message: Message) -> None:
             await message.reply(output)
         except Exception as e:
             logger.error(f"Failed to send response: {e}")
-            output = await utils.no_markdown(output)
+            output = await utils.no_html(output)
             await message.reply(output)
             await db.save_system_message(
                 message.chat.id,

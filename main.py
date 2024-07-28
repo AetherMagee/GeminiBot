@@ -14,7 +14,7 @@ if os.path.exists(".env"):
         logger.debug("Loading a .env file. Are we not running in Docker?")
     load_dotenv()
 
-bot = Bot(os.getenv("TELEGRAM_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
+bot = Bot(os.getenv("TELEGRAM_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
 adminMessageFilter = F.from_user.id == int(os.getenv("ADMIN_ID"))
