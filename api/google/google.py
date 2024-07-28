@@ -140,11 +140,11 @@ async def generate_response(message: Message) -> str:
         try:
             if response.prompt_feedback.block_reason:
                 logger.debug(f"{request_id} | Block reason: {response.prompt_feedback}")
-                return "❌ *Запрос был заблокирован цензурой Gemini API.*"
+                return "❌ <b>Запрос был заблокирован цензурой Gemini API.</b>"
             else:
-                return "❌ *Произошел сбой Gemini API.*"
+                return "❌ <b>Произошел сбой Gemini API.</b>"
         except Exception:
-            return "❌ *Произошел сбой Gemini API.*"
+            return "❌ <b>Произошел сбой Gemini API.</b>"
 
 
 async def count_tokens_for_chat(chat_id: int) -> int:
