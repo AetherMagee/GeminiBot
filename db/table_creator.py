@@ -42,3 +42,6 @@ async def create_chat_config_table(conn: Connection) -> None:
                                         f"AND table_name='chat_config' AND column_name='{parameter}')")
         if not check_result[0]["exists"]:
             logger.error(f"{parameter} is missing in your chat_config table!")
+            await conn.execute(f"ALTER TABLE chat_config ADD COLUMN IF NOT EXISTS "
+                               f"{parameter} {chat_configs[parameter]['type']} DEFAULT "
+                               f"{chat_configs[parameter]['default_value']}")
