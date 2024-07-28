@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 import os
 import random
 from typing import Union
@@ -93,13 +92,9 @@ async def generate_response(message: Message) -> str:
         photos = []
     additional_media = await get_other_media(message, token)
 
-    tz_offset = datetime.timedelta(hours=3)
-    tz = datetime.timezone(tz_offset, name="UTC+3")
-
     prompt = prompt.format(
         chat_type="direct message (DM)" if message.from_user.id == message.chat.id else "group",
         chat_title=f" called {message.chat.title}" if message.from_user.id != message.chat.id else f" with {message.from_user.first_name}",
-        current_datetime=str(datetime.datetime.now(tz=tz)),
         all_messages=all_messages,
         target_message=all_messages_list[-1],
         media_warning="Your target message contains one or several media files. They have been attached with this "
