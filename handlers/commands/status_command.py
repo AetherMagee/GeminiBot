@@ -5,8 +5,12 @@ import db
 
 
 async def status_command(message: Message):
-    messages_count = len(await db.get_messages(message.chat.id))  # inefficient and slow but idgaf
-    messages_limit = await db.get_chat_parameter(message.chat.id, "message_history_limit")
+    try:
+        messages_count = len(await db.get_messages(message.chat.id))  # inefficient and slow but idgaf
+    except TypeError:
+        messages_count = 0
+
+    messages_limit = await db.get_chat_parameter(message.chat.id, "message_limit")
 
     text_to_send = f"""✅ *Бот активен!*
 💬 *Память:* {messages_count}/{messages_limit} сообщений _(⏱ Секунду...)_
