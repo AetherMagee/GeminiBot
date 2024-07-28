@@ -1,11 +1,11 @@
 import os
 
+from aiogram import html
 from aiogram.types import Message
 from loguru import logger
 
 import api.google
 import db
-import utils
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 bot_username = os.getenv("BOT_USERNAME")
@@ -41,7 +41,7 @@ async def handle_normal_message(message: Message) -> None:
             await message.reply(output)
         except Exception as e:
             logger.error(f"Failed to send response: {e}")
-            output = await utils.no_html(output)
+            output = html.quote(output)
             await message.reply(output)
             await db.save_system_message(
                 message.chat.id,

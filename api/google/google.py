@@ -97,8 +97,8 @@ async def generate_response(message: Message) -> str:
         chat_title=f" called {message.chat.title}" if message.from_user.id != message.chat.id else f" with {message.from_user.first_name}",
         all_messages=all_messages,
         target_message=all_messages_list[-1],
-        media_warning="Your target message or a message related to it happen to contain some media files. They have "
-                      "been attached for your analysis. When working with these files, follow these rules: 1) If you "
+        media_warning="\n- Your target message or a message related to it happen to contain some media files. They have"
+                      " been attached for your analysis. When working with these files, follow these rules: 1) If you "
                       "are sure that it wasn't described before in the chat history, describe PERFECTLY and AS "
                       "THOROUGHLY AS POSSIBLE whatever is contained in the mediafile. You won't be able to see it "
                       "again, and the User might ask additional questions, so these notes will also function as your "
