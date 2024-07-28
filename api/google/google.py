@@ -81,11 +81,7 @@ async def generate_response(message: Message) -> str:
     logger.debug(
         f"RID: {request_id} | UID: {message.from_user.id} | CID: {message.chat.id} | MID: {message.message_id}")
 
-    prompt_mode = await db.get_chat_parameter(message.chat.id, "system_prompt_mode")
-    if prompt_mode == 0:
-        prompt = default_prompt
-    else:
-        prompt = await db.get_chat_parameter(message.chat.id, "custom_system_prompt")
+    prompt = default_prompt
 
     chat_messages = await db.get_messages(message.chat.id)
     all_messages_list = [await _format_message_for_prompt(message) for message in chat_messages]
@@ -116,7 +112,7 @@ async def generate_response(message: Message) -> str:
     api_task = asyncio.create_task(_call_gemini_api(
         request_id,
         prompt,
-        await db.get_chat_parameter(message.chat.id, "max_attempts"),
+        3,
         token
     ))
     typing_task = asyncio.create_task(simulate_typing(message.chat.id))
