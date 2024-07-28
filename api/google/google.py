@@ -132,7 +132,7 @@ async def generate_response(message: Message) -> str:
     logger.info(f"{request_id} | Complete")
 
     try:
-        output = response.text
+        output = response.text.replace("  ", " ")
         await db.save_our_message(message, output)
         return output
     except Exception as e:
