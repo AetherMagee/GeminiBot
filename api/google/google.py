@@ -1,11 +1,13 @@
 import asyncio
 import os
 import random
+import traceback
 from typing import Union
 
 import google.generativeai as genai
 from aiogram.types import Message
 from asyncpg import Record
+from google.api_core.exceptions import InvalidArgument
 from google.generativeai.types import AsyncGenerateContentResponse
 from loguru import logger
 
@@ -27,7 +29,7 @@ async def _get_api_key() -> str:
 
 
 async def _call_gemini_api(request_id: int, prompt: list, max_attempts: int, token: str) -> Union[
-    AsyncGenerateContentResponse, None]:
+    AsyncGenerateContentResponse, str, None]:
     safety = {
         "SEXUALLY_EXPLICIT": "block_none",
         "HARASSMENT": "block_none",
@@ -45,6 +47,8 @@ async def _call_gemini_api(request_id: int, prompt: list, max_attempts: int, tok
         try:
             response = await model.generate_content_async(prompt, safety_settings=safety)
             return response
+        except InvalidArgument:
+            return "❌ <b>Такие файлы не поддерживаются Gemini API.</b>"
         except Exception as e:
             logger.error(f"{request_id} | Error \"{e}\" on key: {token}")
 
@@ -133,7 +137,10 @@ async def generate_response(message: Message) -> str:
     logger.info(f"{request_id} | Complete")
 
     try:
-        output = response.text.replace("  ", " ")
+        if isinstance(response, AsyncGenerateContentResponse):
+            output = response.text.replace("  ", " ")
+        else:
+            output = response
         await db.save_our_message(message, output)
         return output
     except Exception as e:
@@ -141,10 +148,18 @@ async def generate_response(message: Message) -> str:
         try:
             if response.prompt_feedback.block_reason:
                 logger.debug(f"{request_id} | Block reason: {response.prompt_feedback}")
+                await db.save_system_message(message.chat.id, "Your response was supposed to be here, but you failed "
+                                                              "to reply for some reason. Be better next time.")
                 return "❌ <b>Запрос был заблокирован цензурой Gemini API.</b>"
             else:
+                await db.save_system_message(message.chat.id,
+                                             "Your response was supposed to be here, but you failed to reply for some "
+                                             "reason. Be better next time.")
                 return "❌ <b>Произошел сбой Gemini API.</b>"
         except Exception:
+            await db.save_system_message(message.chat.id,
+                                         "Your response was supposed to be here, but you failed to reply for some "
+                                         "reason. Be better next time.")
             return "❌ <b>Произошел сбой Gemini API.</b>"
 
 
