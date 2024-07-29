@@ -11,6 +11,8 @@ async def simulate_typing(chat_id: int) -> None:
     Should only be called as an asyncio task, contains "while True" and needs to be stopped externally.
     """
 
-    while True:
+    loops = 0
+    while loops < 10:
         await bot.send_chat_action(chat_id, ChatAction.TYPING)
         await asyncio.sleep(4)
+        loops += 1
