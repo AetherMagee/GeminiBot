@@ -87,6 +87,8 @@ async def generate_response(message: Message) -> str:
     all_messages_list = [await _format_message_for_prompt(message) for message in chat_messages]
     all_messages = "\n".join(all_messages_list)
 
+    typing_task = asyncio.create_task(simulate_typing(message.chat.id))
+
     photos = [await get_photo(message)]
     if not photos[0]:
         photos = []
@@ -119,7 +121,6 @@ async def generate_response(message: Message) -> str:
         3,
         token
     ))
-    typing_task = asyncio.create_task(simulate_typing(message.chat.id))
 
     response = await api_task
     typing_task.cancel()
