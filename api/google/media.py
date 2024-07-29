@@ -14,7 +14,7 @@ async def _download_if_necessary(file_id: str):
         await bot.download(file_id, f"/cache/{file_id}")
 
 
-async def get_other_media(message: Message, gemini_token: str, recursion: bool = False) -> list:
+async def get_other_media(message: Message, gemini_token: str) -> list:
     uploaded_media = []
 
     genai.configure(api_key=gemini_token)
@@ -33,8 +33,8 @@ async def get_other_media(message: Message, gemini_token: str, recursion: bool =
             upload_result = genai.upload_file(path="/cache/" + media_type.file_id, display_name=f"Media file by {message.from_user.id}", mime_type=mime_type)
             uploaded_media.append(upload_result)
 
-    if message.reply_to_message and not recursion:
-        uploaded_media = uploaded_media + await get_other_media(message.reply_to_message, gemini_token, True)
+    if message.reply_to_message:
+        uploaded_media = uploaded_media + await get_other_media(message.reply_to_message, gemini_token)
 
     return uploaded_media
 
