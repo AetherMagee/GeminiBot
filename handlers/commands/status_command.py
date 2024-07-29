@@ -5,10 +5,7 @@ import db
 
 
 async def status_command(message: Message):
-    try:
-        messages = await db.get_messages(message.chat.id)  # inefficient and slow but idgaf
-    except TypeError:
-        messages = []
+    messages = await db.get_messages(message.chat.id)
 
     messages_limit = await db.get_chat_parameter(message.chat.id, "message_limit")
 
