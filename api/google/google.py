@@ -148,19 +148,18 @@ async def generate_response(message: Message) -> str:
             return "❌ <b>Произошел сбой Gemini API.</b>"
 
 
-async def count_tokens_for_chat(chat_id: int) -> int:
+async def count_tokens_for_chat(messages_list: list) -> int:
     key = await _get_api_key()
     genai.configure(api_key=key)
     model = genai.GenerativeModel("gemini-1.5-pro-latest")
 
-    chat_messages = await db.get_messages(chat_id)
-    all_messages_list = [await _format_message_for_prompt(message) for message in chat_messages]
+    all_messages_list = [await _format_message_for_prompt(message) for message in messages_list]
     all_messages = "\n".join(all_messages_list)
 
     try:
         token_count = (await model.count_tokens_async(all_messages)).total_tokens
     except Exception as e:
-        logger.error(f"{chat_id} | Failed to count tokens. Exception: {e}")
+        logger.error(f"Failed to count tokens. Exception: {e}")
         token_count = 0
 
     return token_count
