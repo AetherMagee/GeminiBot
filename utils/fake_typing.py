@@ -8,7 +8,7 @@ from main import bot
 async def simulate_typing(chat_id: int) -> None:
     """
     Simulates typing action for a given chat id.
-    Should only be called as an asyncio task, contains "while True" and needs to be stopped externally.
+    Should only be called as an asyncio task.
     """
 
     loops = 0
