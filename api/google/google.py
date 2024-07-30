@@ -139,9 +139,13 @@ async def generate_response(message: Message) -> str:
     try:
         if isinstance(response, AsyncGenerateContentResponse):
             output = response.text.replace("  ", " ")
-        else:
+        elif isinstance(response, str):
             output = response
-        await db.save_our_message(message, output)
+        else:
+            logger.error(f"{request_id} | What? {type(response)}")
+            output = "❌ <b>Произошел сбой Gemini API.</b>"
+        if not output.startswith("❌"):
+            await db.save_our_message(message, output)
         return output
     except Exception as e:
         logger.error(f"{request_id} | Failed to generate message. Exception: {e}")
