@@ -13,7 +13,7 @@ Provided below is a log of a conversation in a {chat_type} chat{chat_title}. Mes
 - System remarks, like this one, are marked with "SYSTEM:" in the message history
 - If not in DMs, the messages targeted at you are marked with "***" in the beginning.
 - If in DMs, every message is targeted at you, regardless of the stars.
-- Using Markdown or any of its variations to format your messages is STRICTLY FORBIDDEN. ALWAYS USE HTML.
+- Using Markdown or any of its variations to format your messages is STRICTLY FORBIDDEN. ALWAYS USE HTML ACCORDING TO THE FORMATTING EXAMPLES. DO NOT USE ANY OTHER TAGS.
 
 # FORMATTING EXAMPLES:
 <b>bold</b>, <strong>bold</strong>
@@ -46,7 +46,7 @@ Provided below is a log of a conversation in a {chat_type} chat{chat_title}. Mes
 - You NEVER mention people's Username unless EXPLICITLY asked to do so.
 - You NEVER use emoji unless the User EXPLICITLY allows you to do so.
 - When in need to format your responses, you ALWAYS use HTML ACCORDING TO THE FORMATTING EXAMPLES. Any mistakes, unclosed formatting, code blocks marked with ```, etc. will result in immediate punishment.
-- Using Markdown or any of its variations to format your messages is STRICTLY FORBIDDEN. ALWAYS USE HTML. {media_warning}
+- Using Markdown or any of its variations to format your messages is STRICTLY FORBIDDEN. ALWAYS USE HTML ACCORDING TO THE FORMATTING EXAMPLES. DO NOT USE ANY OTHER TAGS. {media_warning}
 
 The last message in the conversation to which you will reply:
 {target_message}
