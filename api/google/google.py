@@ -143,7 +143,9 @@ async def generate_response(message: Message) -> str:
             output = response
         else:
             logger.error(f"{request_id} | What? {type(response)}")
-            output = "❌ <b>Произошел сбой Gemini API.</b>"
+            await db.save_system_message(message.chat.id, "Your response was supposed to be here, but you failed "
+                                                          "to reply for some reason. Be better next time.")
+            output = "❌ *Произошел сбой Gemini API.*"
         if not output.startswith("❌"):
             await db.save_our_message(message, output)
         return output
@@ -154,17 +156,17 @@ async def generate_response(message: Message) -> str:
                 logger.debug(f"{request_id} | Block reason: {response.prompt_feedback}")
                 await db.save_system_message(message.chat.id, "Your response was supposed to be here, but you failed "
                                                               "to reply for some reason. Be better next time.")
-                return "❌ <b>Запрос был заблокирован цензурой Gemini API.</b>"
+                return "❌ *Запрос был заблокирован цензурой Gemini API.*"
             else:
                 await db.save_system_message(message.chat.id,
                                              "Your response was supposed to be here, but you failed to reply for some "
                                              "reason. Be better next time.")
-                return "❌ <b>Произошел сбой Gemini API.</b>"
+                return "❌ *Произошел сбой Gemini API.*"
         except Exception:
             await db.save_system_message(message.chat.id,
                                          "Your response was supposed to be here, but you failed to reply for some "
                                          "reason. Be better next time.")
-            return "❌ <b>Произошел сбой Gemini API.</b>"
+            return "❌ *Произошел сбой Gemini API.*"
 
 
 async def count_tokens_for_chat(messages_list: list) -> int:
