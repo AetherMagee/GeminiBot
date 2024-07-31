@@ -1,11 +1,12 @@
 import os
 
-from aiogram import html
+from aiogram.enums import ParseMode
 from aiogram.types import Message
 from loguru import logger
 
 import api.google
 import db
+import utils
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 bot_username = os.getenv("BOT_USERNAME")
@@ -38,11 +39,11 @@ async def handle_normal_message(message: Message) -> None:
             or message.chat.id == message.from_user.id:
         output = await api.google.generate_response(message)
         try:
-            await message.reply(output)
+            await message.reply(output, parse_mode=ParseMode.MARKDOWN)
         except Exception as e:
             logger.error(f"Failed to send response: {e}")
             try:
-                output = html.quote(output)
+                output = await utils.no_markdown(output)
                 await message.reply(output)
                 await db.save_system_message(
                     message.chat.id,
