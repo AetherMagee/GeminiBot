@@ -47,7 +47,7 @@ async def settings_command(message: Message) -> None:
 
 
 async def set_command(message: Message) -> None:
-    if message.chat.id != message.from_user.id and message.from_user.id != os.getenv("ADMIN_ID"):
+    if message.chat.id != message.from_user.id and message.from_user.id != int(os.getenv("ADMIN_ID")):
         member = await bot.get_chat_member(message.chat.id, message.from_user.id)
         if member.status not in ["administrator", "creator"]:
             await message.reply("❌ <b>Параметры могут менять только администраторы.</b>")
