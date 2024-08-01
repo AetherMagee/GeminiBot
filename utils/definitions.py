@@ -1,3 +1,5 @@
+import api.google
+
 chat_configs = {
     "message_limit": {
         "description": "Максимум сообщений в памяти бота",
@@ -16,5 +18,11 @@ chat_configs = {
         "type": "boolean",
         "default_value": False,
         "accepted_values": [True, False]
+    },
+    "model": {
+        "description": "Используемая ботом модель Gemini",
+        "type": "text",
+        "default_value": "\'gemini-1.5-pro-latest\'",
+        "accepted_values": api.google.get_available_models()
     }
 }

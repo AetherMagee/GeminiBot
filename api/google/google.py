@@ -1,7 +1,6 @@
 import asyncio
 import os
 import random
-import traceback
 from typing import Union
 
 import google.generativeai as genai
@@ -22,13 +21,26 @@ with open(os.getenv("DEFAULT_SYSTEM_PROMPT_FILE_PATH"), "r") as f:
     default_prompt = f.read()
 
 
-async def _get_api_key() -> str:
+def _get_api_key() -> str:
     global api_key_index
     api_key_index += 1
     return api_keys[api_key_index % len(api_keys)]
 
 
-async def _call_gemini_api(request_id: int, prompt: list, max_attempts: int, token: str) -> Union[
+def get_available_models() -> list:
+    logger.info("Getting available models...")
+    genai.configure(api_key=_get_api_key())
+    models = genai.list_models()
+    model_list = []
+    hidden = ["bison", "aqa", "embedding", "gecko"]
+    for model in models:
+        if not any(hidden_word in model.name for hidden_word in hidden):
+            model_list.append(model.name.replace("models/", ""))
+
+    return model_list
+
+
+async def _call_gemini_api(request_id: int, prompt: list, max_attempts: int, token: str, model_name: str) -> Union[
     AsyncGenerateContentResponse, str, None]:
     safety = {
         "SEXUALLY_EXPLICIT": "block_none",
@@ -37,12 +49,14 @@ async def _call_gemini_api(request_id: int, prompt: list, max_attempts: int, tok
         "DANGEROUS": "block_none",
     }
 
+    logger.debug(f"{request_id} | Using model {model_name}")
+
     attempts = 0
     while attempts < max_attempts:
         attempts += 1
         logger.debug(f"{request_id} | Generating, attempt {attempts}")
 
-        model = genai.GenerativeModel("gemini-1.5-pro-latest")
+        model = genai.GenerativeModel(model_name)
 
         try:
             response = await model.generate_content_async(prompt, safety_settings=safety)
@@ -81,7 +95,7 @@ async def _format_message_for_prompt(message: Record) -> str:
 
 async def generate_response(message: Message) -> str:
     request_id = random.randint(100000, 999999)
-    token = await _get_api_key()
+    token = _get_api_key()
     genai.configure(api_key=token)
 
     logger.debug(
@@ -120,12 +134,14 @@ async def generate_response(message: Message) -> str:
     )
 
     prompt = [prompt] + photos + additional_media
+    model_name = await db.get_chat_parameter(message.chat.id, "model")
 
     api_task = asyncio.create_task(_call_gemini_api(
         request_id,
         prompt,
         3,
-        token
+        token,
+        model_name
     ))
 
     response = await api_task
