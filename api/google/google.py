@@ -51,6 +51,8 @@ async def _call_gemini_api(request_id: int, prompt: list, max_attempts: int, tok
             return "❌ <b>Такие файлы не поддерживаются Gemini API.</b>"
         except Exception as e:
             logger.error(f"{request_id} | Error \"{e}\" on key: {token}")
+            if attempts == max_attempts - 1:
+                return e
 
     return None
 
@@ -136,11 +138,16 @@ async def generate_response(message: Message) -> str:
 
     logger.info(f"{request_id} | Complete")
 
+    show_error_message = await db.get_chat_parameter(message.chat.id, "show_error_messages")
+
     try:
         if isinstance(response, AsyncGenerateContentResponse):
             output = response.text.replace("  ", " ")
         elif isinstance(response, str):
             output = response
+        elif isinstance(response, Exception):
+            error_message = (": " + str(response)) if show_error_message else ""
+            output = f"❌ *Произошел сбой Gemini API{error_message}*"
         else:
             logger.error(f"{request_id} | What? {type(response)}")
             await db.save_system_message(message.chat.id, "Your response was supposed to be here, but you failed "
@@ -161,7 +168,8 @@ async def generate_response(message: Message) -> str:
                 await db.save_system_message(message.chat.id,
                                              "Your response was supposed to be here, but you failed to reply for some "
                                              "reason. Be better next time.")
-                return "❌ *Произошел сбой Gemini API.*"
+                error_message = (": " + str(e)) if show_error_message else ""
+                return f"❌ *Произошел сбой Gemini API{error_message}.*"
         except Exception:
             await db.save_system_message(message.chat.id,
                                          "Your response was supposed to be here, but you failed to reply for some "

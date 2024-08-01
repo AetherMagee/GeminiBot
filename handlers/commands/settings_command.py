@@ -36,7 +36,10 @@ async def settings_command(message: Message) -> None:
         if isinstance(_value_range, range):
             accepted_values = f"{_value_range.start}-{_value_range.stop}"
         else:
-            accepted_values = ", ".join(_value_range)
+            try:
+                accepted_values = ", ".join(_value_range)
+            except Exception:
+                accepted_values = "True, False"
         text += f"Допустимые: {accepted_values}"
 
         logger.debug(text)
@@ -63,6 +66,11 @@ async def set_command(message: Message) -> None:
     if chat_configs[requested_parameter]["type"] == "integer":
         try:
             requested_value = int(requested_value)
+        except ValueError:
+            requested_value = None
+    if chat_configs[requested_parameter]["type"] == "boolean":
+        try:
+            requested_value = bool(requested_value)
         except ValueError:
             requested_value = None
 

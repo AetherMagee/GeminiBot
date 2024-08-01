@@ -11,4 +11,10 @@ chat_configs = {
         "default_value": "\'all\'",
         "accepted_values": ["all", "admins", "owner"]
     },
+    "show_error_messages": {
+        "description": "Показывать ли подробные сообщения об ошибке",
+        "type": "boolean",
+        "default_value": False,
+        "accepted_values": [True, False]
+    }
 }
