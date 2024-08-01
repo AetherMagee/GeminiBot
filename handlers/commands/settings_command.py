@@ -1,3 +1,4 @@
+import os
 import traceback
 
 from aiogram.types import Message
@@ -42,12 +43,11 @@ async def settings_command(message: Message) -> None:
                 accepted_values = "True, False"
         text += f"Допустимые: {accepted_values}"
 
-        logger.debug(text)
         await message.reply(text)
 
 
 async def set_command(message: Message) -> None:
-    if message.chat.id != message.from_user.id:
+    if message.chat.id != message.from_user.id and message.from_user.id != os.getenv("ADMIN_ID"):
         member = await bot.get_chat_member(message.chat.id, message.from_user.id)
         if member.status not in ["administrator", "creator"]:
             await message.reply("❌ <b>Параметры могут менять только администраторы.</b>")
