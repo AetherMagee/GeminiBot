@@ -193,10 +193,10 @@ async def generate_response(message: Message) -> str:
             return "❌ *Произошел сбой Gemini API.*"
 
 
-async def count_tokens_for_chat(messages_list: list) -> int:
-    key = await _get_api_key()
+async def count_tokens_for_chat(messages_list: list, model_name: str) -> int:
+    key = _get_api_key()
     genai.configure(api_key=key)
-    model = genai.GenerativeModel("gemini-1.5-pro-latest")
+    model = genai.GenerativeModel(model_name)
 
     all_messages_list = [await _format_message_for_prompt(message) for message in messages_list]
     all_messages = "\n".join(all_messages_list)
