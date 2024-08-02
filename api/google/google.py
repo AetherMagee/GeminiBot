@@ -101,8 +101,6 @@ async def generate_response(message: Message) -> str:
     logger.debug(
         f"RID: {request_id} | UID: {message.from_user.id} | CID: {message.chat.id} | MID: {message.message_id}")
 
-    prompt = default_prompt
-
     chat_messages = await db.get_messages(message.chat.id)
     all_messages_list = [await _format_message_for_prompt(message) for message in chat_messages]
     all_messages = "\n".join(all_messages_list)
@@ -114,24 +112,29 @@ async def generate_response(message: Message) -> str:
         photos = []
     additional_media = await get_other_media(message, token)
 
-    prompt = prompt.format(
-        chat_type="direct message (DM)" if message.from_user.id == message.chat.id else "group",
-        chat_title=f" called {message.chat.title}" if message.from_user.id != message.chat.id else f" with {message.from_user.first_name}",
-        all_messages=all_messages,
-        target_message=all_messages_list[-1],
-        media_warning="\n- Your target message or a message related to it happen to contain some media files. They have"
-                      " been attached for your analysis. When working with these files, follow these rules: 1) If you "
-                      "are sure that it wasn't described before in the chat history, describe PERFECTLY and AS "
-                      "THOROUGHLY AS POSSIBLE whatever is contained in the mediafile. You won't be able to see it "
-                      "again, and the User might ask additional questions, so these notes will also function as your "
-                      "future guidelines. When describing, start with \"This <media_type> contains\" in the User's "
-                      "language. For example, when working with an image and talking in a Russian-speaking chat, "
-                      "start with \"Это изображение содержит\". 2) Perform what the user asks you to do. So, "
-                      "if it's an image and the User wants the text on it - say it. If it's an audio resembling a "
-                      "voice message - transcript it as accurately as possible, then handle it as a normal message "
-                      "directed at you. So, if it has any instructions for you - execute them. Otherwise, "
-                      "ask the User what they want exactly." if photos or additional_media else None
-    )
+    if not message.text.startswith("/raw"):
+        prompt = default_prompt
+        prompt = prompt.format(
+            chat_type="direct message (DM)" if message.from_user.id == message.chat.id else "group",
+            chat_title=f" called {message.chat.title}" if message.from_user.id != message.chat.id else f" with {message.from_user.first_name}",
+            all_messages=all_messages,
+            target_message=all_messages_list[-1],
+            media_warning="\n- Your target message or a message related to it happen to contain some media files. "
+                          "They have been attached for your analysis. When working with these files, follow these "
+                          "rules: 1) If you are sure that it wasn't described before in the chat history, "
+                          "describe PERFECTLY and AS THOROUGHLY AS POSSIBLE whatever is contained in the mediafile. "
+                          "You won't be able to see it again, and the User might ask additional questions, "
+                          "so these notes will also function as your future guidelines. When describing, start with "
+                          "\"This <media_type> contains\" in the User's language. For example, when working with an "
+                          "image and talking in a Russian-speaking chat, start with \"Это изображение содержит\". 2) "
+                          "Perform what the user asks you to do. So, if it's an image and the User wants the text on "
+                          "it - say it. If it's an audio resembling a voice message - transcript it as accurately as "
+                          "possible, then handle it as a normal message directed at you. So, if it has any "
+                          "instructions for you - execute them. Otherwise, ask the User what they want exactly." if
+            photos or additional_media else None
+        )
+    else:
+        prompt = message.text.replace("/raw ", "", 1)
 
     prompt = [prompt] + photos + additional_media
     model_name = await db.get_chat_parameter(message.chat.id, "model")
