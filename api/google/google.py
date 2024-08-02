@@ -133,8 +133,14 @@ async def generate_response(message: Message) -> str:
                           "instructions for you - execute them. Otherwise, ask the User what they want exactly." if
             photos or additional_media else None
         )
+        store = True
     else:
         prompt = message.text.replace("/raw ", "", 1)
+        if "--dont-store" in prompt:
+            store = False
+            prompt = prompt.replace("--dont-store", "", 1)
+        else:
+            store = True
 
     prompt = [prompt] + photos + additional_media
     model_name = await db.get_chat_parameter(message.chat.id, "model")
@@ -169,10 +175,11 @@ async def generate_response(message: Message) -> str:
             output = f"❌ *Произошел сбой Gemini API{error_message}*"
         else:
             logger.error(f"{request_id} | What? {type(response)}")
-            await db.save_system_message(message.chat.id, "Your response was supposed to be here, but you failed "
-                                                          "to reply for some reason. Be better next time.")
+            if store:
+                await db.save_system_message(message.chat.id, "Your response was supposed to be here, but you failed "
+                                                              "to reply for some reason. Be better next time.")
             output = "❌ *Произошел сбой Gemini API.*"
-        if not output.startswith("❌"):
+        if not output.startswith("❌") and store:
             await db.save_our_message(message, output)
         return output
     except Exception as e:
@@ -180,19 +187,22 @@ async def generate_response(message: Message) -> str:
         try:
             if response.prompt_feedback.block_reason:
                 logger.debug(f"{request_id} | Block reason: {response.prompt_feedback}")
-                await db.save_system_message(message.chat.id, "Your response was supposed to be here, but you failed "
-                                                              "to reply for some reason. Be better next time.")
+                if store:
+                    await db.save_system_message(message.chat.id, "Your response was supposed to be here, but you "
+                                                                  "failed to reply for some reason. Be better next time.")
                 return "❌ *Запрос был заблокирован цензурой Gemini API.*"
             else:
-                await db.save_system_message(message.chat.id,
-                                             "Your response was supposed to be here, but you failed to reply for some "
-                                             "reason. Be better next time.")
+                if store:
+                    await db.save_system_message(message.chat.id,
+                                                 "Your response was supposed to be here, but you failed to reply for "
+                                                 "some reason. Be better next time.")
                 error_message = (": " + str(e)) if show_error_message else ""
                 return f"❌ *Произошел сбой Gemini API{error_message}.*"
         except Exception:
-            await db.save_system_message(message.chat.id,
-                                         "Your response was supposed to be here, but you failed to reply for some "
-                                         "reason. Be better next time.")
+            if store:
+                await db.save_system_message(message.chat.id,
+                                             "Your response was supposed to be here, but you failed to reply for some "
+                                             "reason. Be better next time.")
             return "❌ *Произошел сбой Gemini API.*"
 
 
