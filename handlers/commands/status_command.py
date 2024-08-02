@@ -10,9 +10,11 @@ async def status_command(message: Message):
     messages = await db.get_messages(message.chat.id)
 
     messages_limit = await db.get_chat_parameter(message.chat.id, "message_limit")
+    current_model = await db.get_chat_parameter(message.chat.id, "model")
 
     text_to_send = f"""✅ <b>Бот активен!</b>
 💬 <b>Память:</b> {len(messages)}/{messages_limit} сообщений <i>(⏱ Секунду...)</i>
+✨ <b>Модель:</b> <i>{current_model}</i>
 🆔 <b>ID чата:</b> <code>{message.chat.id}</code>"""
 
     reply = await message.reply(text_to_send)
