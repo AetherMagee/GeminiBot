@@ -2,6 +2,7 @@ import os
 from typing import Optional
 
 from aiogram.types import Message
+from loguru import logger
 
 import api.google
 import db
@@ -28,7 +29,7 @@ def get_git_commit_hash() -> str:
             if not GIT_COMMIT_HASH:
                 raise FileNotFoundError
         except Exception as e:
-            print(f"Error reading git commit hash: {e}")
+            logger.error(f"Error reading git commit hash: {e}")
             GIT_COMMIT_HASH = "Unknown"
     return GIT_COMMIT_HASH
 
@@ -51,5 +52,5 @@ async def status_command(message: Message):
 
     token_count = await api.google.count_tokens_for_chat(messages,
                                                          await db.get_chat_parameter(message.chat.id, "model"))
-    text_to_send = text_to_send.replace("⏱ Секунду...", f"токенов: {token_count}")
+    text_to_send = text_to_send.replace("⏱ Секунду...", f"{token_count} токенов")
     await reply.edit_text(text_to_send)
