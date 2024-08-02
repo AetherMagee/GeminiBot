@@ -7,7 +7,8 @@ from api.google import generate_response
 
 
 async def raw_command(message: Message) -> None:
-    command = message.text.split(" ", maxsplit=1)
+    message_text = message.text if message.text else message.caption
+    command = message_text.split(" ", maxsplit=1)
     if len(command) != 2:
         await message.reply("❌ <b>Использование команды:</b> <i>/raw [текст]</i>")
         return

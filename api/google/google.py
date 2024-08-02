@@ -97,6 +97,7 @@ async def generate_response(message: Message) -> str:
     request_id = random.randint(100000, 999999)
     token = _get_api_key()
     genai.configure(api_key=token)
+    message_text = message.text if message.text else message.caption
 
     logger.debug(
         f"RID: {request_id} | UID: {message.from_user.id} | CID: {message.chat.id} | MID: {message.message_id}")
@@ -112,7 +113,7 @@ async def generate_response(message: Message) -> str:
         photos = []
     additional_media = await get_other_media(message, token)
 
-    if not message.text.startswith("/raw"):
+    if not message_text.startswith("/raw"):
         prompt = default_prompt
         prompt = prompt.format(
             chat_type="direct message (DM)" if message.from_user.id == message.chat.id else "group",
@@ -135,7 +136,7 @@ async def generate_response(message: Message) -> str:
         )
         store = True
     else:
-        prompt = message.text.replace("/raw ", "", 1)
+        prompt = message_text.replace("/raw ", "", 1)
         if "--dont-store" in prompt:
             store = False
             prompt = prompt.replace("--dont-store", "", 1)
