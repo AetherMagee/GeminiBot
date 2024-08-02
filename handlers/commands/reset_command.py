@@ -2,9 +2,11 @@ from aiogram.types import Message
 
 import db
 from main import bot
+from utils import log_command
 
 
 async def reset_command(message: Message):
+    log_command(message)
     if not message.from_user.id == message.chat.id:
         permission_mode = await db.get_chat_parameter(message.chat.id, "reset_permission")
         if permission_mode == "owner":
