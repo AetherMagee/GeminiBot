@@ -5,7 +5,7 @@ from utils import log_command
 
 
 async def sql_command(message: Message):
-    log_command(message)
+    await log_command(message)
     try:
         command = message.text.split(" ", maxsplit=1)
         async with dbs.pool.acquire() as conn:

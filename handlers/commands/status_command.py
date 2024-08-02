@@ -35,7 +35,7 @@ def get_git_commit_hash() -> str:
 
 
 async def status_command(message: Message):
-    log_command(message)
+    await log_command(message)
     messages = await db.get_messages(message.chat.id)
 
     messages_limit = await db.get_chat_parameter(message.chat.id, "message_limit")

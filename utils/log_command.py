@@ -1,8 +1,11 @@
 from aiogram.types import Message
 from loguru import logger
 
+from utils import get_message_text
 
-def log_command(message: Message) -> None:
-    if not message.text.startswith("/"):
+
+async def log_command(message: Message) -> None:
+    text = await get_message_text(message)
+    if not text.startswith("/"):
         return
-    logger.debug(f"{message.from_user.id} | {message.chat.id} | {message.text if message.text else message.caption}")
+    logger.debug(f"{message.from_user.id} | {message.chat.id} | {text}")

@@ -6,7 +6,7 @@ from utils import log_command
 
 
 async def directsend_command(message: Message):
-    log_command(message)
+    await log_command(message)
     command = message.text.split(' ', maxsplit=2)
     logger.info(f"Sending direct message to {command[1]}")
     await bot.send_message(int(command[1]), command[2])

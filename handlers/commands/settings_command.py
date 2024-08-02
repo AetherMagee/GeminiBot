@@ -11,7 +11,7 @@ from utils.definitions import chat_configs
 
 
 async def settings_command(message: Message) -> None:
-    log_command(message)
+    await log_command(message)
     command = message.text.split(" ", maxsplit=1)
     if len(command) == 1:
         text = "<b>Доступные параметры бота:</b> \n"

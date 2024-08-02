@@ -8,7 +8,7 @@ from utils import log_command
 
 
 async def start_command(message: Message):
-    log_command(message)
+    await log_command(message)
     await message.reply("👋")
     await bot.send_chat_action(message.chat.id, ChatAction.TYPING)
     await asyncio.sleep(2)

@@ -6,7 +6,7 @@ from loguru import logger
 
 import api.google
 import db
-import utils
+from utils import get_message_text, no_markdown
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 bot_username = os.getenv("BOT_USERNAME")
@@ -22,12 +22,7 @@ async def handle_normal_message(message: Message) -> None:
     if not requirement_pass:
         return
 
-    if message.text:
-        text = message.text
-    elif message.caption:
-        text = message.caption
-    else:
-        text = ""
+    text = await get_message_text(message)
 
     if text.startswith("/"):
         return
@@ -43,11 +38,11 @@ async def handle_normal_message(message: Message) -> None:
         except Exception as e:
             logger.error(f"Failed to send response: {e}")
             try:
-                output = await utils.no_markdown(output)
+                output = await no_markdown(output)
                 await message.reply(output)
                 await db.save_system_message(
                     message.chat.id,
                     "Your previous message was not accepted by the endpoint due to bad formatting. The user sees your "
                     "message WITHOUT your formatting. Do better next time. Keep the formatting rules in mind.")
-            except Exception as e:
+            except Exception:
                 await message.reply("❌ <b>Telegram не принимает ответ бота.</b>")

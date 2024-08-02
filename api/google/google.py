@@ -11,7 +11,7 @@ from google.generativeai.types import AsyncGenerateContentResponse
 from loguru import logger
 
 import db
-from utils import simulate_typing
+from utils import get_message_text, simulate_typing
 from .media import get_other_media, get_photo
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
@@ -152,7 +152,7 @@ async def generate_response(message: Message) -> str:
     request_id = random.randint(100000, 999999)
     token = _get_api_key()
     genai.configure(api_key=token)
-    message_text = message.text if message.text else message.caption
+    message_text = await get_message_text(message)
 
     logger.debug(
         f"RID: {request_id} | UID: {message.from_user.id} | CID: {message.chat.id} | MID: {message.message_id}"
