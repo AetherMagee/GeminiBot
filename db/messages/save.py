@@ -53,6 +53,15 @@ async def _save_message(chat_id: int, message_id: int, time: datetime.datetime, 
                                 sender_name, text, reply_to_message_id, reply_to_message_text)
 
 
+async def _get_message_text(message: Message) -> str:
+    if message.text:
+        return message.text
+    elif message.caption:
+        return message.caption
+    else:
+        return ""
+
+
 async def save_aiogram_message(message: Message):
     await _save_message(
         message.chat.id,
@@ -61,9 +70,9 @@ async def save_aiogram_message(message: Message):
         message.from_user.id,
         message.from_user.username,
         message.from_user.first_name,
-        message.text if message.text else message.caption,
+        await _get_message_text(message),
         message.reply_to_message.message_id if message.reply_to_message else None,
-        truncate_str(message.reply_to_message.text) if message.reply_to_message else None  # TODO: support captions
+        truncate_str(await _get_message_text(message.reply_to_message)) if message.reply_to_message else None
     )
 
 
@@ -77,7 +86,7 @@ async def save_our_message(trigger_message: Message, text: str):
         "You",
         text,
         trigger_message.message_id,
-        truncate_str(trigger_message.text) if trigger_message.text else truncate_str(trigger_message.caption)
+        truncate_str(await _get_message_text(trigger_message))
     )
 
 
