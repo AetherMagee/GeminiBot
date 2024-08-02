@@ -50,5 +50,4 @@ async def handle_normal_message(message: Message) -> None:
                     "Your previous message was not accepted by the endpoint due to bad formatting. The user sees your "
                     "message WITHOUT your formatting. Do better next time. Keep the formatting rules in mind.")
             except Exception as e:
-                await message.reply("❌ <b>Gemini API выдало какой то пиздец с которым я даже не знаю как работать, "
-                                    "поэтому вместо него держите это сообщение об ошибке. </b>")
+                await message.reply("❌ <b>Telegram не принимает ответ бота.</b>")
