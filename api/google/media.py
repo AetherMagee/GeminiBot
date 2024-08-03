@@ -1,11 +1,30 @@
+import asyncio
 import os
+import sys
+import threading
 
 import google.generativeai as genai
 from aiogram.types import Message, Sticker, VideoNote
+from google.generativeai.types import File
 from loguru import logger
 from PIL import Image
 
 from main import bot
+
+
+class ReturnValueThread(threading.Thread):
+    def __init__(self, target, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.result = None
+        self.target = target
+
+    def run(self):
+        if not self.target:
+            return
+        try:
+            self.result = self.target(*self._args, **self._kwargs)
+        except Exception as exc:
+            print(f'{type(exc).__name__}: {exc}', file=sys.stderr)
 
 
 async def _download_if_necessary(file_id: str):
@@ -17,7 +36,6 @@ async def _download_if_necessary(file_id: str):
 async def get_other_media(message: Message, gemini_token: str) -> list:
     uploaded_media = []
 
-    genai.configure(api_key=gemini_token)
     for media_type in [message.audio, message.video, message.voice, message.document, message.video_note, message.sticker]:
         if media_type and media_type.file_size < 10_000_000:
             logger.debug(f"Downloading {type(media_type)} | {media_type.file_id}")
@@ -34,8 +52,24 @@ async def get_other_media(message: Message, gemini_token: str) -> list:
                         mime_type = "image/webp"
                 else:
                     continue
-            logger.debug(f"Uploading {media_type.file_id}")
-            upload_result = genai.upload_file(path="/cache/" + media_type.file_id, display_name=f"Media file by {message.from_user.id}", mime_type=mime_type)
+            logger.debug(f"Uploading {media_type.file_id} on token {gemini_token}")
+
+            genai.configure(api_key=gemini_token)
+            upload_thread = ReturnValueThread(target=genai.upload_file, kwargs={
+                "path": "/cache/" + media_type.file_id,
+                "display_name": f"Media file by {message.from_user.id}",
+                "mime_type": mime_type
+            })
+            upload_thread.start()
+            while upload_thread.is_alive():
+                await asyncio.sleep(0.25)
+            upload_result: File = upload_thread.result
+
+            waited = 0
+            while upload_result.state == "PROCESSING" and waited < 12:  # Wait for a max of 3 seconds
+                await asyncio.sleep(0.25)
+                waited += 1
+
             uploaded_media.append(upload_result)
 
     if message.reply_to_message:

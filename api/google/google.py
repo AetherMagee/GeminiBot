@@ -149,7 +149,13 @@ async def _handle_api_response(
     elif isinstance(response, str):
         output = response
     elif isinstance(response, Exception):
-        error_message = (": " + str(response)) if show_error_message else ""
+        if show_error_message:
+            if "have permission" in str(response):
+                error_message = ": Бот перегружен файлами. Попробуйте снова через пару минут"
+            else:
+                error_message = (": " + str(response))
+        else:
+            error_message = ""
         output = ERROR_MESSAGES["unknown"].format(error_message)
     else:
         logger.error(f"{request_id} | Unexpected response type: {type(response)}")
@@ -166,7 +172,6 @@ async def _handle_api_response(
 async def generate_response(message: Message) -> str:
     request_id = random.randint(100000, 999999)
     token = _get_api_key()
-    genai.configure(api_key=token)
     message_text = await get_message_text(message)
 
     logger.debug(
