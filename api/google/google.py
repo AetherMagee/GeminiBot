@@ -23,7 +23,7 @@ MAX_API_ATTEMPTS = 3
 ERROR_MESSAGES = {
     "unsupported_file_type": "❌ *Данный тип файлов не поддерживается Gemini API.*",
     "censored": "❌ *Запрос был заблокирован цензурой Gemini API.*",
-    "unknown": "❌ *Произошел сбой Gemini API.",
+    "unknown": "❌ *Произошел сбой Gemini API{0}.",
     "system_failure": "Your response was supposed to be here, but you failed to reply for some reason. Be better next "
                       "time."
 }
