@@ -62,7 +62,7 @@ async def save_aiogram_message(message: Message):
         message.from_user.id,
         message.from_user.username,
         message.from_user.first_name,
-        await get_message_text(message),
+        await get_message_text(message, "before_forced"),
         message.reply_to_message.message_id if message.reply_to_message else None,
         truncate_str(await get_message_text(message.reply_to_message)) if message.reply_to_message else None
     )
@@ -78,7 +78,7 @@ async def save_our_message(trigger_message: Message, text: str):
         "You",
         text,
         trigger_message.message_id,
-        truncate_str(await get_message_text(trigger_message))
+        truncate_str(await get_message_text(trigger_message, "before_forced"))
     )
 
 

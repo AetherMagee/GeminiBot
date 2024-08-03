@@ -145,7 +145,7 @@ async def _handle_api_response(
         show_error_message: bool
 ) -> str:
     if isinstance(response, AsyncGenerateContentResponse):
-        output = response.text.replace("  ", " ")
+        output = response.text.replace("  ", " ")[:-1]
     elif isinstance(response, str):
         output = response
     elif isinstance(response, Exception):

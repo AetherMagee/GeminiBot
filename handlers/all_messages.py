@@ -32,6 +32,13 @@ async def handle_normal_message(message: Message) -> None:
     if (message.reply_to_message and message.reply_to_message.from_user.id == bot_id) \
             or f"@{bot_username}" in text \
             or message.chat.id == message.from_user.id:
+
+        forced = await get_message_text(message, "after_forced")
+        if forced:
+            await message.reply(forced)
+            await db.save_our_message(message, forced)
+            return
+
         output = await api.google.generate_response(message)
         try:
             await message.reply(output, parse_mode=ParseMode.MARKDOWN)
