@@ -1,7 +1,7 @@
 import os
 
 import google.generativeai as genai
-from aiogram.types import Message, VideoNote
+from aiogram.types import Message, Sticker, VideoNote
 from loguru import logger
 from PIL import Image
 
@@ -18,7 +18,7 @@ async def get_other_media(message: Message, gemini_token: str) -> list:
     uploaded_media = []
 
     genai.configure(api_key=gemini_token)
-    for media_type in [message.audio, message.video, message.voice, message.document, message.video_note]:
+    for media_type in [message.audio, message.video, message.voice, message.document, message.video_note, message.sticker]:
         if media_type and media_type.file_size < 10_000_000:
             logger.debug(f"Downloading {type(media_type)} | {media_type.file_id}")
             await _download_if_necessary(media_type.file_id)
@@ -27,6 +27,11 @@ async def get_other_media(message: Message, gemini_token: str) -> list:
             except AttributeError:
                 if isinstance(media_type, VideoNote):
                     mime_type = "video/mp4"
+                elif isinstance(media_type, Sticker):
+                    if media_type.is_video:
+                        mime_type = "video/mp4"
+                    else:
+                        mime_type = "image/webp"
                 else:
                     continue
             logger.debug(f"Uploading {media_type.file_id}")

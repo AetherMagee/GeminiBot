@@ -14,7 +14,7 @@ bot_username = os.getenv("BOT_USERNAME")
 
 async def handle_normal_message(message: Message) -> None:
     requirement_pass = False
-    for requirement in [message.text, message.caption, message.video, message.document,
+    for requirement in [message.text, message.caption, message.video, message.document, message.sticker,
                         message.photo, message.voice, message.audio, message.video_note]:
         if requirement:
             requirement_pass = True
