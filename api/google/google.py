@@ -59,6 +59,8 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
             logger.error(f"{request_id} | Error \"{e}\" on key: {token}")
             if attempt == MAX_API_ATTEMPTS:
                 return e
+            genai.configure(api_key=_get_api_key())
+            model = genai.GenerativeModel(model_name)
 
     return None
 
