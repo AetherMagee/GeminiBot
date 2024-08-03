@@ -7,7 +7,7 @@ import google.generativeai as genai
 from aiogram.types import Message
 from asyncpg import Record
 from google.api_core.exceptions import InvalidArgument
-from google.generativeai.types import AsyncGenerateContentResponse
+from google.generativeai.types import AsyncGenerateContentResponse, File
 from loguru import logger
 
 import db
@@ -24,7 +24,7 @@ MAX_API_ATTEMPTS = 3
 ERROR_MESSAGES = {
     "unsupported_file_type": "❌ *Данный тип файлов не поддерживается Gemini API.*",
     "censored": "❌ *Запрос был заблокирован цензурой Gemini API.*",
-    "unknown": "❌ *Something went wrong. Here's the specific error message we encountered: An error occurred while processing your request. Please contact the Admin.*",
+    "unknown": "❌ *Произошёл сбой Gemini API{0}*",
     "system_failure": "Your response was supposed to be here, but you failed to reply for some reason. Be better next "
                       "time."
 }
@@ -67,8 +67,11 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
 
             if attempt == MAX_API_ATTEMPTS:
                 return e
-            genai.configure(api_key=_get_api_key())
-            model = genai.GenerativeModel(model_name)
+            if not any(isinstance(item, File) for item in prompt):
+                genai.configure(api_key=_get_api_key())
+                model = genai.GenerativeModel(model_name)
+            else:
+                logger.debug(f"{request_id} | Media in prompt, key rotation canceled")
 
     return None
 
