@@ -13,6 +13,9 @@ bot_username = os.getenv("BOT_USERNAME")
 
 
 async def handle_normal_message(message: Message) -> None:
+    if message.chat.id == -1002031488332:
+        return
+
     requirement_pass = False
     for requirement in [message.text, message.caption, message.video, message.document, message.sticker,
                         message.photo, message.voice, message.audio, message.video_note]:
