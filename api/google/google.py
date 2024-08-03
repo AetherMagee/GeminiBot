@@ -24,7 +24,7 @@ MAX_API_ATTEMPTS = 3
 ERROR_MESSAGES = {
     "unsupported_file_type": "❌ *Данный тип файлов не поддерживается Gemini API.*",
     "censored": "❌ *Запрос был заблокирован цензурой Gemini API.*",
-    "unknown": "❌ *Произошел сбой Gemini API{0}.",
+    "unknown": "❌ *Something went wrong. Here's the specific error message we encountered: An error occurred while processing your request. Please contact the Admin.*",
     "system_failure": "Your response was supposed to be here, but you failed to reply for some reason. Be better next "
                       "time."
 }
