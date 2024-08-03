@@ -17,6 +17,7 @@ from .media import get_other_media, get_photo
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 api_keys = os.getenv("GEMINI_API_KEYS").split(", ")
 api_key_index = 0
+api_keys_error_counts = {}
 with open(os.getenv("DEFAULT_SYSTEM_PROMPT_FILE_PATH"), "r") as f:
     default_prompt = f.read()
 MAX_API_ATTEMPTS = 3
@@ -32,6 +33,8 @@ ERROR_MESSAGES = {
 def _get_api_key() -> str:
     global api_key_index
     api_key_index += 1
+    if api_key_index % 50 == 0:
+        logger.debug(f"Error counts: {api_keys_error_counts}")
     return api_keys[api_key_index % len(api_keys)]
 
 
@@ -57,6 +60,11 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
             return ERROR_MESSAGES["unsupported_file_type"]
         except Exception as e:
             logger.error(f"{request_id} | Error \"{e}\" on key: {token}")
+            if token not in api_keys_error_counts.keys():
+                api_keys_error_counts[token] = 1
+            else:
+                api_keys_error_counts[token] += 1
+
             if attempt == MAX_API_ATTEMPTS:
                 return e
             genai.configure(api_key=_get_api_key())
