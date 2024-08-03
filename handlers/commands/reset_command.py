@@ -1,4 +1,5 @@
 from aiogram.types import Message
+from loguru import logger
 
 import db
 from main import bot
@@ -16,10 +17,14 @@ async def reset_command(message: Message):
         else:
             allowed_statuses = ["member", "administrator", "creator"]
 
-        member = await bot.get_chat_member(message.chat.id, message.from_user.id)
-        if member.status not in allowed_statuses:
-            await message.reply(f"❌ <b>Доступ запрещён.</b>")
-            return
+        try:
+            member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+            if member.status not in allowed_statuses:
+                await message.reply(f"❌ <b>Доступ запрещён.</b>")
+                return
+        except Exception as e:
+            logger.warning("No admin rights, assuming sufficient permissions.")
+            pass
 
     await db.mark_all_messages_as_deleted(message.chat.id)
     await message.reply(f"✅ <b>Память очищена.</b>")
