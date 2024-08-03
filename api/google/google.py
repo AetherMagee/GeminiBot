@@ -55,7 +55,9 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
         logger.debug(f"{request_id} | Generating, attempt {attempt}")
         try:
             response = await model.generate_content_async(prompt, safety_settings=safety)
-            return response
+            if response.parts:
+                return response
+            raise ValueError("No parts returned by Gemini API")
         except InvalidArgument:
             return ERROR_MESSAGES["unsupported_file_type"]
         except Exception as e:
