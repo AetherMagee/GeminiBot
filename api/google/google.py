@@ -39,7 +39,7 @@ def _get_api_key() -> str:
 
 
 async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name: str) \
-        -> Union[AsyncGenerateContentResponse, str, Exception]:
+        -> Union[AsyncGenerateContentResponse, str, Exception, None]:
     safety = {
         HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
@@ -107,7 +107,7 @@ async def _format_message_for_prompt(message: Record) -> str:
     return result
 
 
-async def _prepare_prompt(message: Message, chat_messages: List[Record]) -> List[Union[str, dict]]:
+async def _prepare_prompt(message: Message, chat_messages: List[Record]) -> Union[list, None]:
     all_messages_list = [await _format_message_for_prompt(msg) for msg in chat_messages]
     all_messages = "\n".join(all_messages_list)
 
