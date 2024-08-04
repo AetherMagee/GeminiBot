@@ -61,17 +61,7 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
         logger.debug(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS}")
         try:
             response = await model.generate_content_async(prompt, safety_settings=safety)
-            try:
-                if response.text:
-                    return response.text
-                else:
-                    logger.error("response.text is available but empty???")
-                    raise ValueError("Response text is empty")
-            except ValueError as e:
-                logger.error("No response.text")
-                if attempt == MAX_API_ATTEMPTS:
-                    return e
-                continue
+            return response
         except InvalidArgument:
             return ERROR_MESSAGES["unsupported_file_type"]
         except Exception as e:
@@ -158,6 +148,11 @@ async def _handle_api_response(
         show_error_message: bool
 ) -> str:
     if isinstance(response, AsyncGenerateContentResponse):
+        logger.debug(response.prompt_feedback)
+        try:
+            logger.debug(response.prompt_feedback.block_reason)
+        except:
+            pass
         output = response.text.replace("  ", " ")[:-1]
     elif isinstance(response, str):
         output = response
