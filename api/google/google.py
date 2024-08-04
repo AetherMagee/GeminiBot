@@ -148,12 +148,10 @@ async def _handle_api_response(
         show_error_message: bool
 ) -> str:
     if isinstance(response, AsyncGenerateContentResponse):
-        logger.debug(response.prompt_feedback)
-        try:
-            logger.debug(response.prompt_feedback.block_reason)
-        except:
-            pass
-        output = response.text.replace("  ", " ")[:-1]
+        if response.prompt_feedback.block_reason:
+            output = ERROR_MESSAGES["censored"]
+        else:
+            output = response.text.replace("  ", " ")[:-1]
     elif isinstance(response, str):
         output = response
     elif isinstance(response, Exception):
