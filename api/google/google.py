@@ -68,6 +68,7 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
                     logger.error("response.text is available but empty???")
                     raise ValueError
             except ValueError:
+                logger.error("No response.text, retrying...")
                 continue
         except InvalidArgument:
             return ERROR_MESSAGES["unsupported_file_type"]
