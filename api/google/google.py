@@ -66,9 +66,11 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
                     return response.text
                 else:
                     logger.error("response.text is available but empty???")
-                    raise ValueError
-            except ValueError:
-                logger.error("No response.text, retrying...")
+                    raise ValueError("Response text is empty")
+            except ValueError as e:
+                logger.error("No response.text")
+                if attempt == MAX_API_ATTEMPTS:
+                    return e
                 continue
         except InvalidArgument:
             return ERROR_MESSAGES["unsupported_file_type"]
@@ -163,6 +165,8 @@ async def _handle_api_response(
         if show_error_message:
             if "have permission" in str(response):
                 error_message = ": Бот перегружен файлами. Попробуйте снова через пару минут"
+            elif "text is empty" in str(response):
+                error_message = ": Был получен пустой ответ. Если проблема повторится, попробуйте /reset"
             else:
                 error_message = (": " + str(response))
         else:
