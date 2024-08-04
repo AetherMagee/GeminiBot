@@ -58,7 +58,7 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
         else:
             logger.debug(f"{request_id} | Media in prompt, key rotation canceled")
 
-        logger.debug(f"{request_id} | Generating, attempt {attempt}")
+        logger.debug(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS}")
         try:
             response = await model.generate_content_async(prompt, safety_settings=safety)
             try:
