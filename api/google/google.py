@@ -53,7 +53,8 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
 
     for attempt in range(1, MAX_API_ATTEMPTS + 1):
         if not any(isinstance(item, File) for item in prompt):
-            genai.configure(api_key=_get_api_key())
+            token = _get_api_key()
+            genai.configure(api_key=token)
             model = genai.GenerativeModel(model_name)
         else:
             logger.debug(f"{request_id} | Media in prompt, key rotation canceled")
@@ -148,6 +149,7 @@ async def _handle_api_response(
         show_error_message: bool
 ) -> str:
     if isinstance(response, AsyncGenerateContentResponse):
+        logger.debug(f"{request_id} | {response.prompt_feedback} | {response.prompt_feedback.block_reason}")
         if response.prompt_feedback.block_reason:
             output = ERROR_MESSAGES["censored"]
         else:
