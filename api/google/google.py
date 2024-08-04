@@ -162,6 +162,8 @@ async def _handle_api_response(
                 error_message = ": Бот перегружен файлами. Попробуйте снова через пару минут"
             elif "text is empty" in str(response):
                 error_message = ": Был получен пустой ответ. Если проблема повторится, попробуйте /reset"
+            elif "check quota" in str(response):
+                error_message = ": Ежедневный ресурс API закончился"
             else:
                 error_message = (": " + str(response))
         else:
