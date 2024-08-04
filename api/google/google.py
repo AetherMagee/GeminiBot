@@ -7,7 +7,7 @@ import google.generativeai as genai
 from aiogram.types import Message
 from asyncpg import Record
 from google.api_core.exceptions import InvalidArgument
-from google.generativeai.types import AsyncGenerateContentResponse, File
+from google.generativeai.types import AsyncGenerateContentResponse, File, HarmBlockThreshold, HarmCategory
 from loguru import logger
 
 import db
@@ -41,10 +41,10 @@ def _get_api_key() -> str:
 async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name: str) \
         -> Union[AsyncGenerateContentResponse, str, Exception]:
     safety = {
-        "SEXUALLY_EXPLICIT": "block_none",
-        "HARASSMENT": "block_none",
-        "HATE_SPEECH": "block_none",
-        "DANGEROUS": "block_none",
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE
     }
 
     logger.debug(f"{request_id} | Using model {model_name}")
@@ -52,12 +52,23 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
     model = genai.GenerativeModel(model_name)
 
     for attempt in range(1, MAX_API_ATTEMPTS + 1):
+        if not any(isinstance(item, File) for item in prompt):
+            genai.configure(api_key=_get_api_key())
+            model = genai.GenerativeModel(model_name)
+        else:
+            logger.debug(f"{request_id} | Media in prompt, key rotation canceled")
+
         logger.debug(f"{request_id} | Generating, attempt {attempt}")
         try:
             response = await model.generate_content_async(prompt, safety_settings=safety)
-            if response.parts:
-                return response
-            raise ValueError("No parts returned by Gemini API")
+            try:
+                if response.text:
+                    return response.text
+                else:
+                    logger.error("response.text is available but empty???")
+                    raise ValueError
+            except ValueError:
+                continue
         except InvalidArgument:
             return ERROR_MESSAGES["unsupported_file_type"]
         except Exception as e:
@@ -69,11 +80,6 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
 
             if attempt == MAX_API_ATTEMPTS:
                 return e
-            if not any(isinstance(item, File) for item in prompt):
-                genai.configure(api_key=_get_api_key())
-                model = genai.GenerativeModel(model_name)
-            else:
-                logger.debug(f"{request_id} | Media in prompt, key rotation canceled")
 
     return None
 
