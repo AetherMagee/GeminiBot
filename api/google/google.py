@@ -113,7 +113,11 @@ async def _prepare_prompt(message: Message, chat_messages: List[Record]) -> List
 
     photos = [await get_photo(message)]
     photos = photos if photos[0] else []
-    additional_media = await get_other_media(message, _get_api_key())
+
+    try:
+        additional_media = await get_other_media(message, _get_api_key())
+    except AttributeError:
+        return
 
     chat_type = "direct message (DM)" if message.from_user.id == message.chat.id else "group"
     chat_title = f" called {message.chat.title}" if message.from_user.id != message.chat.id else f" with {message.from_user.first_name}"
@@ -190,6 +194,9 @@ async def generate_response(message: Message) -> str:
 
     if not message_text.startswith("/raw"):
         prompt = await _prepare_prompt(message, chat_messages)
+        if not prompt:
+            return ERROR_MESSAGES["censored"]
+
         store = True
     else:
         prompt = [message_text.replace("/raw ", "", 1)]
