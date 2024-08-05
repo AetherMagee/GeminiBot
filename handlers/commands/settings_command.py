@@ -80,7 +80,13 @@ async def set_command(message: Message) -> None:
             requested_value = None
     if available_parameters[requested_parameter]["type"] == "boolean":
         try:
-            requested_value = bool(requested_value)
+            if requested_value == "true" or requested_value == "1":
+                requested_value = True
+            elif requested_value == "false" or requested_value == "0":
+                requested_value = False
+            else:
+                requested_value = bool(requested_value)
+
         except ValueError:
             requested_value = None
 
