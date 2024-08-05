@@ -15,7 +15,7 @@ async def forget_command(message: Message) -> None:
     if not await is_allowed_to_alter_memory(message):
         return
     if not message.reply_to_message:
-        await message.reply("❌ <b>Команда используется ответом на сообщение, которое нужно удалить из памяти бота.</b>")
+        await message.reply("❌ <b>Используйте команду ответом на сообщение, которое нужно удалить из памяти бота..</b>")
         return
 
     if message.reply_to_message.from_user.id == bot_id:
