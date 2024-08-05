@@ -5,6 +5,7 @@ from aiogram.types import Message
 from loguru import logger
 
 import api.google
+import api.openai
 import db
 from utils import log_command
 
@@ -58,7 +59,10 @@ async def status_command(message: Message):
 
     reply = await message.reply(text_to_send)
 
-    token_count = await api.google.count_tokens_for_chat(messages,
-                                                         await db.get_chat_parameter(message.chat.id, "model"))
+    if current_endpoint == "google":
+        token_count = await api.google.count_tokens_for_chat(messages,
+                                                    await db.get_chat_parameter(message.chat.id, "model"))
+    elif current_endpoint == "openai":
+        token_count = await api.openai.count_tokens(message.chat.id)
     text_to_send = text_to_send.replace("⏱ Секунду...", f"{token_count} токенов")
     await reply.edit_text(text_to_send)
