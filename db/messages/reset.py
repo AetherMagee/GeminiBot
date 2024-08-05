@@ -25,7 +25,7 @@ async def attempt_delete_message(chat_id: int, target: Union[int, str]) -> bool:
             if isinstance(target, int):
                 result = await conn.execute(f"UPDATE messages{san_chat_id} SET deleted=false WHERE message_id={target}")
             else:
-                result = await conn.execute(f"UPDATE messages{san_chat_id} SET deleted=true WHERE text=\'{target}\'")
+                result = await conn.execute(f"UPDATE messages{san_chat_id} SET deleted=true WHERE text=$1", target)
 
             if str(result).split(" ")[1] == "1":
                 return True
