@@ -16,7 +16,10 @@ async def generate_response(message: Message) -> str:
         except Exception as e:
             logger.error(e)
             out = "❌ *Произошел сбой эндпоинта OpenAI.*"
-        if out.startswith("❌") and await db.get_chat_parameter(message.chat.id, "o_auto_fallback"):
+
+        auto_fallback_allowed = await db.get_chat_parameter(message.chat.id, "o_auto_fallback")
+        if out.startswith("❌") and auto_fallback_allowed:
+            logger.debug(f"autofallback {auto_fallback_allowed}")
             await message.reply(f"⚠️ <b>Эндпоинт OpenAI дал сбой, запрос был направлен в Gemini API.</b>")
             out = await api.google.generate_response(message)
         return out
