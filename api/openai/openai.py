@@ -1,7 +1,6 @@
 import asyncio
 import os
 import random
-import traceback
 from typing import List
 
 import aiohttp
@@ -11,7 +10,7 @@ from asyncpg import Record
 from loguru import logger
 
 import db
-from api.google import format_message_for_prompt
+from api.google import format_message_for_prompt, ERROR_MESSAGES
 from utils import simulate_typing
 
 OPENAI_URL = os.getenv("OAI_API_URL")
@@ -81,10 +80,9 @@ async def generate_response(message: Message) -> str:
     logger.debug(
         f"RID: {request_id} | UID: {message.from_user.id} | CID: {message.chat.id} | MID: {message.message_id}"
     )
+    show_errors = await db.get_chat_parameter(message.chat.id, "show_error_messages")
 
     messages = await db.get_messages(message.chat.id)
-    if not messages:
-        return "no msg"
 
     prompt = await get_prompt(message, messages)
     typing_task = asyncio.create_task(simulate_typing(message.chat.id))
@@ -101,10 +99,22 @@ async def generate_response(message: Message) -> str:
         pass
 
     try:
-        return response["choices"][0]["message"]["content"]
-    except:
-        traceback.print_exc()
-        return "fak"
+        output = response["choices"][0]["message"]["content"]
+        if "oai-proxy-error" in output:
+            logger.debug(output)
+            output = "❌ Произошел сбой эндпоинта OpenAI."
+            if show_errors:
+                output += "\n\n" + response["choices"][0]["message"]["content"]
+    except KeyError:
+        logger.debug(response)
+        output = "❌ *Произошел сбой эндпоинта OpenAI.*"
+    finally:
+        if output.startswith("❌"):
+            await db.save_system_message(message.chat.id, ERROR_MESSAGES["system_failure"])
+        else:
+            await db.save_our_message(message, output)
+
+        return output
 
 
 def get_available_models() -> list:
@@ -113,9 +123,10 @@ def get_available_models() -> list:
         "Content-Type": "application/json",
         "Authorization": "Bearer 1ee1823c-c51a-4735-9c35-87b6ca7dd463"
     }
+
     response = requests.get(OPENAI_URL + "models", headers=headers, timeout=5)
     result = []
     for object in response.json()["data"]:
         result.append(object["id"])
-    logger.debug(result)
+
     return result

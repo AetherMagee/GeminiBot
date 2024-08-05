@@ -25,15 +25,15 @@ chat_configs = {
             "accepted_values": ["all", "admins", "owner"],
             "protected": False
         },
-    },
-    "google": {
-        "g_show_error_messages": {
+        "show_error_messages": {
             "description": "Показывать ли подробные сообщения об ошибке",
             "type": "boolean",
             "default_value": False,
             "accepted_values": [True, False],
             "protected": False
         },
+    },
+    "google": {
         "g_model": {
             "description": "Используемая ботом модель Gemini",
             "type": "text",
