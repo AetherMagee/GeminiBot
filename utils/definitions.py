@@ -49,6 +49,13 @@ chat_configs = {
             "default_value": "\'gpt-4o\'",
             "accepted_values": api.openai.get_available_models(),
             "protected": False
+        },
+        "o_auto_fallback": {
+            "description": "Разрешить ли боту автоматически переключаться на Gemini API в случае сбоя эндпоинта OpenAI",
+            "type": "boolean",
+            "default_value": True,
+            "accepted_values": [True, False],
+            "protected": False
         }
     }
 }
