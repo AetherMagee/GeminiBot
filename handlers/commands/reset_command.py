@@ -24,7 +24,9 @@ async def reset_command(message: Message):
                 return
         except Exception as e:
             logger.warning("No admin rights, assuming sufficient permissions.")
-            pass
+            if permission_mode in ["owner", "admins"]:
+                await message.reply("⚠️ <b>Бот не является администратором, поэтому не может проверить этого "
+                                    "пользователя на наличие прав для очистки памяти.</b>")
 
     await db.mark_all_messages_as_deleted(message.chat.id)
     await message.reply(f"✅ <b>Память очищена.</b>")
