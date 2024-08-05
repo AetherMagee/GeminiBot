@@ -115,7 +115,7 @@ async def _format_message_for_prompt(message: Record) -> str:
     return result
 
 
-async def _prepare_prompt(message: Message, chat_messages: List[Record]) -> Union[list, None]:
+async def _prepare_prompt(message: Message, chat_messages: List[Record], token: str) -> Union[list, None]:
     all_messages_list = [await _format_message_for_prompt(msg) for msg in chat_messages]
     all_messages = "\n".join(all_messages_list)
 
@@ -123,7 +123,7 @@ async def _prepare_prompt(message: Message, chat_messages: List[Record]) -> Unio
     photos = photos if photos[0] else []
 
     try:
-        additional_media = await get_other_media(message, _get_api_key())
+        additional_media = await get_other_media(message, token)
     except AttributeError:
         return
 
@@ -209,7 +209,7 @@ async def generate_response(message: Message) -> str:
     typing_task = asyncio.create_task(simulate_typing(message.chat.id))
 
     if not message_text.startswith("/raw"):
-        prompt = await _prepare_prompt(message, chat_messages)
+        prompt = await _prepare_prompt(message, chat_messages, token)
         if not prompt:
             return ERROR_MESSAGES["censored"]
 
