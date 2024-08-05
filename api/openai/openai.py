@@ -121,7 +121,7 @@ def get_available_models() -> list:
     logger.debug("Getting available models...")
     headers = {
         "Content-Type": "application/json",
-        "Authorization": "Bearer 1ee1823c-c51a-4735-9c35-87b6ca7dd463"
+        "Authorization": f"Bearer {OPENAI_API_KEY}"
     }
 
     response = requests.get(OPENAI_URL + "models", headers=headers, timeout=5)
