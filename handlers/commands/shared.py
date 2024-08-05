@@ -23,6 +23,7 @@ async def is_allowed_to_alter_memory(message: Message) -> bool:
         if member.status not in allowed_statuses:
             logger.debug(f"{message.from_user.id} not allowed in {message.chat.id}")
             return False
+        return True
     except TelegramBadRequest:
         logger.warning("No admin rights, assuming sufficient permissions.")
         if permission_mode in ["owner", "admins"]:
