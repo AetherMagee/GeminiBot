@@ -17,7 +17,8 @@ if os.path.exists(".env"):
 bot = Bot(os.getenv("TELEGRAM_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
-adminMessageFilter = F.from_user.id == int(os.getenv("ADMIN_ID"))
+ADMIN_IDS = [int(admin_id) for admin_id in os.getenv("ADMIN_IDS").split(", ")]
+adminMessageFilter = F.from_user.id.in_(ADMIN_IDS)
 
 
 async def main() -> None:

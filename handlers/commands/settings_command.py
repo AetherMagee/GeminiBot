@@ -5,7 +5,7 @@ from aiogram.types import Message
 from loguru import logger
 
 import db
-from main import bot
+from main import bot, ADMIN_IDS
 from utils import log_command
 from utils.definitions import chat_configs
 
@@ -54,7 +54,7 @@ async def settings_command(message: Message) -> None:
 
 async def set_command(message: Message) -> None:
     await log_command(message)
-    if message.chat.id != message.from_user.id and message.from_user.id != int(os.getenv("ADMIN_ID")):
+    if message.chat.id != message.from_user.id and message.from_user.id not in ADMIN_IDS:
         member = await bot.get_chat_member(message.chat.id, message.from_user.id)
         if member.status not in ["administrator", "creator"]:
             await message.reply("❌ <b>Параметры могут менять только администраторы.</b>")
@@ -89,7 +89,7 @@ async def set_command(message: Message) -> None:
         return
 
     if available_parameters[requested_parameter]["protected"]:
-        if message.from_user.id != int(os.getenv("ADMIN_ID")):
+        if message.from_user.id not in ADMIN_IDS:
             await message.reply("❌ <b>У вас нет доступа к этому параметру. Свяжитесь с администратором бота, "
                                 "если хотите его изменить.</b>")
             return
