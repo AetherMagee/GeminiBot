@@ -15,10 +15,25 @@ from utils import get_message_text, simulate_typing
 from .media import get_other_media, get_photo
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
-api_keys = os.getenv("GEMINI_API_KEYS").split(", ")
+
+if not os.path.exists(os.getenv("GEMINI_API_KEYS_FILE_PATH")):
+    logger.exception("No Gemini API keys file found")
+    exit(1)
+
+api_keys = []
+with open(os.getenv("GEMINI_API_KEYS_FILE_PATH"), "r") as f:
+    characters_to_remove = [" ", "\n"]
+    for line in f.readlines():
+        if line.startswith("AIza"):
+            for character in characters_to_remove:
+                line = line.replace(character, "")
+            api_keys.append(line.strip())
+random.shuffle(api_keys)
+logger.info(f"Loaded {len(api_keys)} API keys")
+
 api_key_index = 0
 api_keys_error_counts = {}
-with open(os.getenv("DEFAULT_SYSTEM_PROMPT_FILE_PATH"), "r") as f:
+with open(os.getenv("SYSTEM_PROMPT_FILE_PATH"), "r") as f:
     default_prompt = f.read()
 MAX_API_ATTEMPTS = 3
 ERROR_MESSAGES = {
