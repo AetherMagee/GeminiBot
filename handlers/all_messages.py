@@ -41,6 +41,9 @@ async def handle_normal_message(message: Message) -> None:
             await db.save_our_message(message, forced)
             return
 
+        if await db.get_chat_parameter(message.chat.id, "endpoint") == "openai" and text == "":
+            return
+
         output = await api.generate_response(message)
         try:
             await message.reply(output, parse_mode=ParseMode.MARKDOWN)
