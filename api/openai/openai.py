@@ -52,7 +52,6 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record]) -> L
 
     for message in messages_list:
         message_as_text = await format_message_for_prompt(message)
-        logger.debug(message_as_text)
         if message_as_text.startswith("You: "):
             final.append({
                 "role": "assistant",
