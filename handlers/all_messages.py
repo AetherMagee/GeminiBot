@@ -7,6 +7,7 @@ from loguru import logger
 import api
 import db
 from utils import get_message_text, no_markdown
+from .commands.shared import is_allowed_to_alter_memory
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 bot_username = os.getenv("BOT_USERNAME")
@@ -37,9 +38,12 @@ async def handle_normal_message(message: Message) -> None:
 
         forced = await get_message_text(message, "after_forced")
         if forced:
-            await message.reply(forced)
-            await db.save_our_message(message, forced)
-            return
+            if await is_allowed_to_alter_memory(message):
+                await message.reply(forced)
+                await db.save_our_message(message, forced)
+                return
+            else:
+                return
 
         if await db.get_chat_parameter(message.chat.id, "endpoint") == "openai" and text == "":
             return

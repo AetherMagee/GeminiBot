@@ -18,8 +18,8 @@ chat_configs = {
             "accepted_values": range(1, 3000),
             "protected": False
         },
-        "reset_permission": {
-            "description": "Кто может пользоваться командой /reset",
+        "memory_alter_permission": {
+            "description": "Кто может пользоваться командами /reset и /forget",
             "type": "text",
             "default_value": "\'all\'",
             "accepted_values": ["all", "admins", "owner"],
