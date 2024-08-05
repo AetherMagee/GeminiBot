@@ -38,7 +38,7 @@ chat_configs = {
             "description": "Используемая ботом модель Gemini",
             "type": "text",
             "default_value": "\'gemini-1.5-pro-latest\'",
-            "accepted_values": api.google.get_available_models,
+            "accepted_values": api.google.get_available_models(),
             "protected": False
         }
     },
@@ -47,7 +47,7 @@ chat_configs = {
             "description": "Используемая ботом модель",
             "type": "text",
             "default_value": "\'gpt-4o\'",
-            "accepted_values": api.openai.get_available_models,
+            "accepted_values": api.openai.get_available_models(),
             "protected": False
         },
         "o_auto_fallback": {

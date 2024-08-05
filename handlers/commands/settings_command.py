@@ -1,6 +1,5 @@
 import os
 import traceback
-from types import FunctionType
 
 from aiogram.types import Message
 from loguru import logger
@@ -43,14 +42,6 @@ async def settings_command(message: Message) -> None:
         _value_range = available_parameters[requested_parameter]['accepted_values']
         if isinstance(_value_range, range):
             accepted_values = f"{_value_range.start}-{_value_range.stop}"
-        elif isinstance(_value_range, FunctionType):
-            try:
-                accepted_values = ", ".join(_value_range())
-                if not accepted_values:
-                    raise ValueError("No return value for accepted values")
-            except Exception as e:
-                traceback.print_exc()
-                accepted_values = "???"
         else:
             try:
                 accepted_values = ", ".join(_value_range)
