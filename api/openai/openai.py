@@ -89,7 +89,7 @@ async def generate_response(message: Message) -> str:
     messages = await db.get_messages(message.chat.id)
 
     prompt = await get_prompt(message, messages, append_system_prompt)
-    logger.debug(prompt)
+
     typing_task = asyncio.create_task(simulate_typing(message.chat.id))
     try:
         api_task = asyncio.create_task(_send_request(
@@ -121,8 +121,6 @@ async def generate_response(message: Message) -> str:
     finally:
         if output.startswith("❌"):
             await db.save_system_message(message.chat.id, ERROR_MESSAGES["system_failure"])
-        else:
-            await db.save_our_message(message, output)
 
         return output
 

@@ -6,6 +6,7 @@ from loguru import logger
 
 import api
 import db
+from api.google import ERROR_MESSAGES
 from utils import get_message_text, no_markdown
 from .commands.shared import is_allowed_to_alter_memory
 
@@ -39,8 +40,8 @@ async def handle_normal_message(message: Message) -> None:
         forced = await get_message_text(message, "after_forced")
         if forced:
             if await is_allowed_to_alter_memory(message):
-                await message.reply(forced)
-                await db.save_our_message(message, forced)
+                our_message = await message.reply(forced)
+                await db.save_our_message(message, forced, our_message.message_id)
                 return
             else:
                 return
@@ -50,15 +51,19 @@ async def handle_normal_message(message: Message) -> None:
 
         output = await api.generate_response(message)
         try:
-            await message.reply(output, parse_mode=ParseMode.MARKDOWN)
+            our_message = await message.reply(output, parse_mode=ParseMode.MARKDOWN)
         except Exception as e:
             logger.error(f"Failed to send response: {e}")
             try:
                 output = await no_markdown(output)
-                await message.reply(output)
+                our_message = await message.reply(output)
                 await db.save_system_message(
                     message.chat.id,
                     "Your previous message was not accepted by the endpoint due to bad formatting. The user sees your "
                     "message WITHOUT your formatting. Do better next time. Keep the formatting rules in mind.")
             except Exception:
-                await message.reply("❌ <b>Telegram не принимает ответ бота.</b>")
+                our_message = await message.reply("❌ <b>Telegram не принимает ответ бота.</b>")
+        finally:
+            if output.startswith("❌"):
+                output = ERROR_MESSAGES["system_failure"]
+            await db.save_our_message(message, output, our_message.message_id)

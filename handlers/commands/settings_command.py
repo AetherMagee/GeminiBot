@@ -1,4 +1,3 @@
-import os
 import traceback
 
 from aiogram.types import Message

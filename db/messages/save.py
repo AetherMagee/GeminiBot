@@ -68,10 +68,10 @@ async def save_aiogram_message(message: Message):
     )
 
 
-async def save_our_message(trigger_message: Message, text: str):
+async def save_our_message(trigger_message: Message, text: str, our_message_id: int):
     await _save_message(
         trigger_message.chat.id,
-        0,
+        our_message_id,
         datetime.datetime.now(),
         0,
         "You",

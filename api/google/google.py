@@ -193,9 +193,6 @@ async def _handle_api_response(
             await db.save_system_message(message.chat.id, ERROR_MESSAGES["system_failure"])
         output = ERROR_MESSAGES['unknown'].format("")
 
-    if not output.startswith("❌") and store:
-        await db.save_our_message(message, output)
-
     return output
 
 
