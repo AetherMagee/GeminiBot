@@ -56,6 +56,13 @@ chat_configs = {
             "default_value": True,
             "accepted_values": [True, False],
             "protected": False
+        },
+        "o_add_system_prompt": {
+            "description": "Добавлять ли системное сообщение, нацеленное на улучшение качества ответов",
+            "type": "boolean",
+            "default_value": True,
+            "accepted_values": [True, False],
+            "protected": False
         }
     }
 }

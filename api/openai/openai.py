@@ -37,17 +37,19 @@ async def _send_request(messages_list: List[dict], model: str, request_id: int) 
             return await response.json()
 
 
-async def get_prompt(trigger_message: Message, messages_list: List[Record]) -> List[dict]:
+async def get_prompt(trigger_message: Message, messages_list: List[Record], system_prompt: bool) -> List[dict]:
     chat_type = "direct message (DM)" if trigger_message.from_user.id == trigger_message.chat.id else "group"
     chat_title = f" called {trigger_message.chat.title}" if trigger_message.from_user.id != trigger_message.chat.id else f" with {trigger_message.from_user.first_name}"
 
-    final = [{
-        "role": "system",
-        "content": prompt_p1.format(
-            chat_type=chat_type,
-            chat_title=chat_title,
-        )
-    }]
+    final = []
+    if system_prompt:
+        final.append({
+            "role": "system",
+            "content": prompt_p1.format(
+                chat_type=chat_type,
+                chat_title=chat_title,
+            )
+        })
 
     for message in messages_list:
         message_as_text = await format_message_for_prompt(message)
@@ -67,10 +69,11 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record]) -> L
                 "content": message_as_text
             })
 
-    final.append({
-        "role": "system",
-        "content": prompt_p2
-    })
+    if system_prompt:
+        final.append({
+            "role": "system",
+            "content": prompt_p2
+        })
 
     return final
 
@@ -81,10 +84,12 @@ async def generate_response(message: Message) -> str:
         f"RID: {request_id} | UID: {message.from_user.id} | CID: {message.chat.id} | MID: {message.message_id}"
     )
     show_errors = await db.get_chat_parameter(message.chat.id, "show_error_messages")
+    append_system_prompt = await db.get_chat_parameter(message.chat.id, "o_add_system_prompt")
 
     messages = await db.get_messages(message.chat.id)
 
-    prompt = await get_prompt(message, messages)
+    prompt = await get_prompt(message, messages, append_system_prompt)
+    logger.debug(prompt)
     typing_task = asyncio.create_task(simulate_typing(message.chat.id))
     try:
         api_task = asyncio.create_task(_send_request(
