@@ -57,6 +57,11 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record]) -> L
                 "role": "assistant",
                 "content": message_as_text.replace("You: ", "")
             })
+        elif message_as_text.startswith("SYSTEM: "):
+            final.append({
+                "role": "system",
+                "content": message_as_text.replace("SYSTEM: ", "")
+            })
         else:
             final.append({
                 "role": "user",
