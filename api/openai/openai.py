@@ -86,12 +86,17 @@ async def generate_response(message: Message) -> str:
 
     prompt = await get_prompt(message, messages)
     typing_task = asyncio.create_task(simulate_typing(message.chat.id))
-    api_task = asyncio.create_task(_send_request(
-        prompt,
-        await db.get_chat_parameter(message.chat.id, "o_model"),
-        request_id
-    ))
-    response = await api_task
+    try:
+        api_task = asyncio.create_task(_send_request(
+            prompt,
+            await db.get_chat_parameter(message.chat.id, "o_model"),
+            request_id
+        ))
+        response = await api_task
+    except Exception as e:
+        logger.debug(e)
+        response = None
+
     typing_task.cancel()
     try:
         await typing_task
