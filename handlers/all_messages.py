@@ -4,7 +4,7 @@ from aiogram.enums import ParseMode
 from aiogram.types import Message
 from loguru import logger
 
-import api.google
+import api
 import db
 from utils import get_message_text, no_markdown
 
@@ -41,7 +41,7 @@ async def handle_normal_message(message: Message) -> None:
             await db.save_our_message(message, forced)
             return
 
-        output = await api.google.generate_response(message)
+        output = await api.generate_response(message)
         try:
             await message.reply(output, parse_mode=ParseMode.MARKDOWN)
         except Exception as e:

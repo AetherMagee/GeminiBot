@@ -1,6 +1,8 @@
 aiogram[fast]~=3.10.0
-asyncpg
+aiohttp~=3.9.5
+asyncpg~=0.29.0
 google-generativeai
-loguru
-pillow
-python-dotenv
+loguru~=0.7.2
+pillow~=10.4.0
+python-dotenv~=1.0.1
+requests~=2.32.3

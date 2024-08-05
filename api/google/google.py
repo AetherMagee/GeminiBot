@@ -93,7 +93,7 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
     return None
 
 
-async def _format_message_for_prompt(message: Record) -> str:
+async def format_message_for_prompt(message: Record) -> str:
     result = ""
 
     if message["sender_id"] == bot_id:
@@ -116,7 +116,7 @@ async def _format_message_for_prompt(message: Record) -> str:
 
 
 async def _prepare_prompt(message: Message, chat_messages: List[Record], token: str) -> Union[list, None]:
-    all_messages_list = [await _format_message_for_prompt(msg) for msg in chat_messages]
+    all_messages_list = [await format_message_for_prompt(msg) for msg in chat_messages]
     all_messages = "\n".join(all_messages_list)
 
     photos = [await get_photo(message)]
@@ -255,7 +255,7 @@ async def count_tokens_for_chat(messages_list: list, model_name: str) -> int:
     genai.configure(api_key=key)
     model = genai.GenerativeModel(model_name)
 
-    all_messages_list = [await _format_message_for_prompt(message) for message in messages_list]
+    all_messages_list = [await format_message_for_prompt(message) for message in messages_list]
     all_messages = "\n".join(all_messages_list)
 
     try:
