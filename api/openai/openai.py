@@ -118,15 +118,19 @@ async def generate_response(message: Message) -> str:
 
 
 def get_available_models() -> list:
-    logger.debug("Getting available models...")
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {OPENAI_API_KEY}"
-    }
+    try:
+        logger.debug("Getting available models...")
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPENAI_API_KEY}"
+        }
 
-    response = requests.get(OPENAI_URL + "models", headers=headers, timeout=5)
-    result = []
-    for object in response.json()["data"]:
-        result.append(object["id"])
+        response = requests.get(OPENAI_URL + "models", headers=headers, timeout=5)
+        result = []
+        for object in response.json()["data"]:
+            result.append(object["id"])
 
-    return result
+        return result
+    except Exception as e:
+        logger.error(e)
+        return []
