@@ -39,7 +39,15 @@ async def status_command(message: Message):
     messages = await db.get_messages(message.chat.id)
 
     messages_limit = await db.get_chat_parameter(message.chat.id, "message_limit")
-    current_model = await db.get_chat_parameter(message.chat.id, "model")
+
+    current_endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
+    if current_endpoint == "openai":
+        table_prefix = "o_"
+    elif current_endpoint == "google":
+        table_prefix = "g_"
+    else:
+        raise ValueError("what.")
+    current_model = await db.get_chat_parameter(message.chat.id, table_prefix + "model")
     commit = get_git_commit_hash()
 
     text_to_send = f"""✅ <b>Бот активен!</b>
