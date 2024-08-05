@@ -167,6 +167,9 @@ async def _handle_api_response(
         logger.debug(f"{request_id} | {response.prompt_feedback} | {response.prompt_feedback.block_reason}")
         if response.prompt_feedback.block_reason:
             output = ERROR_MESSAGES["censored"]
+            if random.randint(1, 4) == 3:
+                output += ("\n\n_Если проблема повторяется - попробуйте /reset.\nЕсли есть идея, какое сообщение "
+                           "вызывает блокировку - используйте на нем /forget_")
         else:
             output = response.text.replace("  ", " ")[:-1]
     elif isinstance(response, str):
