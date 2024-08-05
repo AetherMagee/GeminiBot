@@ -102,7 +102,7 @@ async def generate_response(message: Message) -> str:
         output = response["choices"][0]["message"]["content"]
         if "oai-proxy-error" in output:
             logger.debug(output)
-            output = "❌ Произошел сбой эндпоинта OpenAI."
+            output = "❌ *Произошел сбой эндпоинта OpenAI.*"
             if show_errors:
                 output += "\n\n" + response["choices"][0]["message"]["content"]
     except KeyError:
