@@ -90,14 +90,16 @@ async def generate_response(message: Message) -> str:
     append_system_prompt = await db.get_chat_parameter(message.chat.id, "o_add_system_prompt")
 
     messages = await db.get_messages(message.chat.id)
-
+    model = await db.get_chat_parameter(message.chat.id, "o_model")
     prompt = await get_prompt(message, messages, append_system_prompt)
+
+    logger.debug(f"{request_id} Using model {model}")
 
     typing_task = asyncio.create_task(simulate_typing(message.chat.id))
     try:
         api_task = asyncio.create_task(_send_request(
             prompt,
-            await db.get_chat_parameter(message.chat.id, "o_model"),
+            model,
             request_id
         ))
         response = await api_task
