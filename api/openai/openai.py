@@ -1,6 +1,7 @@
 import asyncio
 import os
 import random
+import traceback
 from typing import List
 
 import aiohttp
@@ -142,5 +143,5 @@ def get_available_models() -> list:
 
         return result
     except Exception as e:
-        logger.error(e)
+        traceback.print_exc()
         return []
