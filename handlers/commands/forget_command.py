@@ -13,6 +13,7 @@ async def forget_command(message: Message) -> None:
     await log_command(message)
 
     if not await is_allowed_to_alter_memory(message):
+        await message.reply("❌ <b>У вас нет доступа к этой команде.</b>")
         return
     if not message.reply_to_message:
         await message.reply("❌ <b>Используйте команду ответом на сообщение, которое нужно удалить из памяти бота..</b>")
