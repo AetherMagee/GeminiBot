@@ -32,6 +32,13 @@ chat_configs = {
             "accepted_values": [True, False],
             "protected": False
         },
+        "add_reply_to": {
+            "description": "Добавлять ли в сообщения \"REPLY TO\", чтобы показать модели, кто кому отвечает",
+            "type": "boolean",
+            "default_value": True,
+            "accepted_values": [True, False],
+            "protected": False
+        }
     },
     "google": {
         "g_model": {

@@ -41,6 +41,8 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
     chat_type = "direct message (DM)" if trigger_message.from_user.id == trigger_message.chat.id else "group"
     chat_title = f" called {trigger_message.chat.title}" if trigger_message.from_user.id != trigger_message.chat.id else f" with {trigger_message.from_user.first_name}"
 
+    add_reply_to = await db.get_chat_parameter(trigger_message.chat.id, "add_reply_to")
+
     final = []
     if system_prompt:
         final.append({
@@ -52,7 +54,7 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
         })
 
     for message in messages_list:
-        message_as_text = await format_message_for_prompt(message)
+        message_as_text = await format_message_for_prompt(message, add_reply_to)
         if message_as_text.startswith("You: "):
             final.append({
                 "role": "assistant",

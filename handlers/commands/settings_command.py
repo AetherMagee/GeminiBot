@@ -18,7 +18,7 @@ async def settings_command(message: Message) -> None:
         text = "<b>Доступные параметры бота:</b> \n"
 
         for parameter in available_parameters.keys():
-            text += f"\n<code>{parameter}</code> (<i>{available_parameters[parameter]['description']}</i>) - {await db.get_chat_parameter(message.chat.id, parameter)} "
+            text += f"\n<code>{parameter}</code> - {await db.get_chat_parameter(message.chat.id, parameter)} "
 
         text += ("\n\n<b>Для подробностей по параметру:</b> /settings [параметр]\n<b>Установить новое значение:</b> "
                  "/set [параметр] [значение]")

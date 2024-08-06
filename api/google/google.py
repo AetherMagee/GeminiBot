@@ -93,7 +93,7 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
     return None
 
 
-async def format_message_for_prompt(message: Record) -> str:
+async def format_message_for_prompt(message: Record, add_reply_to: bool = True) -> str:
     result = ""
 
     if message["sender_id"] == bot_id:
@@ -105,7 +105,7 @@ async def format_message_for_prompt(message: Record) -> str:
             name = f"{message['sender_name']} ({message['sender_username']})"
         result += f"{name}: "
 
-    if message["reply_to_message_id"]:
+    if message["reply_to_message_id"] and add_reply_to:
         result += f"[REPLY TO: {message['reply_to_message_trimmed_text']}] "
 
     if message["text"]:
