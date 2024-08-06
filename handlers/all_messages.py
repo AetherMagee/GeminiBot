@@ -62,7 +62,8 @@ async def handle_normal_message(message: Message) -> None:
                     "Your previous message was not accepted by the endpoint due to bad formatting. The user sees your "
                     "message WITHOUT your formatting. Do better next time. Keep the formatting rules in mind.")
             except Exception:
-                our_message = await message.reply("❌ <b>Telegram не принимает ответ бота.</b>")
+                our_message = await message.reply(f"❌ <b>Telegram не принимает ответ "
+                                                  f"бота.</b> <i>({len(output)} символов)</i>")
         finally:
             if output.startswith("❌"):
                 output = ERROR_MESSAGES["system_failure"]
