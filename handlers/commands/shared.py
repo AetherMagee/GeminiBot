@@ -28,7 +28,7 @@ async def is_allowed_to_alter_memory(message: Message) -> bool:
             return False
         return True
     except TelegramBadRequest:
-        logger.warning("No admin rights, assuming sufficient permissions.")
+        logger.warning(f"No admin rights in {message.chat.id}")
         if permission_mode in ["owner", "admins"]:
             await message.reply("⚠️ <b>Бот не является администратором, поэтому не может проверить этого "
                                 "пользователя на наличие прав для изменения памяти бота.</b>")
