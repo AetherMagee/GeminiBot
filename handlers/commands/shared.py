@@ -3,11 +3,14 @@ from aiogram.types import Message
 from loguru import logger
 
 import db
-from main import bot
+from main import ADMIN_IDS, bot
 
 
 async def is_allowed_to_alter_memory(message: Message) -> bool:
     if message.from_user.id == message.chat.id:
+        return True
+
+    if message.from_user.id in ADMIN_IDS:
         return True
 
     permission_mode = await db.get_chat_parameter(message.chat.id, "memory_alter_permission")
