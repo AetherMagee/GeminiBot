@@ -18,12 +18,7 @@ async def forget_command(message: Message) -> None:
         await message.reply("❌ <b>Используйте команду ответом на сообщение, которое нужно удалить из памяти бота..</b>")
         return
 
-    if message.reply_to_message.from_user.id == bot_id:
-        target = message.reply_to_message.text
-    else:
-        target = message.reply_to_message.message_id
-
-    successful = await db.attempt_delete_message(message.chat.id, target)
+    successful = await db.attempt_delete_message(message.chat.id, message.reply_to_message.message_id)
     if successful:
         await message.react([ReactionTypeEmoji(emoji="👌")])
     else:
