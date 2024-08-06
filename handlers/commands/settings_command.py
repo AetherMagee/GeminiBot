@@ -1,6 +1,6 @@
 import traceback
 
-from aiogram.types import Message
+from aiogram.types import Message, ReactionTypeEmoji
 from loguru import logger
 
 import db
@@ -101,7 +101,7 @@ async def set_command(message: Message) -> None:
 
     try:
         await db.set_chat_parameter(message.chat.id, requested_parameter, requested_value)
-        await message.reply("✅ <b>Параметр установлен.</b>")
+        await message.react([ReactionTypeEmoji(emoji="👌")])
     except Exception as e:
         logger.error(e)
         traceback.print_exc()
