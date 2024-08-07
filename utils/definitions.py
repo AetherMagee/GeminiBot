@@ -15,7 +15,7 @@ chat_configs = {
             "description": "Максимум сообщений в памяти бота",
             "type": "integer",
             "default_value": 500,
-            "accepted_values": range(1, 3000),
+            "accepted_values": range(1, 5000),
             "protected": False
         },
         "memory_alter_permission": {
