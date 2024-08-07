@@ -77,6 +77,10 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
             "role": "system",
             "content": prompt_p2
         })
+        final.append({
+            "role": "user",
+            "content": await format_message_for_prompt(messages_list[-1], add_reply_to)
+        })
 
     return final
 
