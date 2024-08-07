@@ -51,18 +51,22 @@ async def status_command(message: Message):
     current_model = await db.get_chat_parameter(message.chat.id, table_prefix + "model")
     commit = get_git_commit_hash()
 
+    token_count = "⏱ Секунду..."
+
     text_to_send = f"""✅ <b>Бот активен!</b>
-💬 <b>Память:</b> {len(messages)}/{messages_limit} сообщений <i>(⏱ Секунду...)</i>
+💬 <b>Память:</b> {len(messages)}/{messages_limit} сообщений <i>({token_count})</i>
 ✨ <b>Модель:</b> <i>{current_model}</i>
 🆔 <b>ID чата:</b> <code>{message.chat.id}</code>
 🤓 <b>Версия бота:</b> <code>{commit}</code>"""
+
+    if current_endpoint == "openai":
+        token_count = await api.openai.count_tokens(message.chat.id)
+        text_to_send = text_to_send.replace("⏱ Секунду...", f"{token_count} токенов")
 
     reply = await message.reply(text_to_send)
 
     if current_endpoint == "google":
         token_count = await api.google.count_tokens_for_chat(messages,
-                                                    await db.get_chat_parameter(message.chat.id, "model"))
-    elif current_endpoint == "openai":
-        token_count = await api.openai.count_tokens(message.chat.id)
-    text_to_send = text_to_send.replace("⏱ Секунду...", f"{token_count} токенов")
-    await reply.edit_text(text_to_send)
+                                                             await db.get_chat_parameter(message.chat.id, "model"))
+        text_to_send = text_to_send.replace("⏱ Секунду...", f"{token_count} токенов")
+        await reply.edit_text(text_to_send)
