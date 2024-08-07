@@ -36,7 +36,7 @@ async def main() -> None:
 
     from handlers import (handle_normal_message, reset_command, settings_command, set_command, raw_command,
                           start_command, status_command, directsend_command, sql_command, restart_command,
-                          forget_command, replace_command, help_command)
+                          forget_command, replace_command, help_command, system_command)
 
     dp.message.register(reset_command, Command("reset"))
     dp.message.register(reset_command, Command("clear"))
@@ -48,6 +48,7 @@ async def main() -> None:
     dp.message.register(forget_command, Command("forget"))
     dp.message.register(replace_command, Command("replace"))
     dp.message.register(help_command, Command("help"))
+    dp.message.register(system_command, Command("system"))
 
     dp.message.register(directsend_command, Command("directsend"), adminMessageFilter)
     dp.message.register(sql_command, Command("sql"), adminMessageFilter)
