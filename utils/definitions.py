@@ -14,7 +14,7 @@ chat_configs = {
         "message_limit": {
             "description": "Максимум сообщений в памяти бота",
             "type": "integer",
-            "default_value": 500,
+            "default_value": 1000,
             "accepted_values": range(1, 5000),
             "protected": False
         },
@@ -35,7 +35,7 @@ chat_configs = {
         "add_reply_to": {
             "description": "Добавлять ли в сообщения \"REPLY TO\", чтобы показать модели, кто кому отвечает",
             "type": "boolean",
-            "default_value": True,
+            "default_value": False,
             "accepted_values": [True, False],
             "protected": False
         }
