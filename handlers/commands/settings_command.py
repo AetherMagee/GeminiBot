@@ -1,3 +1,4 @@
+import difflib
 import traceback
 
 from aiogram.types import Message, ReactionTypeEmoji
@@ -83,14 +84,20 @@ async def set_command(message: Message) -> None:
                 requested_value = True
             elif requested_value == "false" or requested_value == "0":
                 requested_value = False
-            else:
-                requested_value = bool(requested_value)
 
         except ValueError:
             requested_value = None
 
     if requested_value not in available_parameters[requested_parameter]['accepted_values']:
-        await message.reply("❌ <b>Недопустимое значение для параметра.</b>")
+        reply_text = "❌ <b>Недопустимое значение для параметра.</b> "
+        if available_parameters[requested_parameter]["type"] == "text":
+            probable_value = difflib.get_close_matches(requested_value,
+                                                       available_parameters[requested_parameter]['accepted_values'],
+                                                       1,
+                                                       0.4)
+            if len(probable_value) > 0:
+                reply_text += f"Может быть, вы имели в виду <code>{probable_value[0]}</code>?"
+        await message.reply(reply_text)
         return
 
     if available_parameters[requested_parameter]["protected"]:
