@@ -143,7 +143,7 @@ async def _prepare_prompt(message: Message, chat_messages: List[Record], token: 
         "it - say it. If it's an audio resembling a voice message - transcript it as accurately as "
         "possible, then handle it as a normal message directed at you. So, if it has any "
         "instructions for you - execute them. Otherwise, ask the User what they want exactly."
-    ) if photos or additional_media else None
+    ) if photos or additional_media else ""
 
     prompt = default_prompt.format(
         chat_type=chat_type,
