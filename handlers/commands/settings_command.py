@@ -17,11 +17,17 @@ async def settings_command(message: Message) -> None:
     await log_command(message)
     command = message.text.split(" ", maxsplit=1)
     chat_endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
+    show_advanced = await db.get_chat_parameter(message.chat.id, "show_advanced_settings")
     available_parameters = chat_configs["all_endpoints"] | chat_configs[chat_endpoint]
     if len(command) == 1:
         text = "<b>Доступные параметры бота:</b> \n"
 
         for parameter in available_parameters.keys():
+            if available_parameters[parameter]["advanced"] and not show_advanced:
+                continue
+
+            if parameter not in chat_configs["all_endpoints"] and "===" not in text:
+                text += "\n<b>============</b>"
             text += f"\n<code>{parameter}</code> - {await db.get_chat_parameter(message.chat.id, parameter)} "
 
         text += ("\n\n<b>Для подробностей по параметру:</b> /settings [параметр]\n<b>Установить новое значение:</b> "
@@ -36,12 +42,14 @@ async def settings_command(message: Message) -> None:
             return
 
         current_value = await db.get_chat_parameter(message.chat.id, requested_parameter)
+        default_value = available_parameters[requested_parameter]['default_value'].replace("\'", "")
 
         text = f"<b>Параметр</b> <code>{requested_parameter}</code>:\n"
         text += f"<i>{available_parameters[requested_parameter]['description']}</i>\n"
         text += "<b>Значения:</b> \n"
         text += f"Нынешнее: {current_value} | "
-        text += f"Стандартное: {available_parameters[requested_parameter]['default_value']} | "
+        text += f"Стандартное: {default_value} | "
+
         _value_range = available_parameters[requested_parameter]['accepted_values']
         if isinstance(_value_range, range):
             accepted_values = f"{_value_range.start}-{_value_range.stop}"
@@ -52,6 +60,7 @@ async def settings_command(message: Message) -> None:
                 accepted_values = ", ".join(_value_range)
             except Exception:
                 accepted_values = "True, False"
+
         text += f"Допустимые: {accepted_values}"
 
         await message.reply(text)
