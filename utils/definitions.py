@@ -28,6 +28,14 @@ chat_configs = {
             "protected": False,
             "advanced": False
         },
+        "show_advanced_settings": {
+            "description": "Показ продвинутых настроек в /settings (они всё еще доступны в /set)",
+            "type": "boolean",
+            "default_value": False,
+            "accepted_values": [True, False],
+            "protected": False,
+            "advanced": False
+        },
         "show_error_messages": {
             "description": "Показывать ли подробные сообщения об ошибке",
             "type": "boolean",
@@ -41,7 +49,24 @@ chat_configs = {
             "type": "boolean",
             "default_value": False,
             "accepted_values": [True, False],
-            "protected": False
+            "protected": False,
+            "advanced": True
+        },
+        "token_limit": {
+            "description": "Желаемое максимальное количество токенов в памяти бота. <code>0</code> - отключает лимит",
+            "type": "integer",
+            "default_value": 0,
+            "accepted_values": range(0, 128000),
+            "protected": False,
+            "advanced": False
+        },
+        "token_limit_action": {
+            "description": "Что делать при достижении лимита токенов",
+            "type": "text",
+            "default_value": "\'warn\'",
+            "accepted_values": ["warn", "block"],
+            "protected": False,
+            "advanced": False
         }
     },
     "google": {

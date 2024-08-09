@@ -5,6 +5,7 @@ from aiogram.types import Message
 from loguru import logger
 
 import api
+import api.openai
 import db
 from api.google import ERROR_MESSAGES
 from utils import get_message_text, no_markdown
@@ -49,6 +50,20 @@ async def handle_normal_message(message: Message) -> None:
         if await db.get_chat_parameter(message.chat.id, "endpoint") == "openai" and text == "":
             return
 
+        token_limit = await db.get_chat_parameter(message.chat.id, "token_limit")
+        token_warning: Message = None
+        if token_limit:
+            current_token_count = await api.openai.count_tokens(message.chat.id)  # Using Tiktoken as it's faster
+            if current_token_count > token_limit:
+                token_limit_action = await db.get_chat_parameter(message.chat.id, "token_limit_action")
+                if token_limit_action == "warn":
+                    token_warning = await message.reply(f"⚠️ <b>Количество токенов превышает заданный лимит</b> "
+                                                        f"<i>({current_token_count} > {token_limit})</i>")
+                elif token_limit_action == "block":
+                    await message.reply(f"❌ <b>Запрос заблокирован: Количество токенов превышает заданный лимит</b> "
+                                        f"<i>({current_token_count} > {token_limit})</i>")
+                    return
+
         output = await api.generate_response(message)
         try:
             our_message = await message.reply(output, parse_mode=ParseMode.MARKDOWN)
@@ -68,3 +83,5 @@ async def handle_normal_message(message: Message) -> None:
             if output.startswith("❌"):
                 output = ERROR_MESSAGES["system_failure"]
             await db.save_our_message(message, output, our_message.message_id)
+            if token_warning:
+                await token_warning.delete()
