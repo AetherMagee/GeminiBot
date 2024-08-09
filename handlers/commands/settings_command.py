@@ -1,5 +1,7 @@
 import difflib
+import itertools
 import traceback
+from typing import List
 
 from aiogram.types import Message, ReactionTypeEmoji
 from loguru import logger
@@ -8,6 +10,7 @@ import db
 from main import bot, ADMIN_IDS
 from utils import log_command
 from utils.definitions import chat_configs
+from utils.frange import FloatRange
 
 
 async def settings_command(message: Message) -> None:
@@ -42,6 +45,8 @@ async def settings_command(message: Message) -> None:
         _value_range = available_parameters[requested_parameter]['accepted_values']
         if isinstance(_value_range, range):
             accepted_values = f"{_value_range.start}-{_value_range.stop}"
+        elif isinstance(_value_range, FloatRange):
+            accepted_values = f"{_value_range[0]}—{_value_range[-1]}, шаг {_value_range[1] - _value_range[0]}"
         else:
             try:
                 accepted_values = ", ".join(_value_range)
@@ -78,7 +83,12 @@ async def set_command(message: Message) -> None:
             requested_value = int(requested_value)
         except ValueError:
             requested_value = None
-    if available_parameters[requested_parameter]["type"] == "boolean":
+    elif available_parameters[requested_parameter]["type"] == "decimal":
+        try:
+            requested_value = float(requested_value)
+        except ValueError:
+            requested_value = None
+    elif available_parameters[requested_parameter]["type"] == "boolean":
         try:
             if requested_value == "true" or requested_value == "1":
                 requested_value = True

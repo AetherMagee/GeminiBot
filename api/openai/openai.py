@@ -22,14 +22,26 @@ with open(os.getenv("OAI_PROMPT_PART2_PATH"), "r") as f:
     prompt_p2 = f.read()
 
 
-async def _send_request(messages_list: List[dict], model: str, request_id: int) -> dict:
+async def _send_request(
+        messages_list: List[dict],
+        model: str,
+        request_id: int,
+        temperature: float,
+        top_p: float,
+        frequency_penalty: float,
+        presence_penalty: float,
+) -> dict:
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {OPENAI_API_KEY}"
     }
     data = {
         "model": model,
-        "messages": messages_list
+        "messages": messages_list,
+        "temperature": temperature,
+        "top_p": top_p,
+        "frequency_penalty": frequency_penalty,
+        "presence_penalty": presence_penalty,
     }
     logger.debug(f"{request_id} | Sending request to {OPENAI_URL}")
     async with aiohttp.ClientSession() as session:
@@ -104,7 +116,11 @@ async def generate_response(message: Message) -> str:
         api_task = asyncio.create_task(_send_request(
             prompt,
             model,
-            request_id
+            request_id,
+            float(await db.get_chat_parameter(message.chat.id, "o_temperature")),
+            float(await db.get_chat_parameter(message.chat.id, "o_top_p")),
+            float(await db.get_chat_parameter(message.chat.id, "o_frequency_penalty")),
+            float(await db.get_chat_parameter(message.chat.id, "o_presence_penalty")),
         ))
         response = await api_task
     except Exception as e:

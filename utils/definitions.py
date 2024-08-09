@@ -1,6 +1,6 @@
 import api.google
 import api.openai
-
+from .frange import frange
 
 chat_configs = {
     "all_endpoints": {
@@ -69,6 +69,34 @@ chat_configs = {
             "type": "boolean",
             "default_value": True,
             "accepted_values": [True, False],
+            "protected": False
+        },
+        "o_temperature": {
+            "description": "Температура сэмплинга. Чем выше - тем более случайные ответы может вернуть модель.",
+            "type": "decimal",
+            "default_value": 1.0,
+            "accepted_values": frange(0, 2, 0.01),
+            "protected": False
+        },
+        "o_top_p": {
+            "description": "Альтернатива температуре с использованием nucleus sampling. Что это такое? В душе не ебу",
+            "type": "decimal",
+            "default_value": 1.0,
+            "accepted_values": frange(0, 1, 0.01),
+            "protected": False
+        },
+        "o_presence_penalty": {
+            "description": "Г" + "О"*50 + "Л",
+            "type": "decimal",
+            "default_value": 0.0,
+            "accepted_values": frange(-2, 2, 0.01),
+            "protected": False
+        },
+        "o_frequency_penalty": {
+            "description": "Г" + "О"*50 + "Л",
+            "type": "decimal",
+            "default_value": 0.0,
+            "accepted_values": frange(-2, 2, 0.01),
             "protected": False
         }
     }
