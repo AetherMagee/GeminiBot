@@ -71,6 +71,13 @@ chat_configs = {
             "accepted_values": [True, False],
             "protected": False
         },
+        "o_vision": {
+            "description": "Разрешить ли модели работать с изображениями",
+            "type": "boolean",
+            "default_value": False,
+            "accepted_values": [True, False],
+            "protected": False
+        },
         "o_temperature": {
             "description": "Температура сэмплинга. Чем выше - тем более случайные ответы может вернуть модель.",
             "type": "decimal",

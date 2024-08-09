@@ -1,7 +1,10 @@
 import asyncio
+import base64
 import os
 import sys
 import threading
+from io import BytesIO
+from typing import Union
 
 import google.generativeai as genai
 from aiogram.types import Message, Sticker, VideoNote
@@ -78,7 +81,7 @@ async def get_other_media(message: Message, gemini_token: str) -> list:
     return uploaded_media
 
 
-async def get_photo(message: Message) -> Image:
+async def get_photo(message: Message, mode: str = "pillow") -> Union[Image, bytes]:
     if message.photo:
         photo_file_id = message.photo[-1].file_id
     elif message.reply_to_message and message.reply_to_message.photo:
@@ -87,5 +90,9 @@ async def get_photo(message: Message) -> Image:
         photo_file_id = None
 
     if photo_file_id:
-        await _download_if_necessary(photo_file_id)
-        return Image.open(f"/cache/{photo_file_id}")
+        if mode == "pillow":
+            await _download_if_necessary(photo_file_id)
+            return Image.open(f"/cache/{photo_file_id}")
+        elif mode == "base64":
+            downloaded_bytes: BytesIO = await bot.download(photo_file_id)
+            return base64.b64encode(downloaded_bytes.getvalue()).decode("utf-8")

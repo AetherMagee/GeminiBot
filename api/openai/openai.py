@@ -12,6 +12,7 @@ from loguru import logger
 
 import db
 from api.google import format_message_for_prompt, ERROR_MESSAGES
+from api.google.media import get_photo
 from utils import simulate_typing
 
 OPENAI_URL = os.getenv("OAI_API_URL")
@@ -68,7 +69,9 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
 
     for message in messages_list:
         message_as_text = await format_message_for_prompt(message, add_reply_to)
-        if message_as_text.startswith("You: "):
+        if message == messages_list[-1]:
+            continue
+        elif message_as_text.startswith("You: "):
             final.append({
                 "role": "assistant",
                 "content": message_as_text.replace("You: ", "")
@@ -89,9 +92,32 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
             "role": "system",
             "content": prompt_p2
         })
+
+    if await db.get_chat_parameter(trigger_message.chat.id, "o_vision"):
+        image = await get_photo(trigger_message, "base64")
+    else:
+        image = None
+
+    if not image:
         final.append({
             "role": "user",
             "content": await format_message_for_prompt(messages_list[-1], add_reply_to)
+        })
+    else:
+        final.append({
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": await format_message_for_prompt(messages_list[-1], add_reply_to)
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{image}"
+                    }
+                }
+            ]
         })
 
     return final
