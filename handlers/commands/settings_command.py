@@ -42,7 +42,10 @@ async def settings_command(message: Message) -> None:
             return
 
         current_value = await db.get_chat_parameter(message.chat.id, requested_parameter)
-        default_value = available_parameters[requested_parameter]['default_value'].replace("\'", "")
+        try:
+            default_value = available_parameters[requested_parameter]['default_value'].replace("\'", "")
+        except AttributeError:
+            default_value = str(available_parameters[requested_parameter]['default_value'])
 
         text = f"<b>Параметр</b> <code>{requested_parameter}</code>:\n"
         text += f"<i>{available_parameters[requested_parameter]['description']}</i>\n"

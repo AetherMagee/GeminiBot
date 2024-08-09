@@ -7,6 +7,7 @@ import google.generativeai as genai
 from aiogram.types import Message
 from asyncpg import Record
 from google.api_core.exceptions import InvalidArgument
+from google.generativeai import GenerationConfig
 from google.generativeai.types import AsyncGenerateContentResponse, File, HarmBlockThreshold, HarmCategory
 from loguru import logger
 
@@ -53,7 +54,8 @@ def _get_api_key() -> str:
     return api_keys[api_key_index % len(api_keys)]
 
 
-async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name: str) \
+async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name: str,
+                           temperature: float, top_p: float, top_k: int) \
         -> Union[AsyncGenerateContentResponse, str, Exception, None]:
     safety = {
         HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
@@ -61,6 +63,12 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE
     }
+
+    config = GenerationConfig(
+        temperature=temperature,
+        top_p=top_p,
+        top_k=top_k
+    )
 
     logger.debug(f"{request_id} | Using model {model_name}")
 
@@ -76,7 +84,11 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
 
         logger.debug(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS}")
         try:
-            response = await model.generate_content_async(prompt, safety_settings=safety)
+            response = await model.generate_content_async(
+                prompt,
+                safety_settings=safety,
+                generation_config=config
+            )
             return response
         except InvalidArgument:
             return ERROR_MESSAGES["unsupported_file_type"]
@@ -226,7 +238,10 @@ async def generate_response(message: Message) -> str:
         request_id,
         prompt,
         token,
-        model_name
+        model_name,
+        await db.get_chat_parameter(message.chat.id, "g_temperature"),
+        await db.get_chat_parameter(message.chat.id, "g_top_p"),
+        await db.get_chat_parameter(message.chat.id, "g_top_k")
     ))
 
     response = await api_task

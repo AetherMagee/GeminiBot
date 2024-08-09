@@ -77,6 +77,30 @@ chat_configs = {
             "accepted_values": api.google.get_available_models(),
             "protected": False,
             "advanced": False
+        },
+        "g_temperature": {
+            "description": "Температура сэмплинга. Чем выше - тем более случайные ответы может вернуть модель.",
+            "type": "decimal",
+            "default_value": 1.0,
+            "accepted_values": frange(0, 1, 0.01),
+            "protected": False,
+            "advanced": True
+        },
+        "g_top_p": {
+            "description": "Альтернатива температуре с использованием nucleus sampling. Что это такое? В душе не ебу",
+            "type": "decimal",
+            "default_value": 0.95,
+            "accepted_values": frange(0, 1, 0.01),
+            "protected": False,
+            "advanced": True
+        },
+        "g_top_k": {
+            "description": "Какая то гугловская хуйня, что то связанное с количеством токенов во время сэмплинга",
+            "type": "integer",
+            "default_value": 40,
+            "accepted_values": range(1, 100),
+            "protected": False,
+            "advanced": True
         }
     },
     "openai": {
