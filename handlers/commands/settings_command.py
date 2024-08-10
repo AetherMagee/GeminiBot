@@ -57,7 +57,7 @@ async def settings_command(message: Message) -> None:
         if isinstance(_value_range, range):
             accepted_values = f"{_value_range.start}-{_value_range.stop}"
         elif isinstance(_value_range, FloatRange):
-            accepted_values = f"{_value_range[0]}—{_value_range[-1]}, шаг {_value_range[1] - _value_range[0]}"
+            accepted_values = f"{_value_range[0]}—{_value_range[-1]}, шаг {round(_value_range[1] - _value_range[0], 2)}"
         else:
             try:
                 accepted_values = ", ".join(_value_range)
