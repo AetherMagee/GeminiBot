@@ -82,7 +82,7 @@ async def stats_command(message: Message) -> None:
         for chat in top_chats:
             top_chats_text += f"{chat['table_name'].replace('messages', '').replace('_', '')} - {chat['rows_n']}\n"
 
-        text += (f"\n\n========\n\n<b>Всего сообщений в БД:</b> <i>{total_processed_messages}</i>\n<b>Топ чатов:</b> "
+        text += (f"\n========\n\n<b>Всего сообщений в БД:</b> <i>{total_processed_messages}</i>\n<b>Топ чатов:</b> "
                  f"\n<i>{top_chats_text}</i>")
 
     await message.reply(text)
