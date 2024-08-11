@@ -66,6 +66,9 @@ async def settings_command(message: Message) -> None:
 
         text += f"Допустимые: {accepted_values}"
 
+        if available_parameters[requested_parameter]["protected"]:
+            text += "\n⚠️ <b>Этот параметр защищён - его могут менять только администраторы бота.</b>"
+
         await message.reply(text)
 
 
