@@ -167,6 +167,14 @@ chat_configs = {
             "accepted_values": frange(-2, 2, 0.01),
             "protected": False,
             "advanced": True
+        },
+        "o_log_prompt": {
+            "description": "кирилл если будешь это дергать я тебя выебу",
+            "type": "bool",
+            "default_value": False,
+            "accepted_values": [True, False],
+            "protected": True,
+            "advanced": True
         }
     }
 }

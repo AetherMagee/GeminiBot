@@ -133,7 +133,10 @@ async def generate_response(message: Message) -> str:
 
     messages = await db.get_messages(message.chat.id)
     model = await db.get_chat_parameter(message.chat.id, "o_model")
+    log_prompt = await db.get_chat_parameter(message.chat.id, "o_log_prompt")
     prompt = await get_prompt(message, messages, append_system_prompt)
+    if log_prompt:
+        logger.debug(prompt)
 
     logger.debug(f"{request_id} | Using model {model}")
 
