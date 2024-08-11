@@ -6,7 +6,7 @@ from aiogram.types import Message
 import db.shared as dbs
 from main import bot
 
-lock: bool = False
+lock: dict = {}
 global_stats_command = """WITH tbl AS
   (SELECT table_schema,
           TABLE_NAME
@@ -23,11 +23,15 @@ ORDER BY rows_n DESC;"""
 async def stats_command(message: Message) -> None:
     global lock
 
-    if lock:
+    if message.chat.id not in lock.keys():
+        lock[message.chat.id] = False
+
+    if lock[message.chat.id]:
         await message.reply("❌ <b>Пожалуйста, подождите перед запуском этой команды снова.</b>")
         return
 
-    lock = True
+    lock[message.chat.id] = True
+
     san_chat_id = await dbs.sanitize_chat_id(message.chat.id)
     async with dbs.pool.acquire() as conn:
         global_stats = await conn.fetch(global_stats_command)
@@ -73,4 +77,4 @@ async def stats_command(message: Message) -> None:
 
     await asyncio.sleep(5)
 
-    lock = False
+    lock[message.chat.id] = False
