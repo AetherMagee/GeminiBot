@@ -170,7 +170,7 @@ chat_configs = {
         },
         "o_log_prompt": {
             "description": "кирилл если будешь это дергать я тебя выебу",
-            "type": "bool",
+            "type": "boolean",
             "default_value": False,
             "accepted_values": [True, False],
             "protected": True,
