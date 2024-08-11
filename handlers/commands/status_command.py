@@ -8,6 +8,7 @@ import api.google
 import api.openai
 import db
 from utils import log_command
+from utils.definitions import chat_configs
 
 GIT_COMMIT_HASH: Optional[str] = None
 
@@ -62,6 +63,9 @@ async def status_command(message: Message):
     if current_endpoint == "openai":
         token_count = await api.openai.count_tokens(message.chat.id)
         text_to_send = text_to_send.replace("⏱ Секунду...", f"{token_count} токенов")
+
+    if not chat_configs["openai"]["o_model"]["accepted_values"]:
+        text_to_send += "\n⚠️<b> Эндпоинт OpenAI недоступен.</b>"
 
     reply = await message.reply(text_to_send)
 
