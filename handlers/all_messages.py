@@ -1,5 +1,6 @@
 import os
 
+from aiogram import html
 from aiogram.enums import ParseMode
 from aiogram.types import Message
 from loguru import logger
@@ -8,7 +9,7 @@ import api
 import api.openai
 import db
 from api.google import ERROR_MESSAGES
-from utils import get_message_text, no_markdown
+from utils import get_message_text
 from .commands.shared import is_allowed_to_alter_memory
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
@@ -70,8 +71,7 @@ async def handle_normal_message(message: Message) -> None:
         except Exception as e:
             logger.error(f"Failed to send response: {e}")
             try:
-                output = await no_markdown(output)
-                our_message = await message.reply(output)
+                our_message = await message.reply(html.quote(output))
                 await db.save_system_message(
                     message.chat.id,
                     "Your previous message was not accepted by the endpoint due to bad formatting. The user sees your "
