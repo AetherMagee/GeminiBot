@@ -58,9 +58,9 @@ async def stats_command(message: Message) -> None:
             chat_messages_by_user[db_message['sender_id']] += 1
 
     chat_messages_by_user = sorted(chat_messages_by_user.items(), key=lambda item: item[1], reverse=True)
-    top_3_users = chat_messages_by_user[:3]
+    top_users = chat_messages_by_user[:5]
     top_users_text = ""
-    for user in top_3_users:
+    for user in top_users:
         member = await bot.get_chat_member(chat_id=message.chat.id, user_id=user[0])
         top_users_text += f"{member.user.first_name} - {user[1]}\n"
 
