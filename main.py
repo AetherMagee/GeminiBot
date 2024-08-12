@@ -36,7 +36,8 @@ async def main() -> None:
 
     from handlers import (handle_normal_message, reset_command, settings_command, set_command, raw_command,
                           start_command, status_command, directsend_command, sql_command, restart_command,
-                          forget_command, replace_command, help_command, system_command, stats_command)
+                          forget_command, replace_command, help_command, system_command, stats_command,
+                          handle_message_edit)
 
     dp.message.register(reset_command, Command("reset"))
     dp.message.register(reset_command, Command("clear"))
@@ -58,6 +59,10 @@ async def main() -> None:
     @dp.message()
     async def on_any_message(message: Message) -> None:
         await handle_normal_message(message)
+
+    @dp.edited_message()
+    async def on_edited_message(message: Message) -> None:
+        await handle_message_edit(message)
 
     logger.info("Starting to receive messages...")
     await dp.start_polling(bot)
