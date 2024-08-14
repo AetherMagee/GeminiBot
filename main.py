@@ -34,7 +34,7 @@ async def main() -> None:
     logger.info("Initializing handlers...")
     await bot.delete_webhook(drop_pending_updates=True)
 
-    from handlers import (handle_normal_message, reset_command, settings_command, set_command, raw_command,
+    from handlers import (handle_new_message, reset_command, settings_command, set_command, raw_command,
                           start_command, status_command, directsend_command, sql_command, restart_command,
                           forget_command, replace_command, help_command, system_command, stats_command,
                           handle_message_edit)
@@ -58,7 +58,7 @@ async def main() -> None:
 
     @dp.message()
     async def on_any_message(message: Message) -> None:
-        await handle_normal_message(message)
+        await handle_new_message(message)
 
     @dp.edited_message()
     async def on_edited_message(message: Message) -> None:

@@ -16,7 +16,7 @@ bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 bot_username = os.getenv("BOT_USERNAME")
 
 
-async def handle_normal_message(message: Message) -> None:
+async def handle_new_message(message: Message) -> None:
     # TODO: Blacklisting
 
     requirement_pass = False
@@ -85,3 +85,8 @@ async def handle_normal_message(message: Message) -> None:
             await db.save_our_message(message, output, our_message.message_id)
             if token_warning:
                 await token_warning.delete()
+
+
+async def handle_message_edit(message: Message) -> None:
+    logger.info(f"Updating message {message.message_id} in {message.chat.id}")
+    await db.replace_message(message.chat.id, message.message_id, message.text)
