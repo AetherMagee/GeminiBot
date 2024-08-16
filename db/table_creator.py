@@ -1,7 +1,6 @@
 from asyncpg import Connection
 from loguru import logger
 
-from db.chats import chat_config
 from utils.definitions import chat_configs
 
 
@@ -27,12 +26,12 @@ async def create_chat_config_table(conn: Connection) -> None:
     """
     Creates a new table in the database for storing chat configs.
     Should only be called on startup.
-    TODO: Figure out what to do if columns are missing (e.g. when altering definitions and not resetting the DB)
     """
     command = "CREATE TABLE IF NOT EXISTS chat_config(chat_id bigint NOT NULL PRIMARY KEY"
     for parameter_list in chat_configs.keys():
         for parameter in chat_configs[parameter_list]:
-            command += f", {parameter} {chat_configs[parameter_list][parameter]['type']} DEFAULT {chat_configs[parameter_list][parameter]['default_value']}"
+            command += (f", {parameter} {chat_configs[parameter_list][parameter]['type']} DEFAULT "
+                        f"{chat_configs[parameter_list][parameter]['default_value']}")
     command += ")"
 
     await conn.execute(command)
@@ -48,3 +47,8 @@ async def create_chat_config_table(conn: Connection) -> None:
                 await conn.execute(f"ALTER TABLE chat_config ADD COLUMN IF NOT EXISTS "
                                    f"{parameter} {chat_configs[parameter_list][parameter]['type']} DEFAULT "
                                    f"{chat_configs[parameter_list][parameter]['default_value']}")
+
+
+async def create_blacklist_table(conn: Connection) -> None:
+    command = "CREATE TABLE IF NOT EXISTS blacklist(internal_id serial PRIMARY KEY, entity_id bigint NOT NULL)"
+    await conn.execute(command)

@@ -58,7 +58,8 @@ async def check_token_limit(message: Message) -> bool:
 
 
 async def handle_new_message(message: Message) -> None:
-    # TODO: Blacklisting
+    if await db.is_blacklisted(message.from_user.id) or await db.is_blacklisted(message.chat.id):
+        return
 
     endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
     if not await meets_endpoint_requirements(message, endpoint):

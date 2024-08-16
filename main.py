@@ -28,6 +28,7 @@ async def main() -> None:
 
     async with db.shared.pool.acquire() as connection:
         await db.create_chat_config_table(connection)
+        await db.create_blacklist_table(connection)
 
     logger.info("DB init complete")
 
@@ -37,7 +38,7 @@ async def main() -> None:
     from handlers import (handle_new_message, reset_command, settings_command, set_command, raw_command,
                           start_command, status_command, directsend_command, sql_command, restart_command,
                           forget_command, replace_command, help_command, system_command, stats_command,
-                          handle_message_edit)
+                          handle_message_edit, blacklist_command, unblacklist_command)
 
     dp.message.register(reset_command, Command("reset"))
     dp.message.register(reset_command, Command("clear"))
@@ -55,6 +56,8 @@ async def main() -> None:
     dp.message.register(directsend_command, Command("directsend"), adminMessageFilter)
     dp.message.register(sql_command, Command("sql"), adminMessageFilter)
     dp.message.register(restart_command, Command("restart"), adminMessageFilter)
+    dp.message.register(blacklist_command, Command("blacklist"), adminMessageFilter)
+    dp.message.register(unblacklist_command, Command("unblacklist"), adminMessageFilter)
 
     @dp.message()
     async def on_any_message(message: Message) -> None:
