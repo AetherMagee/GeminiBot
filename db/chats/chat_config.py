@@ -15,7 +15,7 @@ async def _create_config_entry(chat_id: int):
 async def get_chat_parameter(chat_id: int, parameter_name: str):
     await _create_config_entry(chat_id)
     async with dbs.pool.acquire() as conn:
-        result = await conn.fetchrow(f"SELECT {parameter_name} FROM chat_config WHERE chat_id = {chat_id}")
+        result = await conn.fetchrow(f"SELECT {parameter_name} FROM chat_config WHERE chat_id = $1", chat_id)
         return list(result)[0]
 
 
@@ -29,6 +29,6 @@ async def set_chat_parameter(chat_id: int, parameter_name: str, value):
         value = f"\'{value}\'"
 
     async with dbs.pool.acquire() as conn:
-        await conn.execute(f"UPDATE chat_config SET {parameter_name} = {value} WHERE chat_id = {chat_id}")
+        await conn.execute(f"UPDATE chat_config SET {parameter_name} = $1 WHERE chat_id = {chat_id}", value)
 
     get_chat_parameter.cache_invalidate(chat_id, parameter_name)
