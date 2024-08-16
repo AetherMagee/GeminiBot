@@ -11,7 +11,10 @@ from loguru import logger
 
 if os.path.exists(".env"):
     if __name__ == "__main__":
-        logger.debug("Loading a .env file. Are we not running in Docker?")
+        logger.error("A .env file is present. This indicates that the bot is not running in Docker.")
+        logger.error("The bot currently has hardcoded paths that make running in Docker mandatory.")
+        logger.error("Shutting down...")
+        exit(1)
     load_dotenv()
 
 bot = Bot(os.getenv("TELEGRAM_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
