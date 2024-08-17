@@ -16,7 +16,7 @@ async def forget_command(message: Message) -> None:
         await message.reply("❌ <b>У вас нет доступа к этой команде.</b>")
         return
     if not message.reply_to_message:
-        await message.reply("❌ <b>Используйте команду ответом на сообщение, которое нужно удалить из памяти бота..</b>")
+        await message.reply("❌ <b>Используйте команду ответом на сообщение, которое нужно удалить из памяти бота.</b>")
         return
 
     successful = await db.attempt_delete_message(message.chat.id, message.reply_to_message.message_id)
