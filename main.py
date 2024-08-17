@@ -51,6 +51,7 @@ async def main() -> None:
     dp.message.register(unblacklist_command, Command("unblacklist"), adminMessageFilter)
 
     @dp.message(BlacklistFilter())
+    @dp.edited_message(BlacklistFilter())
     async def blacklist_handler(message: Message):
         # Mark blacklisted messages as handled and do nothing lol
         pass
@@ -72,7 +73,7 @@ async def main() -> None:
     async def on_any_message(message: Message) -> None:
         await handle_new_message(message)
 
-    @dp.edited_message(BlacklistFilter())
+    @dp.edited_message()
     async def on_edited_message(message: Message) -> None:
         await handle_message_edit(message)
 
