@@ -38,23 +38,24 @@ async def main() -> None:
     logger.info("Initializing handlers...")
     await bot.delete_webhook(drop_pending_updates=True)
 
+    from utils import BlacklistFilter
     from handlers import (handle_new_message, reset_command, settings_command, set_command, raw_command,
                           start_command, status_command, directsend_command, sql_command, restart_command,
                           forget_command, replace_command, help_command, system_command, stats_command,
                           handle_message_edit, blacklist_command, unblacklist_command)
 
-    dp.message.register(reset_command, Command("reset"))
-    dp.message.register(reset_command, Command("clear"))
-    dp.message.register(start_command, CommandStart())
-    dp.message.register(status_command, Command("status"))
-    dp.message.register(settings_command, Command("settings"))
-    dp.message.register(set_command, Command("set"))
-    dp.message.register(raw_command, Command("raw"))
-    dp.message.register(forget_command, Command("forget"))
-    dp.message.register(replace_command, Command("replace"))
-    dp.message.register(help_command, Command("help"))
-    dp.message.register(system_command, Command("system"))
-    dp.message.register(stats_command, Command("stats"))
+    dp.message.register(reset_command, Command("reset"), BlacklistFilter())
+    dp.message.register(reset_command, Command("clear"), BlacklistFilter())
+    dp.message.register(start_command, CommandStart(), BlacklistFilter())
+    dp.message.register(status_command, Command("status"), BlacklistFilter())
+    dp.message.register(settings_command, Command("settings"), BlacklistFilter())
+    dp.message.register(set_command, Command("set"), BlacklistFilter())
+    dp.message.register(raw_command, Command("raw"), BlacklistFilter())
+    dp.message.register(forget_command, Command("forget"), BlacklistFilter())
+    dp.message.register(replace_command, Command("replace"), BlacklistFilter())
+    dp.message.register(help_command, Command("help"), BlacklistFilter())
+    dp.message.register(system_command, Command("system"), BlacklistFilter())
+    dp.message.register(stats_command, Command("stats"), BlacklistFilter())
 
     dp.message.register(directsend_command, Command("directsend"), adminMessageFilter)
     dp.message.register(sql_command, Command("sql"), adminMessageFilter)
@@ -62,11 +63,11 @@ async def main() -> None:
     dp.message.register(blacklist_command, Command("blacklist"), adminMessageFilter)
     dp.message.register(unblacklist_command, Command("unblacklist"), adminMessageFilter)
 
-    @dp.message()
+    @dp.message(BlacklistFilter())
     async def on_any_message(message: Message) -> None:
         await handle_new_message(message)
 
-    @dp.edited_message()
+    @dp.edited_message(BlacklistFilter())
     async def on_edited_message(message: Message) -> None:
         await handle_message_edit(message)
 
