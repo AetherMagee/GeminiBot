@@ -82,7 +82,7 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
         else:
             logger.debug(f"{request_id} | Media in prompt, key rotation canceled")
 
-        logger.debug(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS}")
+        logger.info(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS}")
         try:
             response = await model.generate_content_async(
                 prompt,
@@ -213,7 +213,7 @@ async def generate_response(message: Message) -> str:
     token = _get_api_key()
     message_text = await get_message_text(message)
 
-    logger.debug(
+    logger.info(
         f"RID: {request_id} | UID: {message.from_user.id} | CID: {message.chat.id} | MID: {message.message_id}"
     )
 
@@ -283,7 +283,7 @@ async def count_tokens_for_chat(messages_list: list, model_name: str) -> int:
 
 
 def get_available_models() -> list:
-    logger.info("Getting available models...")
+    logger.info("GOOGLE | Getting available models...")
     genai.configure(api_key=_get_api_key())
     models = genai.list_models()
     model_list = []

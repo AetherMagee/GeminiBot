@@ -6,4 +6,4 @@ async def log_command(message: Message) -> None:
     text = message.text if message.text else message.caption
     if not text.startswith("/"):
         return
-    logger.debug(f"{message.from_user.id} | {message.chat.id} | {text}")
+    logger.info(f"{message.from_user.id} | {message.chat.id} | {text}")

@@ -44,10 +44,10 @@ async def _send_request(
         "frequency_penalty": frequency_penalty,
         "presence_penalty": presence_penalty,
     }
-    logger.debug(f"{request_id} | Sending request to {OPENAI_URL}")
+    logger.info(f"{request_id} | Sending request to {OPENAI_URL}")
     async with aiohttp.ClientSession() as session:
         async with session.post(OPENAI_URL + "v1/chat/completions", headers=headers, json=data) as response:
-            logger.debug(f"{request_id} | Complete | {response.status}")
+            logger.info(f"{request_id} | Complete | {response.status}")
             return await response.json()
 
 
@@ -181,7 +181,7 @@ async def generate_response(message: Message) -> str:
 
 def get_available_models() -> list:
     try:
-        logger.debug("Getting available models...")
+        logger.info("OAI | Getting available models...")
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {OPENAI_API_KEY}"

@@ -16,7 +16,7 @@ async def sanitize_chat_id(chat_id: int) -> str:
 
 
 async def initialize_connection_pool() -> None:
-    logger.debug("Creating a connection pool...")
+    logger.info("Creating a connection pool...")
     try:
         global pool
         pool = await asyncpg.create_pool(
