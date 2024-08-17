@@ -15,6 +15,8 @@ async def get_messages(chat_id: int, message_limit: int = None) -> list[Record]:
                                        f"WHERE deleted=false ORDER BY timestamp "
                                        f"LIMIT {message_limit}")
 
+            if not results:
+                return []
             return results
         except UndefinedTableError:
             await create_message_table(conn, await dbs.sanitize_chat_id(chat_id))
