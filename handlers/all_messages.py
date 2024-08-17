@@ -18,15 +18,16 @@ bot_username = os.getenv("BOT_USERNAME")
 
 
 async def meets_endpoint_requirements(message: Message, endpoint: str) -> bool:
-    if endpoint == "google":
-        allowed_message_types = [message.text, message.caption, message.video, message.document, message.sticker,
-                                 message.photo, message.voice, message.audio, message.video_note]
-    elif endpoint == "openai":
-        allowed_message_types = [message.text, message.caption, message.photo]
+    endpoint_requirements = {
+        "google": [message.text, message.caption, message.video, message.document, message.sticker,
+                   message.photo, message.voice, message.audio, message.video_note],
+        "openai": [message.text, message.caption, message.photo]
+    }
+
+    if endpoint in endpoint_requirements.keys():
+        return any(endpoint_requirements[endpoint])
     else:
         raise ValueError(f"Unknown endpoint: {endpoint}")
-
-    return any(allowed_message_types)
 
 
 async def should_generate_response(message: Message) -> bool:
@@ -57,29 +58,19 @@ async def check_token_limit(message: Message) -> bool:
     return False
 
 
-async def handle_new_message(message: Message) -> None:
-    endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
-    if not await meets_endpoint_requirements(message, endpoint):
-        return
-
-    await db.save_aiogram_message(message)
-
-    if not await should_generate_response(message):
-        return
-
-    if await check_token_limit(message):
-        return
-
+async def handle_forced_response(message: Message) -> bool:
     forced_response = await get_message_text(message, "after_forced")
     if forced_response:
         if await is_allowed_to_alter_memory(message):
             our_message = await message.reply(forced_response)
             await db.save_our_message(message, forced_response, our_message.message_id)
-            return
         else:
-            return
+            await message.reply("❌ <b>У вас нет доступа к этой команде.</b>")
+        return True
+    return False
 
-    output = await api.generate_response(message)
+
+async def handle_response(message: Message, output: str) -> None:
     try:
         our_message = await message.reply(output, parse_mode=ParseMode.MARKDOWN)
     except Exception as e:
@@ -97,6 +88,28 @@ async def handle_new_message(message: Message) -> None:
         if output.startswith("❌"):
             output = ERROR_MESSAGES["system_failure"]
         await db.save_our_message(message, output, our_message.message_id)
+
+
+async def handle_new_message(message: Message) -> None:
+    endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
+
+    if not await meets_endpoint_requirements(message, endpoint):
+        return
+
+    await db.save_aiogram_message(message)
+
+    if not await should_generate_response(message):
+        return
+
+    if await check_token_limit(message):
+        return
+
+    if await handle_forced_response(message):
+        return
+
+    output = await api.generate_response(message, endpoint)
+
+    await handle_response(message, output)
 
 
 async def handle_message_edit(message: Message) -> None:
