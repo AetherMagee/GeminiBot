@@ -1,5 +1,6 @@
 import datetime
 import asyncio
+from collections import defaultdict
 
 from aiogram.types import Message
 
@@ -21,72 +22,49 @@ ORDER BY rows_n DESC;"""
 
 
 async def stats_command(message: Message) -> None:
-    """Probably the most gore function yet."""
-
-    global lock
-
-    if message.chat.id not in lock.keys():
-        lock[message.chat.id] = False
-
+    lock.setdefault(message.chat.id, False)
     if lock[message.chat.id]:
         await message.reply("❌ <b>Пожалуйста, подождите перед запуском этой команды снова.</b>")
         return
-
     lock[message.chat.id] = True
 
     san_chat_id = await dbs.sanitize_chat_id(message.chat.id)
     async with dbs.pool.acquire() as conn:
-        if message.from_user.id in ADMIN_IDS:
-            global_stats = await conn.fetch(global_stats_command)
-        else:
-            global_stats = None
+        global_stats = await conn.fetch(global_stats_command) if message.from_user.id in ADMIN_IDS else None
         chat_messages = await conn.fetch(
             f"SELECT umid, sender_id, timestamp FROM messages{san_chat_id} WHERE sender_id NOT IN (0, 727)")
 
-    chat_messages_total = len(chat_messages)
+    current_time = datetime.datetime.now()
+    chat_messages_last_hour = sum(
+        1 for db_message in chat_messages if (current_time - db_message['timestamp']).total_seconds() <= 3600)
 
-    chat_messages_last_hour = 0
-    for db_message in chat_messages:
-        time_diff = datetime.datetime.now() - db_message['timestamp']
-        if not time_diff.total_seconds() > 3600:
-            chat_messages_last_hour += 1
+    text = (f"📊 <b>Статистика бота в этом чате:</b>\n\n"
+            f"<b>Всего сообщений:</b> <i>{len(chat_messages)}</i>\n"
+            f"<b>За последний час:</b> <i>{chat_messages_last_hour}</i>\n")
 
-    text = f"""📊 <b>Статистика бота в этом чате</b>
-
-<b>Всего сообщений обработано:</b> <i>{chat_messages_total}</i>
-<b>За последний час:</b> <i>{chat_messages_last_hour}</i>
-"""
-    if not message.chat.id == message.from_user.id:
-        chat_messages_by_user = {}
+    if message.chat.id != message.from_user.id:
+        chat_messages_by_user = defaultdict(int)
         for db_message in chat_messages:
-            if not db_message['sender_id'] in chat_messages_by_user.keys():
-                chat_messages_by_user[db_message['sender_id']] = 1
-            else:
-                chat_messages_by_user[db_message['sender_id']] += 1
+            chat_messages_by_user[db_message['sender_id']] += 1
 
-        chat_messages_by_user = sorted(chat_messages_by_user.items(), key=lambda item: item[1], reverse=True)
-        top_users = chat_messages_by_user[:5]
-        top_users_text = ""
-        for user in top_users:
-            member = await bot.get_chat_member(chat_id=message.chat.id, user_id=user[0])
-            top_users_text += f"{member.user.first_name} - {user[1]}\n"
-        text += f"\n<b>Самые активные в чате:</b>\n<i>{top_users_text}</i>"
+        top_users = sorted(chat_messages_by_user.items(), key=lambda item: item[1], reverse=True)[:5]
+        top_users_text = "\n".join(
+            f"{(await bot.get_chat_member(chat_id=message.chat.id, user_id=user[0])).user.first_name} - {user[1]}"
+            for user in top_users)
+        text += f"\n<b>Топ активных пользователей:</b>\n<i>{top_users_text}</i>"
 
     if global_stats:
-        total_processed_messages = 0
-        for entry in global_stats:
-            total_processed_messages += entry['rows_n']
-
-        top_chats = global_stats[:5]
-        top_chats_text = ""
-        for chat in top_chats:
-            top_chats_text += f"{chat['table_name'].replace('messages', '').replace('_', '')} - {chat['rows_n']}\n"
-
-        text += (f"\n========\n\n<b>Всего сообщений в БД:</b> <i>{total_processed_messages}</i>\n<b>Топ чатов:</b> "
-                 f"\n<i>{top_chats_text}</i>")
+        total_processed_messages = sum(entry['rows_n'] for entry in global_stats)
+        top_chats_text = "\n".join(
+            f"{chat['table_name'].replace('messages', '').replace('_', '')} - {chat['rows_n']}" for chat in
+            global_stats[:5])
+        text += f"\n========\n\n<b>Всего сообщений в бд:</b> <i>{total_processed_messages}</i>\n<b>Топ чатов:</b> \n<i>{top_chats_text}</i>"
 
     await message.reply(text)
 
-    await asyncio.sleep(5)
+    await asyncio.create_task(unlock_after_delay(message.chat.id))
 
-    lock[message.chat.id] = False
+
+async def unlock_after_delay(chat_id: int, delay: int = 5) -> None:
+    await asyncio.sleep(delay)
+    lock[chat_id] = False
