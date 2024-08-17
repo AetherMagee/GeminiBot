@@ -12,13 +12,13 @@ async def get_message_text(message: Message, what_to_get: str = "both") -> str:
     if what_to_get == "both":
         return text
 
+    text = text.replace("—", "--")
+
     parts = text.split(" --force-answer ", maxsplit=1)
     if len(parts) == 1:
-        parts = text.split(" —force-answer ", maxsplit=1)
-        if len(parts) == 1:
-            if what_to_get == "before_forced":
-                return text
-            return ""
+        if what_to_get == "before_forced":
+            return text
+        return ""
 
     if what_to_get == "before_forced":
         return parts[0]
