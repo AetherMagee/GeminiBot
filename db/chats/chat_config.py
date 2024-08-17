@@ -26,7 +26,7 @@ async def set_chat_parameter(chat_id: int, parameter_name: str, value):
     available_parameters = chat_configs["all_endpoints"] | chat_configs[chat_endpoint]
 
     if available_parameters[parameter_name]["type"] == "text":
-        value = f"\'{value}\'"
+        value = f"{value}"
 
     async with dbs.pool.acquire() as conn:
         await conn.execute(f"UPDATE chat_config SET {parameter_name} = $1 WHERE chat_id = {chat_id}", value)
