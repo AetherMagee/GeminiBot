@@ -6,7 +6,6 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
-from dotenv import load_dotenv
 from loguru import logger
 
 if os.path.exists(".env"):
@@ -15,7 +14,6 @@ if os.path.exists(".env"):
         logger.error("The bot currently has hardcoded paths that make running in Docker mandatory.")
         logger.error("Shutting down...")
         exit(1)
-    load_dotenv()
 
 bot = Bot(os.getenv("TELEGRAM_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
