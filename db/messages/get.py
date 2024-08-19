@@ -11,12 +11,13 @@ async def get_messages(chat_id: int, message_limit: int = None) -> list[Record]:
 
     async with dbs.pool.acquire() as conn:
         try:
-            results = await conn.fetch(f"SELECT * FROM messages{await dbs.sanitize_chat_id(chat_id)} "
-                                       f"WHERE deleted=false ORDER BY timestamp "
-                                       f"LIMIT {message_limit}")
+            results: list = await conn.fetch(f"SELECT * FROM messages{await dbs.sanitize_chat_id(chat_id)} "
+                                             f"WHERE deleted=false ORDER BY timestamp DESC "
+                                             f"LIMIT {message_limit}")
 
             if not results:
                 return []
+            results.reverse()
             return results
         except UndefinedTableError:
             await create_message_table(conn, await dbs.sanitize_chat_id(chat_id))
