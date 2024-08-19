@@ -87,7 +87,7 @@ chat_configs = {
             "advanced": False
         },
         "g_temperature": {
-            "description": "Температура сэмплинга. Чем выше - тем более случайные ответы может вернуть модель.",
+            "description": "Температура сэмплинга. Чем выше - тем более случайные ответы может вернуть модель",
             "type": "decimal",
             "default_value": 1.0,
             "accepted_values": frange(0, 1, 0.01),
@@ -105,7 +105,7 @@ chat_configs = {
         },
         "g_top_k": {
             "description": "Количество наиболее вероятных токенов, из которых модель выбирает при генерации. Меньшие "
-                           "значения делают вывод более детерминированным.",
+                           "значения делают вывод более предсказуемым",
             "type": "integer",
             "default_value": 40,
             "accepted_values": range(1, 100),
@@ -147,7 +147,7 @@ chat_configs = {
             "advanced": False
         },
         "o_temperature": {
-            "description": "Температура сэмплинга. Чем выше - тем более случайные ответы может вернуть модель.",
+            "description": "Температура сэмплинга. Чем выше - тем более случайные ответы может вернуть модель",
             "type": "decimal",
             "default_value": 1.0,
             "accepted_values": frange(0, 2, 0.01),
@@ -155,7 +155,8 @@ chat_configs = {
             "advanced": True
         },
         "o_top_p": {
-            "description": "Альтернатива температуре с использованием nucleus sampling. Что это такое? В душе не ебу",
+            "description": "Вероятностный порог для nucleus sampling. Модель рассматривает только токены, "
+                           "чья суммарная вероятность не превышает этот порог",
             "type": "decimal",
             "default_value": 1.0,
             "accepted_values": frange(0, 1, 0.01),
@@ -163,7 +164,7 @@ chat_configs = {
             "advanced": True
         },
         "o_presence_penalty": {
-            "description": "Штраф за повторение тем. Положительные значения поощряют модель говорить о новых темах.",
+            "description": "Штраф за повторение тем. Положительные значения поощряют модель говорить о новых темах",
             "type": "decimal",
             "default_value": 0.0,
             "accepted_values": frange(-2, 2, 0.01),
@@ -172,7 +173,7 @@ chat_configs = {
         },
         "o_frequency_penalty": {
             "description": "Штраф за повторение конкретных слов. Положительные значения снижают вероятность "
-                           "повторения одних и тех же фраз.",
+                           "повторения одних и тех же фраз",
             "type": "decimal",
             "default_value": 0.0,
             "accepted_values": frange(-2, 2, 0.01),
