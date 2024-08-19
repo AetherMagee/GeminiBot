@@ -95,7 +95,8 @@ chat_configs = {
             "advanced": True
         },
         "g_top_p": {
-            "description": "Альтернатива температуре с использованием nucleus sampling. Что это такое? В душе не ебу",
+            "description": "Вероятностный порог для nucleus sampling. Модель рассматривает только токены, "
+                           "чья суммарная вероятность не превышает этот порог",
             "type": "decimal",
             "default_value": 0.95,
             "accepted_values": frange(0, 1, 0.01),
@@ -103,7 +104,8 @@ chat_configs = {
             "advanced": True
         },
         "g_top_k": {
-            "description": "Какая то гугловская хуйня, что то связанное с количеством токенов во время сэмплинга",
+            "description": "Количество наиболее вероятных токенов, из которых модель выбирает при генерации. Меньшие "
+                           "значения делают вывод более детерминированным.",
             "type": "integer",
             "default_value": 40,
             "accepted_values": range(1, 100),
@@ -161,7 +163,7 @@ chat_configs = {
             "advanced": True
         },
         "o_presence_penalty": {
-            "description": "Г" + "О"*50 + "Л",
+            "description": "Штраф за повторение тем. Положительные значения поощряют модель говорить о новых темах.",
             "type": "decimal",
             "default_value": 0.0,
             "accepted_values": frange(-2, 2, 0.01),
@@ -169,7 +171,8 @@ chat_configs = {
             "advanced": True
         },
         "o_frequency_penalty": {
-            "description": "Г" + "О"*50 + "Л",
+            "description": "Штраф за повторение конкретных слов. Положительные значения снижают вероятность "
+                           "повторения одних и тех же фраз.",
             "type": "decimal",
             "default_value": 0.0,
             "accepted_values": frange(-2, 2, 0.01),
