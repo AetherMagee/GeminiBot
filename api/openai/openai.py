@@ -74,6 +74,7 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
         if message == messages_list[-1]:
             continue
         elif message_as_text.startswith("You: "):
+            message_as_text = await format_message_for_prompt(message, False)  # Format it again, without the REPLY TO
             final.append({
                 "role": "assistant",
                 "content": message_as_text.replace("You: ", "")
