@@ -67,6 +67,14 @@ chat_configs = {
             "accepted_values": ["warn", "block"],
             "protected": False,
             "advanced": False
+        },
+        "max_output_tokens": {
+            "description": "Максимальная длина ответа, что может сгенерировать бот",
+            "type": "integer",
+            "default_value": 2048,
+            "accepted_values": range(0, 8192),
+            "protected": False,
+            "advanced": True
         }
     },
     "google": {

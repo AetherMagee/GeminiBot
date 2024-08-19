@@ -55,7 +55,7 @@ def _get_api_key() -> str:
 
 
 async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name: str,
-                           temperature: float, top_p: float, top_k: int) \
+                           temperature: float, top_p: float, top_k: int, max_output_tokens: int) \
         -> Union[AsyncGenerateContentResponse, str, Exception, None]:
     safety = {
         HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
@@ -67,7 +67,8 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
     config = GenerationConfig(
         temperature=temperature,
         top_p=top_p,
-        top_k=top_k
+        top_k=top_k,
+        max_output_tokens=max_output_tokens
     )
 
     logger.debug(f"{request_id} | Using model {model_name}")
@@ -239,9 +240,10 @@ async def generate_response(message: Message) -> str:
         prompt,
         token,
         model_name,
-        await db.get_chat_parameter(message.chat.id, "g_temperature"),
-        await db.get_chat_parameter(message.chat.id, "g_top_p"),
-        await db.get_chat_parameter(message.chat.id, "g_top_k")
+        float(await db.get_chat_parameter(message.chat.id, "g_temperature")),
+        float(await db.get_chat_parameter(message.chat.id, "g_top_p")),
+        int(await db.get_chat_parameter(message.chat.id, "g_top_k")),
+        int(await db.get_chat_parameter(message.chat.id, "max_output_tokens"))
     ))
 
     response = await api_task

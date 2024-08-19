@@ -31,6 +31,7 @@ async def _send_request(
         top_p: float,
         frequency_penalty: float,
         presence_penalty: float,
+        max_output_tokens: int
 ) -> dict:
     headers = {
         "Content-Type": "application/json",
@@ -43,6 +44,7 @@ async def _send_request(
         "top_p": top_p,
         "frequency_penalty": frequency_penalty,
         "presence_penalty": presence_penalty,
+        "max_tokens": max_output_tokens
     }
     logger.info(f"{request_id} | Sending request to {OPENAI_URL}")
     async with aiohttp.ClientSession() as session:
@@ -150,6 +152,7 @@ async def generate_response(message: Message) -> str:
             float(await db.get_chat_parameter(message.chat.id, "o_top_p")),
             float(await db.get_chat_parameter(message.chat.id, "o_frequency_penalty")),
             float(await db.get_chat_parameter(message.chat.id, "o_presence_penalty")),
+            int(await db.get_chat_parameter(message.chat.id, "max_output_tokens"))
         ))
         response = await api_task
     except Exception as e:
