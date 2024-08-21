@@ -14,7 +14,6 @@ async def get_file(message: Message) -> List[str] or None:
     for media_type in [message.audio, message.video, message.voice, message.document, message.video_note,
                        message.sticker]:
         if media_type and media_type.file_size < 10_000_000:
-            logger.debug(f"Saving {media_type.file_id} as other")
             return media_type.file_id, "other"
 
     return None, None
