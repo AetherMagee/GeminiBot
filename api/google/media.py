@@ -3,6 +3,7 @@ import base64
 import os
 import sys
 import threading
+import traceback
 from io import BytesIO
 from typing import List, Union
 
@@ -15,8 +16,8 @@ from loguru import logger
 from PIL import Image
 
 import db
-from db import get_file_id_from_chain
 from main import bot
+from ..media import get_file_id_from_chain
 
 
 class ReturnValueThread(threading.Thread):
@@ -80,16 +81,21 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
 
 
 async def get_photo(message: Message, all_messages: List[Record], mode: str = "pillow") -> Union[Image, bytes]:
-    photo_file_id = await db.get_file_id_from_chain(
+    photo_file_id = await get_file_id_from_chain(
         message.message_id,
         all_messages,
         "photo"
     )
 
     if photo_file_id:
+        logger.debug(f"Loading an image with mode {mode}")
+        await _download_if_necessary(photo_file_id)
         if mode == "pillow":
-            await _download_if_necessary(photo_file_id)
             return Image.open(f"/cache/{photo_file_id}")
         elif mode == "base64":
-            downloaded_bytes: BytesIO = await bot.download(photo_file_id)
-            return base64.b64encode(downloaded_bytes.getvalue()).decode("utf-8")
+            with open(f"/cache/{photo_file_id}", "rb") as f:
+                try:
+                    result = base64.b64encode(f.read()).decode("utf-8")
+                except Exception as exc:
+                    traceback.print_exc()
+            return result

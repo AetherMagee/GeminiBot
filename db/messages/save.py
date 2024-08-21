@@ -5,7 +5,7 @@ from asyncpg import UndefinedTableError
 
 import db.shared as dbs
 from db.table_creator import create_message_table
-from .media import get_file
+from api.media import get_file
 from utils import get_message_text
 
 
