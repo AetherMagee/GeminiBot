@@ -8,7 +8,6 @@ from loguru import logger
 async def get_file(message: Message) -> List[str] or None:
     # Prioritize photos
     if message.photo and message.photo[-1].file_size < 10_000_000:
-        logger.debug(f"Saving {message.photo[-1].file_id} as photo")
         return message.photo[-1].file_id, "photo"
 
     for media_type in [message.audio, message.video, message.voice, message.document, message.video_note,
