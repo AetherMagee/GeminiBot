@@ -97,7 +97,11 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
         })
 
     if await db.get_chat_parameter(trigger_message.chat.id, "o_vision"):
-        image = await get_photo(trigger_message, "base64")
+        image = await get_photo(
+            trigger_message,
+            messages_list,
+            "base64"
+        )
     else:
         image = None
 

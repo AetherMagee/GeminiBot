@@ -19,6 +19,8 @@ async def create_message_table(conn: Connection, chat_id: str) -> None:
                        f"text text, "
                        f"reply_to_message_id bigint DEFAULT NULL, "
                        f"reply_to_message_trimmed_text text DEFAULT NULL, "
+                       f"media_file_id text DEFAULT NULL, "
+                       f"media_type text DEFAULT NULL, "
                        f"deleted boolean NOT NULL DEFAULT false)")
 
 

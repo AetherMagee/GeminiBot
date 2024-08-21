@@ -132,11 +132,11 @@ async def _prepare_prompt(message: Message, chat_messages: List[Record], token: 
     all_messages_list = [await format_message_for_prompt(msg) for msg in chat_messages]
     all_messages = "\n".join(all_messages_list)
 
-    photos = [await get_photo(message)]
+    photos = [await get_photo(message, chat_messages)]
     photos = photos if photos[0] else []
 
     try:
-        additional_media = await get_other_media(message, token)
+        additional_media = await get_other_media(message, token, chat_messages)
     except AttributeError:
         return
 

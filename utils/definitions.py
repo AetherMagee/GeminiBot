@@ -1,6 +1,6 @@
+from .frange import frange
 import api.google
 import api.openai
-from .frange import frange
 
 chat_configs = {
     "all_endpoints": {

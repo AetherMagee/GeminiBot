@@ -3,16 +3,21 @@ import base64
 import os
 import sys
 import threading
+import traceback
 from io import BytesIO
-from typing import Union
+from typing import List, Union
 
 import google.generativeai as genai
-from aiogram.types import Message, Sticker, VideoNote
+import magic
+from aiogram.types import Message
+from asyncpg import Record
 from google.generativeai.types import File
 from loguru import logger
 from PIL import Image
 
+import db
 from main import bot
+from ..media import get_file_id_from_chain
 
 
 class ReturnValueThread(threading.Thread):
@@ -36,63 +41,61 @@ async def _download_if_necessary(file_id: str):
         await bot.download(file_id, f"/cache/{file_id}")
 
 
-async def get_other_media(message: Message, gemini_token: str) -> list:
+async def get_other_media(message: Message, gemini_token: str, all_messages: List[Record]) -> list:
     uploaded_media = []
 
-    for media_type in [message.audio, message.video, message.voice, message.document, message.video_note, message.sticker]:
-        if media_type and media_type.file_size < 10_000_000:
-            logger.debug(f"Downloading {type(media_type)} | {media_type.file_id}")
-            await _download_if_necessary(media_type.file_id)
-            try:
-                mime_type = media_type.mime_type
-            except AttributeError:
-                if isinstance(media_type, VideoNote):
-                    mime_type = "video/mp4"
-                elif isinstance(media_type, Sticker):
-                    if media_type.is_video:
-                        mime_type = "video/mp4"
-                    else:
-                        mime_type = "image/webp"
-                else:
-                    continue
-            logger.debug(f"Uploading {media_type.file_id} on token {gemini_token}")
+    file_id = await get_file_id_from_chain(
+        message.message_id,
+        all_messages,
+        "other"
+    )
+    if file_id:
+        await _download_if_necessary(file_id)
 
-            genai.configure(api_key=gemini_token)
-            upload_thread = ReturnValueThread(target=genai.upload_file, kwargs={
-                "path": "/cache/" + media_type.file_id,
-                "display_name": f"Media file by {message.from_user.id}",
-                "mime_type": mime_type
-            })
-            upload_thread.start()
-            while upload_thread.is_alive():
-                await asyncio.sleep(0.25)
-            upload_result: File = upload_thread.result
+        mime = magic.Magic(mime=True)
+        mime_type = mime.from_file("/cache/" + file_id)
+        if mime_type == "application/octet-stream":
+            mime_type = "application/pdf"
 
-            waited = 0
-            while upload_result.state == "PROCESSING" and waited < 12:  # Wait for a max of 3 seconds
-                await asyncio.sleep(0.25)
-                waited += 1
+        logger.debug(f"Uploading {file_id} of type {mime_type} on token {gemini_token}")
 
-            uploaded_media.append(upload_result)
+        genai.configure(api_key=gemini_token)
+        upload_thread = ReturnValueThread(target=genai.upload_file, kwargs={
+            "path": "/cache/" + file_id,
+            "display_name": f"Media file by {message.from_user.id}",
+            "mime_type": mime_type
+        })
+        upload_thread.start()
+        while upload_thread.is_alive():
+            await asyncio.sleep(0.25)
+        upload_result: File = upload_thread.result
 
-    if message.reply_to_message:
-        uploaded_media = uploaded_media + await get_other_media(message.reply_to_message, gemini_token)
+        waited = 0
+        while upload_result.state == "PROCESSING" and waited < 12:  # Wait for a max of 3 seconds
+            await asyncio.sleep(0.25)
+            waited += 1
+
+        uploaded_media.append(upload_result)
 
     return uploaded_media
 
 
-async def get_photo(message: Message, mode: str = "pillow") -> Union[Image, bytes]:
-    if message.photo:
-        photo_file_id = message.photo[-1].file_id
-    elif message.reply_to_message and message.reply_to_message.photo:
-        photo_file_id = message.reply_to_message.photo[-1].file_id
-    else:
-        photo_file_id = None
+async def get_photo(message: Message, all_messages: List[Record], mode: str = "pillow") -> Union[Image, bytes]:
+    photo_file_id = await get_file_id_from_chain(
+        message.message_id,
+        all_messages,
+        "photo"
+    )
 
     if photo_file_id:
+        logger.debug(f"Loading an image with mode {mode}")
+        await _download_if_necessary(photo_file_id)
         if mode == "pillow":
-            await _download_if_necessary(photo_file_id)
             return Image.open(f"/cache/{photo_file_id}")
         elif mode == "base64":
-            downloaded_bytes: BytesIO = await bot.download(photo_file_id)
-            return base64.b64encode(downloaded_bytes.getvalue()).decode("utf-8")
+            with open(f"/cache/{photo_file_id}", "rb") as f:
+                try:
+                    result = base64.b64encode(f.read()).decode("utf-8")
+                except Exception as exc:
+                    traceback.print_exc()
+            return result

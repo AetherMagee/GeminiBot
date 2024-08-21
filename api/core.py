@@ -1,3 +1,5 @@
+import traceback
+
 from aiogram.types import Message
 from loguru import logger
 
@@ -13,6 +15,7 @@ async def generate_response(message: Message, endpoint: str) -> str:
         try:
             out = await api.openai.generate_response(message)
         except Exception as e:
+            traceback.print_exc()
             logger.error(e)
             out = "❌ *Произошел сбой эндпоинта OpenAI.*"
 
