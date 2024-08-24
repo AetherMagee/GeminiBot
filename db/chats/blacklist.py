@@ -1,9 +1,11 @@
+import os
+
 from async_lru import alru_cache
 
 import db.shared as dbs
 
 
-@alru_cache(maxsize=8192)
+@alru_cache(maxsize=int(os.getenv('BLACKLIST_CACHE_SIZE')))
 async def is_blacklisted(target: int) -> bool:
     async with dbs.pool.acquire() as conn:
         result = await conn.fetch("SELECT * FROM blacklist WHERE entity_id=$1", target)

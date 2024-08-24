@@ -1,3 +1,5 @@
+import os
+
 from async_lru import alru_cache
 
 import db.shared as dbs
@@ -11,7 +13,7 @@ async def _create_config_entry(chat_id: int):
             await conn.execute("INSERT INTO chat_config VALUES ($1)", chat_id)
 
 
-@alru_cache(maxsize=1024)
+@alru_cache(maxsize=int(os.getenv('PARAMS_CACHE_SIZE')))
 async def get_chat_parameter(chat_id: int, parameter_name: str):
     await _create_config_entry(chat_id)
     async with dbs.pool.acquire() as conn:
