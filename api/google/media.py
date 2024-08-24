@@ -1,10 +1,7 @@
 import asyncio
 import base64
 import os
-import sys
-import threading
 import traceback
-from io import BytesIO
 from typing import List, Union
 
 import google.generativeai as genai
@@ -15,24 +12,9 @@ from google.generativeai.types import File
 from loguru import logger
 from PIL import Image
 
-import db
 from main import bot
+from utils import ReturnValueThread
 from ..media import get_file_id_from_chain
-
-
-class ReturnValueThread(threading.Thread):
-    def __init__(self, target, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.result = None
-        self.target = target
-
-    def run(self):
-        if not self.target:
-            return
-        try:
-            self.result = self.target(*self._args, **self._kwargs)
-        except Exception as exc:
-            print(f'{type(exc).__name__}: {exc}', file=sys.stderr)
 
 
 async def _download_if_necessary(file_id: str):
