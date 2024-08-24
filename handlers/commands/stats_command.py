@@ -31,7 +31,8 @@ async def stats_command(message: Message) -> None:
 
     san_chat_id = await dbs.sanitize_chat_id(message.chat.id)
     async with dbs.pool.acquire() as conn:
-        global_stats = await conn.fetch(global_stats_command) if message.from_user.id in ADMIN_IDS else None
+        global_stats = await conn.fetch(global_stats_command) if (message.from_user.id in ADMIN_IDS and
+                                                                  message.chat.id == message.from_user.id) else None
         chat_messages = await conn.fetch(
             f"SELECT umid, sender_id, timestamp FROM messages{san_chat_id} WHERE sender_id NOT IN (0, 727)")
 
