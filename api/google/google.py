@@ -12,7 +12,7 @@ from google.generativeai.types import AsyncGenerateContentResponse, File, HarmBl
 from loguru import logger
 
 import db
-from utils import get_message_text, simulate_typing
+from utils import get_message_text, ReturnValueThread, simulate_typing
 from .media import get_other_media, get_photo
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
@@ -287,11 +287,21 @@ async def count_tokens_for_chat(messages_list: list, model_name: str) -> int:
 def get_available_models() -> list:
     logger.info("GOOGLE | Getting available models...")
     genai.configure(api_key=_get_api_key())
-    models = genai.list_models()
     model_list = []
-    hidden = ["bison", "aqa", "embedding", "gecko"]
-    for model in models:
-        if not any(hidden_word in model.name for hidden_word in hidden):
-            model_list.append(model.name.replace("models/", ""))
+    try:
+        thread = ReturnValueThread(target=genai.list_models)
+        thread.start()
+
+        thread.join(timeout=10)
+        if thread.is_alive():
+            raise TimeoutError
+
+        models = thread.result
+        hidden = ["bison", "aqa", "embedding", "gecko"]
+        for model in models:
+            if not any(hidden_word in model.name for hidden_word in hidden):
+                model_list.append(model.name.replace("models/", ""))
+    except Exception as e:
+        logger.error(f"Failed to get available models. Exception: {e}")
 
     return model_list
