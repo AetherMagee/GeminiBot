@@ -4,6 +4,7 @@ from collections import defaultdict
 
 from aiogram.types import Message
 
+import db
 import db.shared as dbs
 from main import ADMIN_IDS, bot
 
@@ -59,6 +60,14 @@ async def stats_command(message: Message) -> None:
             f"{chat['table_name'].replace('messages', '').replace('_', '')} - {chat['rows_n']}" for chat in
             global_stats[:5])
         text += f"\n========\n\n<b>Всего сообщений в бд:</b> <i>{total_processed_messages}</i>\n<b>Топ чатов:</b> \n<i>{top_chats_text}</i>"
+
+        text += "\n\nСтатистика кэша: "
+        param_cache_info = db.get_chat_parameter.cache_info()
+        bl_cache_info = db.is_blacklisted.cache_info()
+        text += (f"\nchat_params: {param_cache_info[0]} попаданий, {param_cache_info[1]} промахов "
+                 f"(размер: {param_cache_info[3]}/{param_cache_info[2]})")
+        text += (f"\nblacklist: {bl_cache_info[0]} попаданий, {bl_cache_info[1]} промахов "
+                 f"(размер: {bl_cache_info[3]}/{bl_cache_info[2]})")
 
     await message.reply(text)
 
