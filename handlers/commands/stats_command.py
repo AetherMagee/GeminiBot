@@ -50,9 +50,9 @@ async def stats_command(message: Message) -> None:
             chat_messages_by_user[db_message['sender_id']] += 1
 
         top_users = sorted(chat_messages_by_user.items(), key=lambda item: item[1], reverse=True)[:5]
-        top_users_text = "\n".join(
+        top_users_text = "\n".join([
             f"{(await bot.get_chat_member(chat_id=message.chat.id, user_id=user[0])).user.first_name} - {user[1]}"
-            for user in top_users)
+            for user in top_users])
         text += f"\n<b>Топ активных пользователей:</b>\n<i>{top_users_text}</i>"
 
     if global_stats:
