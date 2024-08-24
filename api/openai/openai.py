@@ -48,7 +48,7 @@ async def _send_request(
     }
     logger.info(f"{request_id} | Sending request to {OPENAI_URL}")
     async with aiohttp.ClientSession() as session:
-        async with session.post(OPENAI_URL + "v1/chat/completions", headers=headers, json=data) as response:
+        async with session.post(OPENAI_URL + "v1/chat/completions", headers=headers, json=data, timeout=15) as response:
             logger.info(f"{request_id} | Complete | {response.status}")
             return await response.json()
 
