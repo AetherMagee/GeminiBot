@@ -77,12 +77,12 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
             message_as_text = await format_message_for_prompt(message, False)  # Format it again, without the REPLY TO
             final.append({
                 "role": "assistant",
-                "content": message_as_text.replace("You: ", "")
+                "content": message_as_text.replace("You: ", "", 1)
             })
         elif message["sender_id"] == 727:
             final.append({
                 "role": "system",
-                "content": message_as_text.replace("SYSTEM: ", "")
+                "content": message_as_text.replace("SYSTEM: ", "", 1)
             })
         else:
             final.append({
