@@ -177,7 +177,7 @@ async def generate_response(message: Message) -> str:
             output = "❌ *Произошел сбой эндпоинта OpenAI.*"
             if show_errors:
                 output += "\n\n" + response["choices"][0]["message"]["content"]
-    except KeyError:
+    except (KeyError, TypeError):
         logger.debug(response)
         output = "❌ *Произошел сбой эндпоинта OpenAI.*"
     finally:
