@@ -177,9 +177,11 @@ async def generate_response(message: Message) -> str:
             output = "❌ *Произошел сбой эндпоинта OpenAI.*"
             if show_errors:
                 output += "\n\n" + response["choices"][0]["message"]["content"]
-    except (KeyError, TypeError):
+    except (KeyError, TypeError) as error:
         logger.debug(response)
         output = "❌ *Произошел сбой эндпоинта OpenAI.*"
+        if show_errors:
+            output += "\n\n" + str(error)
     finally:
         if output.startswith("❌"):
             await db.save_system_message(message.chat.id, ERROR_MESSAGES["system_failure"])
