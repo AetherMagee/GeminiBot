@@ -49,8 +49,15 @@ async def _send_request(
     logger.info(f"{request_id} | Sending request to {OPENAI_URL}")
     async with aiohttp.ClientSession() as session:
         async with session.post(OPENAI_URL + "v1/chat/completions", headers=headers, json=data, timeout=15) as response:
+            try:
+                response = await response.json()
+            except Exception as e:
+                logger.error(f"Failed to parse response to json: ")
+                logger.error(e)
+                logger.debug(response)
+                raise e
             logger.info(f"{request_id} | Complete | {response.status}")
-            return await response.json()
+            return response
 
 
 async def get_prompt(trigger_message: Message, messages_list: List[Record], system_prompt: bool) -> List[dict]:
