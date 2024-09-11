@@ -1,13 +1,11 @@
 import difflib
-import itertools
 import traceback
-from typing import List
 
 from aiogram.types import Message, ReactionTypeEmoji
 from loguru import logger
 
 import db
-from main import bot, ADMIN_IDS
+from main import ADMIN_IDS, bot
 from utils import log_command
 from utils.definitions import chat_configs
 from utils.frange import FloatRange
@@ -113,7 +111,10 @@ async def set_command(message: Message) -> None:
         except ValueError:
             requested_value = None
 
-    if requested_value not in available_parameters[requested_parameter]['accepted_values']:
+    accepted_values = available_parameters[requested_parameter]['accepted_values']
+    if isinstance(accepted_values, range):
+        accepted_values = range(accepted_values.start, accepted_values.stop + 1)  # Bandaid fix for range's behavior so the stop isn't inclusive
+    if requested_value not in accepted_values:
         reply_text = "❌ <b>Недопустимое значение для параметра.</b> "
         if available_parameters[requested_parameter]["type"] == "text":
             probable_value = difflib.get_close_matches(requested_value,
