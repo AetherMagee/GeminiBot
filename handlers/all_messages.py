@@ -5,6 +5,7 @@ from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
 from loguru import logger
+from more_itertools import sliced
 
 import api
 import api.openai
@@ -82,8 +83,19 @@ async def handle_response(message: Message, output: str) -> None:
                 "Your previous message was not accepted by the endpoint due to bad formatting. The user sees your "
                 "message WITHOUT your formatting. Do better next time. Keep the formatting rules in mind.")
         except TelegramBadRequest:
-            our_message = await message.reply(f"❌ <b>Telegram не принимает ответ "
-                                              f"бота.</b> <i>({len(output)} символов)</i>")
+            if len(output) > 2000:
+                chunks = list(sliced(output, 1500))
+                for index, chunk in enumerate(chunks):
+                    try:
+                        our_message = await message.reply(chunk, parse_mode=ParseMode.MARKDOWN)
+                    except TelegramBadRequest:
+                        try:
+                            our_message = await message.reply(html.quote(chunk))
+                        except TelegramBadRequest:
+                            logger.error(f"Failed to send chunk {index} to {message.chat.id}")
+                            logger.debug(chunk)
+            else:
+                our_message = await message.reply(f"❌ <b>Telegram не принимает ответ бота.</b>")
     finally:
         if output.startswith("❌"):
             output = ERROR_MESSAGES["system_failure"]
