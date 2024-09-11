@@ -156,6 +156,7 @@ async def generate_response(message: Message) -> str:
     logger.debug(f"{request_id} | Using model {model}")
 
     timeout = int(await db.get_chat_parameter(message.chat.id, "o_timeout"))
+    timed_out = False
 
     typing_task = asyncio.create_task(simulate_typing(message.chat.id))
     try:
@@ -172,8 +173,7 @@ async def generate_response(message: Message) -> str:
         ))
         response = await api_task
     except asyncio.TimeoutError:
-        output = f"❌ *Превышено время ожидания ответа от эндпоинта OpenAI.*\nНынешний таймаут: `{timeout}`"
-        return output
+        timed_out = True
     except Exception as e:
         logger.debug(e)
         response = None
@@ -183,6 +183,10 @@ async def generate_response(message: Message) -> str:
         await typing_task
     except asyncio.CancelledError:
         pass
+
+    if timed_out:
+        output = f"❌ *Превышено время ожидания ответа от эндпоинта OpenAI.*\nНынешний таймаут: `{timeout}`"
+        return output
 
     try:
         output = response["choices"][0]["message"]["content"]
