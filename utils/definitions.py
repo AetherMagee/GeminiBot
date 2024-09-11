@@ -146,6 +146,14 @@ chat_configs = {
             "protected": False,
             "advanced": False
         },
+        "o_timeout": {
+            "description": "Максимальное время ожидания ответа OpenAI API",
+            "type": "integer",
+            "default_value": 15,
+            "accepted_values": range(1, 60),
+            "protected": False,
+            "advanced": True
+        },
         "o_temperature": {
             "description": "Температура сэмплинга. Чем выше - тем более случайные ответы может вернуть модель",
             "type": "decimal",

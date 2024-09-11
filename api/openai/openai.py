@@ -11,7 +11,7 @@ from asyncpg import Record
 from loguru import logger
 
 import db
-from api.google import format_message_for_prompt, ERROR_MESSAGES
+from api.google import ERROR_MESSAGES, format_message_for_prompt
 from api.google.media import get_photo
 from utils import simulate_typing
 
@@ -31,7 +31,8 @@ async def _send_request(
         top_p: float,
         frequency_penalty: float,
         presence_penalty: float,
-        max_output_tokens: int
+        max_output_tokens: int,
+        timeout: int
 ) -> dict:
     headers = {
         "Content-Type": "application/json",
@@ -48,7 +49,7 @@ async def _send_request(
     }
     logger.info(f"{request_id} | Sending request to {OPENAI_URL}")
     async with aiohttp.ClientSession() as session:
-        async with session.post(OPENAI_URL + "v1/chat/completions", headers=headers, json=data, timeout=15) as response:
+        async with session.post(OPENAI_URL + "v1/chat/completions", headers=headers, json=data, timeout=timeout) as response:
             try:
                 response = await response.json()
             except Exception as e:
@@ -154,6 +155,8 @@ async def generate_response(message: Message) -> str:
 
     logger.debug(f"{request_id} | Using model {model}")
 
+    timeout = int(await db.get_chat_parameter(message.chat.id, "o_timeout"))
+
     typing_task = asyncio.create_task(simulate_typing(message.chat.id))
     try:
         api_task = asyncio.create_task(_send_request(
@@ -164,9 +167,13 @@ async def generate_response(message: Message) -> str:
             float(await db.get_chat_parameter(message.chat.id, "o_top_p")),
             float(await db.get_chat_parameter(message.chat.id, "o_frequency_penalty")),
             float(await db.get_chat_parameter(message.chat.id, "o_presence_penalty")),
-            int(await db.get_chat_parameter(message.chat.id, "max_output_tokens"))
+            int(await db.get_chat_parameter(message.chat.id, "max_output_tokens")),
+            timeout
         ))
         response = await api_task
+    except asyncio.TimeoutError:
+        output = f"❌ *Превышено время ожидания ответа от эндпоинта OpenAI.*\nНынешний таймаут: `{timeout}`"
+        return output
     except Exception as e:
         logger.debug(e)
         response = None
