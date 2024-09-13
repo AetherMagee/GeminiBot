@@ -17,11 +17,8 @@ from utils import simulate_typing
 
 OPENAI_URL = os.getenv("OAI_API_URL")
 OPENAI_API_KEY = os.getenv("OAI_API_KEY")
-with open(os.getenv("OAI_PROMPT_PART1_PATH"), "r") as f:
-    prompt_p1 = f.read()
-with open(os.getenv("OAI_PROMPT_PART2_PATH"), "r") as f:
-    prompt_p2 = f.read()
-
+with open(os.getenv("OAI_PROMPT_PATH"), "r") as f:
+    system_prompt_template = f.read()
 
 async def _send_request(
         messages_list: List[dict],
@@ -71,14 +68,10 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
     if system_prompt:
         final.append({
             "role": "system",
-            "content": prompt_p1.format(
+            "content": system_prompt_template.format(
                 chat_type=chat_type,
                 chat_title=chat_title,
             )
-        })
-        final.append({
-            "role": "system",
-            "content": prompt_p2
         })
 
     user_message_buffer = []
@@ -112,6 +105,21 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
                 logger.error("How did we get here?")
                 logger.debug(index)
                 logger.debug(message)
+
+    if await db.get_chat_parameter(trigger_message.chat.id, "o_clarify_target_message"):
+        final.append({
+            "role": "assistant",
+            "content": "Please provide me with my target message, AKA the message I must reply to. I will then "
+                       "immediately proceed to replying to it in the User's language and while maintaining proper "
+                       "context awareness and not mixing topics."
+        })
+        final.append({
+            "role": "user",
+            "content": await format_message_for_prompt(
+                await db.get_specific_message(trigger_message.chat.id, trigger_message.message_id),
+                add_reply_to
+            )
+        })
 
     if await db.get_chat_parameter(trigger_message.chat.id, "o_vision"):
         image = await get_photo(

@@ -188,6 +188,15 @@ chat_configs = {
             "protected": False,
             "advanced": True
         },
+        "o_clarify_target_message": {
+            "description": "Добавлять ли дополнительные инструкции, помогающие модели понять, на что конкретно нужно "
+                           "отвечать",
+            "type": "boolean",
+            "default_value": True,
+            "accepted_values": [True, False],
+            "protected": False,
+            "advanced": True
+        },
         "o_log_prompt": {
             "description": "кирилл если будешь это дергать я тебя выебу",
             "type": "boolean",

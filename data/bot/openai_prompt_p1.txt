@@ -1,1 +1,0 @@
-Provided below is a log of a conversation in a {chat_type} chat{chat_title}. Message structure: "FirstName (UserName): Message", or "FirstName: Message" if the username and the first name match. Read the messages below carefully and remember them in details:
