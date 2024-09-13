@@ -76,33 +76,42 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
                 chat_title=chat_title,
             )
         })
-
-    for message in messages_list:
-        message_as_text = await format_message_for_prompt(message, add_reply_to)
-        if message == messages_list[-1]:
-            break
-        elif message["sender_id"] == 0:
-            message_as_text = await format_message_for_prompt(message, False)  # Format it again, without the REPLY TO
-            final.append({
-                "role": "assistant",
-                "content": message_as_text.replace("You: ", "", 1)
-            })
-        elif message["sender_id"] == 727:
-            final.append({
-                "role": "system",
-                "content": message_as_text.replace("SYSTEM: ", "", 1)
-            })
-        else:
-            final.append({
-                "role": "user",
-                "content": message_as_text
-            })
-
-    if system_prompt:
         final.append({
             "role": "system",
             "content": prompt_p2
         })
+
+    user_message_buffer = []
+    for index, message in enumerate(messages_list):
+        if message["sender_id"] not in [0, 727]:
+            user_message_buffer.append(await format_message_for_prompt(message, add_reply_to))
+            if index == len(messages_list) - 1:
+                final.append({
+                    "role": "user",
+                    "content": "\n".join(user_message_buffer)
+                })
+                break
+        else:
+            if user_message_buffer:
+                final.append({
+                    "role": "user",
+                    "content": "\n".join(user_message_buffer)
+                })
+                user_message_buffer.clear()
+            if message["sender_id"] == 727:
+                final.append({
+                    "role": "system",
+                    "content": (await format_message_for_prompt(message, False)).replace("SYSTEM: ", "", 1)
+                })
+            elif message["sender_id"] == 0:
+                final.append({
+                    "role": "assistant",
+                    "content": (await format_message_for_prompt(message, False)).replace("You: ", "", 1)
+                })
+            else:
+                logger.error("How did we get here?")
+                logger.debug(index)
+                logger.debug(message)
 
     if await db.get_chat_parameter(trigger_message.chat.id, "o_vision"):
         image = await get_photo(
@@ -113,18 +122,15 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
     else:
         image = None
 
-    if not image:
-        final.append({
-            "role": "user",
-            "content": await format_message_for_prompt(messages_list[-1], add_reply_to)
-        })
-    else:
-        final.append({
-            "role": "user",
+    if image:
+        index = -1
+        last_message = final[index]
+        final[index] = {
+            "role": last_message["role"],
             "content": [
                 {
                     "type": "text",
-                    "text": await format_message_for_prompt(messages_list[-1], add_reply_to)
+                    "text": last_message["content"]
                 },
                 {
                     "type": "image_url",
@@ -133,7 +139,7 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
                     }
                 }
             ]
-        })
+        }
 
     return final
 
