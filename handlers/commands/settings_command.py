@@ -72,16 +72,20 @@ async def settings_command(message: Message) -> None:
 
 async def set_command(message: Message) -> None:
     await log_command(message)
+
+    # Check for administrator
     if message.chat.id != message.from_user.id and message.from_user.id not in ADMIN_IDS:
         member = await bot.get_chat_member(message.chat.id, message.from_user.id)
         if member.status not in ["administrator", "creator"]:
             await message.reply("❌ <b>Параметры могут менять только администраторы.</b>")
             return
 
+    # Check argument count
     command = message.text.split(" ", maxsplit=2)
     if len(command) < 2:
         await message.reply("❌ <b>Недостаточно аргументов.</b>")
 
+    # Validate target parameter
     requested_parameter = command[1].lower()
     chat_endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
     available_parameters = chat_configs["all_endpoints"] | chat_configs[chat_endpoint]
@@ -90,6 +94,14 @@ async def set_command(message: Message) -> None:
         await message.reply("❌ <b>Неизвестный параметр.</b>")
         return
 
+    # Check if the parameter is protected
+    if available_parameters[requested_parameter]["protected"]:
+        if message.from_user.id not in ADMIN_IDS:
+            await message.reply("❌ <b>У вас нет доступа к этому параметру. Свяжитесь с администратором бота, "
+                                "если хотите его изменить.</b>")
+            return
+
+    # Get target parameter's accepted value type
     requested_value = command[2].lower()
     if available_parameters[requested_parameter]["type"] == "integer":
         try:
@@ -111,6 +123,7 @@ async def set_command(message: Message) -> None:
         except ValueError:
             requested_value = None
 
+    # Validate target value
     accepted_values = available_parameters[requested_parameter]['accepted_values']
     if isinstance(accepted_values, range):
         accepted_values = range(accepted_values.start, accepted_values.stop + 1)  # Bandaid fix for range's behavior so the stop isn't inclusive
@@ -126,12 +139,7 @@ async def set_command(message: Message) -> None:
         await message.reply(reply_text)
         return
 
-    if available_parameters[requested_parameter]["protected"]:
-        if message.from_user.id not in ADMIN_IDS:
-            await message.reply("❌ <b>У вас нет доступа к этому параметру. Свяжитесь с администратором бота, "
-                                "если хотите его изменить.</b>")
-            return
-
+    # Set the parameter
     try:
         await db.set_chat_parameter(message.chat.id, requested_parameter, requested_value)
         await message.react([ReactionTypeEmoji(emoji="👌")])
