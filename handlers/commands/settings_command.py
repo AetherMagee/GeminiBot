@@ -128,16 +128,20 @@ async def set_command(message: Message) -> None:
     if isinstance(accepted_values, range):
         accepted_values = range(accepted_values.start, accepted_values.stop + 1)  # Bandaid fix for range's behavior so the stop isn't inclusive
     if requested_value not in accepted_values:
-        reply_text = "❌ <b>Недопустимое значение для параметра.</b> "
-        if available_parameters[requested_parameter]["type"] == "text":
-            probable_value = difflib.get_close_matches(requested_value,
-                                                       available_parameters[requested_parameter]['accepted_values'],
-                                                       1,
-                                                       0.4)
-            if len(probable_value) > 0:
-                reply_text += f"Может быть, вы имели в виду <code>{probable_value[0]}</code>?"
-        await message.reply(reply_text)
-        return
+        if message.from_user.id not in ADMIN_IDS:
+            reply_text = "❌ <b>Недопустимое значение для параметра.</b> "
+            if available_parameters[requested_parameter]["type"] == "text":
+                probable_value = difflib.get_close_matches(requested_value,
+                                                           available_parameters[requested_parameter]['accepted_values'],
+                                                           1,
+                                                           0.4)
+                if len(probable_value) > 0:
+                    reply_text += f"Может быть, вы имели в виду <code>{probable_value[0]}</code>?"
+            await message.reply(reply_text)
+            return
+        else:
+            await message.reply("⚠️ <b>Значение параметра вне списка разрешённых, но так как вы - администратор бота, "
+                                "оно всё равно будет установлено.</b>")
 
     # Set the parameter
     try:
