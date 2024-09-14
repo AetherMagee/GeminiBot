@@ -20,6 +20,7 @@ OPENAI_API_KEY = os.getenv("OAI_API_KEY")
 with open(os.getenv("OAI_PROMPT_PATH"), "r") as f:
     system_prompt_template = f.read()
 
+
 async def _send_request(
         messages_list: List[dict],
         model: str,
@@ -46,7 +47,8 @@ async def _send_request(
     }
     logger.info(f"{request_id} | Sending request to {OPENAI_URL}")
     async with aiohttp.ClientSession() as session:
-        async with session.post(OPENAI_URL + "v1/chat/completions", headers=headers, json=data, timeout=timeout) as response:
+        async with session.post(OPENAI_URL + "v1/chat/completions", headers=headers, json=data,
+                                timeout=timeout) as response:
             try:
                 response_decoded = await response.json()
             except Exception as e:
@@ -60,7 +62,8 @@ async def _send_request(
 
 async def get_prompt(trigger_message: Message, messages_list: List[Record], system_prompt: bool) -> List[dict]:
     chat_type = "direct message (DM)" if trigger_message.from_user.id == trigger_message.chat.id else "group"
-    chat_title = f" called {trigger_message.chat.title}" if trigger_message.from_user.id != trigger_message.chat.id else f" with {trigger_message.from_user.first_name}"
+    chat_title = f" called {trigger_message.chat.title}" if trigger_message.from_user.id != trigger_message.chat.id \
+        else f" with {trigger_message.from_user.first_name}"
 
     add_reply_to = await db.get_chat_parameter(trigger_message.chat.id, "add_reply_to")
 
@@ -231,10 +234,10 @@ def get_available_models() -> list:
 
         response = requests.get(OPENAI_URL + "models", headers=headers, timeout=5)
         result = []
-        for object in response.json()["data"]:
-            result.append(object["id"])
+        for model in response.json()["data"]:
+            result.append(model["id"])
 
         return result
-    except Exception as e:
+    except Exception:
         traceback.print_exc()
         return []
