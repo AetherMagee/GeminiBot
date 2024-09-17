@@ -95,10 +95,11 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
                 })
                 user_message_buffer.clear()
             if message["sender_id"] == 727:
-                final.append({
-                    "role": "system",
-                    "content": (await format_message_for_prompt(message, False)).replace("SYSTEM: ", "", 1)
-                })
+                if system_prompt:
+                    final.append({
+                        "role": "system",
+                        "content": (await format_message_for_prompt(message, False)).replace("SYSTEM: ", "", 1)
+                    })
             elif message["sender_id"] == 0:
                 final.append({
                     "role": "assistant",
@@ -109,7 +110,7 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
                 logger.debug(index)
                 logger.debug(message)
 
-    if await db.get_chat_parameter(trigger_message.chat.id, "o_clarify_target_message"):
+    if await db.get_chat_parameter(trigger_message.chat.id, "o_clarify_target_message") and system_prompt:
         final.append({
             "role": "assistant",
             "content": "Please provide me with my target message, AKA the message I must reply to. I will then "
