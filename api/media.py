@@ -18,7 +18,12 @@ async def get_file(message: Message) -> List[str] or None:
     return None, None
 
 
-async def get_file_id_from_chain(trigger_message_id: int, all_messages: List[Record], required_type: str) -> str or None:
+async def get_file_id_from_chain(
+        trigger_message_id: int,
+        all_messages: List[Record],
+        required_type: str,
+        max_depth: int
+) -> str or None:
     if required_type not in ["photo", "other"]:
         raise ValueError("Unknown required_type")
 
@@ -29,18 +34,19 @@ async def get_file_id_from_chain(trigger_message_id: int, all_messages: List[Rec
     if trigger_message["media_file_id"] and trigger_message["media_type"] == required_type:
         return trigger_message["media_file_id"]
 
-    async def check_reply(message: Record) -> str or None:
+    async def check_reply(message: Record, current_depth: int) -> str or None:
         if message["media_file_id"]:
             if message["media_type"] == required_type:
                 return message["media_file_id"]
         if message["reply_to_message_id"]:
-            try:
-                return await check_reply(lookup_dict[message["reply_to_message_id"]])
-            except KeyError:
-                return None
+            if current_depth <= max_depth:
+                try:
+                    return await check_reply(lookup_dict[message["reply_to_message_id"]], current_depth + 1)
+                except KeyError:
+                    return None
         return None
 
-    return await check_reply(trigger_message)
+    return await check_reply(trigger_message, 1)
 
 
 

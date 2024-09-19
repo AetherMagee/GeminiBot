@@ -75,6 +75,14 @@ chat_configs = {
             "accepted_values": range(0, 8192),
             "protected": False,
             "advanced": True
+        },
+        "media_context_max_depth": {
+            "description": "Сколько сообщений сканировать на наличие медиафайлов в цепочке ответов",
+            "type": "integer",
+            "default_value": 5,
+            "accepted_values": range(1, 20),
+            "protected": False,
+            "advanced": True
         }
     },
     "google": {

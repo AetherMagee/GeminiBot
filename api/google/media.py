@@ -12,6 +12,7 @@ from google.generativeai.types import File
 from loguru import logger
 from PIL import Image
 
+import db
 from main import bot
 from utils import ReturnValueThread
 from ..media import get_file_id_from_chain
@@ -29,7 +30,8 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
     file_id = await get_file_id_from_chain(
         message.message_id,
         all_messages,
-        "other"
+        "other",
+        int(await db.get_chat_parameter(message.chat.id, "media_context_max_depth"))
     )
     if file_id:
         await _download_if_necessary(file_id)
@@ -66,7 +68,8 @@ async def get_photo(message: Message, all_messages: List[Record], mode: str = "p
     photo_file_id = await get_file_id_from_chain(
         message.message_id,
         all_messages,
-        "photo"
+        "photo",
+        int(await db.get_chat_parameter(message.chat.id, "media_context_max_depth"))
     )
 
     if photo_file_id:
