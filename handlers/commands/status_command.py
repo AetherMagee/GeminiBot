@@ -54,18 +54,14 @@ async def status_command(message: Message):
 
     token_count = "⏱ Секунду..."
 
+    if current_endpoint == "openai":
+        token_count = str(await api.openai.count_tokens(message.chat.id)) + " токенов"
+
     text_to_send = f"""✅ <b>Бот активен!</b>
 💬 <b>Память:</b> {len(messages)}/{messages_limit} сообщений <i>({token_count})</i>
 ✨ <b>Модель:</b> <i>{current_model}</i>
 🆔 <b>ID чата:</b> <code>{message.chat.id}</code>
 🤓 <b>Версия бота:</b> <code>{commit}</code>"""
-
-    if current_endpoint == "openai":
-        token_count = await api.openai.count_tokens(message.chat.id)
-        text_to_send = text_to_send.replace("⏱ Секунду...", f"{token_count} токенов")
-
-    if not chat_configs["openai"]["o_model"]["accepted_values"]:
-        text_to_send += "\n⚠️<b> Эндпоинт OpenAI недоступен.</b>"
 
     reply = await message.reply(text_to_send)
 
