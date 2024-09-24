@@ -233,7 +233,7 @@ async def generate_response(message: Message) -> str:
         if not store:
             prompt[0] = prompt[0].replace("--dont-store", "", 1)
 
-    model_name = await db.get_chat_parameter(message.chat.id, "model")
+    model_name = await db.get_chat_parameter(message.chat.id, "g_model")
 
     api_task = asyncio.create_task(_call_gemini_api(
         request_id,
