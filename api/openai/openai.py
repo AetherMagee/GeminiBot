@@ -194,7 +194,10 @@ async def generate_response(message: Message) -> str:
         timed_out = True
     except Exception as e:
         logger.debug(e)
-        response = None
+        output = "❌ *Произошел сбой эндпоинта OpenAI.*"
+        if show_errors:
+            output += "\n\n" + str(e)
+        return output
 
     typing_task.cancel()
     try:
