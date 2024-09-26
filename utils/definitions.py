@@ -157,8 +157,8 @@ chat_configs = {
         "o_timeout": {
             "description": "Максимальное время ожидания ответа OpenAI API",
             "type": "integer",
-            "default_value": 15,
-            "accepted_values": range(1, 60),
+            "default_value": 60,
+            "accepted_values": range(1, 120),
             "protected": False,
             "advanced": True
         },
