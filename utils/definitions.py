@@ -135,8 +135,6 @@ chat_configs = {
                 "claude-3-opus-20240229",
                 "claude-3-sonnet-20240229",
                 "claude-3-haiku-20240307",
-                "gpt-4-0125-preview",
-                "gpt-4-1106-preview"
             ] if not api.openai.get_available_models() else api.openai.get_available_models(),
             "protected": False,
             "advanced": False
