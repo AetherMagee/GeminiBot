@@ -126,16 +126,7 @@ chat_configs = {
             "description": "Используемая ботом модель",
             "type": "text",
             "default_value": "\'gpt-4o\'",
-            # TODO: Add a better flow for defining and selecting models
-            "accepted_values": [
-                "gpt-4o",
-                "gpt-4o-mini",
-                "gpt-4",
-                "claude-3-5-sonnet-20240620",
-                "claude-3-opus-20240229",
-                "claude-3-sonnet-20240229",
-                "claude-3-haiku-20240307",
-            ] if not api.openai.get_available_models() else api.openai.get_available_models(),
+            "accepted_values": api.openai.get_hardcoded_models() if not api.openai.get_available_models() else api.openai.get_available_models(),
             "protected": False,
             "advanced": False
         },

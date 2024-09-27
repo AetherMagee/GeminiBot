@@ -245,3 +245,14 @@ def get_available_models() -> list:
     except Exception:
         traceback.print_exc()
         return []
+
+
+def get_hardcoded_models() -> list:
+    result = []
+    with open(os.getenv("OAI_MODEL_LIST_PATH"), "r") as file:
+        for line in file.readlines():
+            if line.strip() and not line.startswith("#"):
+                result.append(line.strip())
+
+    logger.debug(f"Loaded {len(result)} hardcoded OpenAI models")
+    return result
