@@ -1,11 +1,9 @@
 import asyncio
 import os
 import random
-import traceback
 from typing import List
 
 import aiohttp
-import requests
 from aiogram.types import Message
 from asyncpg import Record
 from loguru import logger
@@ -240,7 +238,10 @@ async def generate_response(message: Message) -> str:
         logger.debug(response)
         output = "❌ *Произошел сбой эндпоинта OpenAI.*"
         if show_errors:
-            output += "\n\n" + str(error)
+            if response["error"] and response["error"]["message"]:
+                output += "\n\n" + response["error"]["message"]
+            else:
+                output += "\n\n" + str(error)
     finally:
         if output.startswith("❌"):
             await db.save_system_message(message.chat.id, ERROR_MESSAGES["system_failure"])
