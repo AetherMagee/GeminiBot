@@ -44,9 +44,11 @@ async def _send_request(
         "top_p": top_p,
         "frequency_penalty": frequency_penalty,
         "presence_penalty": presence_penalty,
-        "max_tokens": max_output_tokens,
-        "max_completion_tokens": max_output_tokens
+        "max_tokens": max_output_tokens
     }
+    if "o1" in model and "trycloudflare" not in url:
+        data["max_completion_tokens"] = max_output_tokens
+
     logger.info(f"{request_id} | Sending request to {url}")
     async with aiohttp.ClientSession() as session:
         async with session.post(url + "v1/chat/completions", headers=headers, json=data,
