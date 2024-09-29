@@ -111,12 +111,12 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
                 logger.debug(index)
                 logger.debug(message)
 
-    if await db.get_chat_parameter(trigger_message.chat.id, "o_clarify_target_message") and system_prompt:
+    if await db.get_chat_parameter(trigger_message.chat.id, "o_clarify_target_message"):
         final.append({
             "role": "assistant",
-            "content": "Please provide me with my target message, AKA the message I must reply to. I will then "
-                       "immediately proceed to replying to it in the User's language and while maintaining proper "
-                       "context awareness and not mixing topics."
+            "content": "Now please provide me with the target message that I need to respond to. I will ensure that "
+                       "my reply is in the User's language, maintains proper context awareness, and does not mix "
+                       "topics."
         })
         final.append({
             "role": "user",

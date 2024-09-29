@@ -232,6 +232,7 @@ presets = {
         "o_model": "o1-preview",
         "o_vision": False,
         "o_timeout": 300,
-        "o_add_system_prompt": False
+        "o_add_system_prompt": False,
+        "o_clarify_target_message": False
     }
 }
