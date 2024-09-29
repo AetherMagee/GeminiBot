@@ -215,3 +215,23 @@ chat_configs = {
         }
     }
 }
+
+presets = {
+    "default": {
+        "max_output_tokens": 2048,
+        "o_model": "gpt-4o",
+        "g_model": "gemini-1.5-pro-latest",
+        "o_add_system_prompt": True,
+        "o_clarify_target_message": True,
+        "o_timeout": 60,
+        "o_vision": True
+    },
+    "o1": {
+        "endpoint": "openai",
+        "max_output_tokens": 32768,
+        "o_model": "o1-preview",
+        "o_vision": False,
+        "o_timeout": 300,
+        "o_add_system_prompt": False
+    }
+}
