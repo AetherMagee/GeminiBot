@@ -185,7 +185,7 @@ async def generate_response(message: Message) -> str:
         url = url + "/"
 
     key = await db.get_chat_parameter(message.chat.id, "o_key")
-    if not url:
+    if not key:
         key = os.getenv("OAI_API_KEY")
 
     typing_task = asyncio.create_task(simulate_typing(message.chat.id))
