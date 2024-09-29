@@ -32,7 +32,7 @@ async def preset_command(message: Message):
 
     # Check target endpoint
     endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
-    if "endpoint" in presets[target_preset].keys() and message.from_user.id in ADMIN_IDS:
+    if "endpoint" in presets[target_preset].keys():
         endpoint = presets[target_preset]["endpoint"]
 
     # Determine what settings to change
