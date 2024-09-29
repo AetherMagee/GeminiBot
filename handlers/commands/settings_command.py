@@ -142,19 +142,18 @@ async def set_command(message: Message) -> None:
             False
         ]
 
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(
+            text="Открыть диалог",
+            url=f"https://t.me/{os.getenv('BOT_USERNAME')}")
+        )
         await message.reply("👋 <b>Давайте перейдём в личные сообщения, чтобы установить этот параметр, не раскрывая "
-                            "его другим.</b>")
+                            "его другим.</b>", reply_markup=builder.as_markup())
         await asyncio.sleep(1)
         try:
             await handle_private_setting(message)
         except TelegramForbiddenError:
-            builder = InlineKeyboardBuilder()
-            builder.row(InlineKeyboardButton(
-                text="Начать диалог",
-                url=f"https://t.me/{os.getenv('BOT_USERNAME')}")
-            )
-            await message.reply("<b>Похоже, у нас с вами ещё нет личного диалога. Нажмите на кнопку ниже, чтобы это "
-                                "исправить.</b>", reply_markup=builder.as_markup())
+            logger.warning("Tried to send a private setting request but failed, waiting for a /start...")
         return
 
     # Get target parameter's accepted value type
