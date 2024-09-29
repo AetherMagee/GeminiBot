@@ -43,7 +43,8 @@ async def _send_request(
         "top_p": top_p,
         "frequency_penalty": frequency_penalty,
         "presence_penalty": presence_penalty,
-        "max_tokens": max_output_tokens
+        "max_tokens": max_output_tokens,
+        "max_completion_tokens": max_output_tokens
     }
     logger.info(f"{request_id} | Sending request to {OPENAI_URL}")
     async with aiohttp.ClientSession() as session:
@@ -211,6 +212,10 @@ async def generate_response(message: Message) -> str:
 
     try:
         output = response["choices"][0]["message"]["content"]
+        if response["choices"][0]["finish_reason"] and response["choices"][0]["finish_reason"] == "length":
+            output = "❌ *Произошел сбой эндпоинта OpenAI.*"
+            if show_errors:
+                output += "\n\nГенерация была прервана на стороне эндпоинта из за ограничения `max_output_tokens`"
         if "oai-proxy-error" in output:
             logger.debug(output)
             output = "❌ *Произошел сбой эндпоинта OpenAI.*"
