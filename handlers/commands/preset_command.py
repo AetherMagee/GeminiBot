@@ -24,12 +24,18 @@ async def preset_command(message: Message):
             + ", ".join(presets.keys()))
         return
 
+    # Check preset validity
     target_preset = command[1].lower()
     if target_preset not in presets.keys():
         await message.reply("❌ <b>Неизвестный пресет.</b> \nДоступные пресеты: " + ", ".join(presets.keys()))
         return
 
+    # Check target endpoint
     endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
+    if "endpoint" in presets[target_preset].keys() and message.from_user.id in ADMIN_IDS:
+        endpoint = presets[target_preset]["endpoint"]
+
+    # Determine what settings to change
     if endpoint == "openai":
         blacklisted_prefix = "g_"
     elif endpoint == "google":
@@ -37,6 +43,7 @@ async def preset_command(message: Message):
     else:
         raise ValueError("what?")
 
+    # Change settings
     changed_params = {}
     for parameter, value in presets[target_preset].items():
         if parameter.startswith(blacklisted_prefix):
@@ -49,6 +56,7 @@ async def preset_command(message: Message):
             await db.set_chat_parameter(message.chat.id, parameter, value)
             changed_params[parameter] = value
 
+    # Notify user
     text = f"✅ <b>Обновлено {len(changed_params)} параметров:</b>\n"
     for parameter, value in changed_params.items():
         text += f"<code>{parameter}</code> - <i>{value}</i>\n"
