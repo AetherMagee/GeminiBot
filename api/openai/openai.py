@@ -44,7 +44,8 @@ async def _send_request(
         "top_p": top_p,
         "frequency_penalty": frequency_penalty,
         "presence_penalty": presence_penalty,
-        "max_tokens": max_output_tokens
+        "max_tokens": max_output_tokens,
+        "max_completion_tokens": max_output_tokens
     }
     logger.info(f"{request_id} | Sending request to {url}")
     async with aiohttp.ClientSession() as session:
@@ -111,12 +112,12 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
                 logger.debug(index)
                 logger.debug(message)
 
-    if await db.get_chat_parameter(trigger_message.chat.id, "o_clarify_target_message") and system_prompt:
+    if await db.get_chat_parameter(trigger_message.chat.id, "o_clarify_target_message"):
         final.append({
             "role": "assistant",
-            "content": "Please provide me with my target message, AKA the message I must reply to. I will then "
-                       "immediately proceed to replying to it in the User's language and while maintaining proper "
-                       "context awareness and not mixing topics."
+            "content": "Now please provide me with the target message that I need to respond to. I will ensure that "
+                       "my reply is in the User's language, maintains proper context awareness, and does not mix "
+                       "topics."
         })
         final.append({
             "role": "user",
@@ -224,6 +225,10 @@ async def generate_response(message: Message) -> str:
 
     try:
         output = response["choices"][0]["message"]["content"]
+        if response["choices"][0]["finish_reason"] and response["choices"][0]["finish_reason"] == "length":
+            output = "❌ *Произошел сбой эндпоинта OpenAI.*"
+            if show_errors:
+                output += "\n\nГенерация была прервана на стороне эндпоинта из за ограничения `max_output_tokens`"
         if "oai-proxy-error" in output:
             logger.debug(output)
             output = "❌ *Произошел сбой эндпоинта OpenAI.*"
