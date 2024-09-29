@@ -16,7 +16,7 @@ chat_configs = {
         "message_limit": {
             "description": "Максимум сообщений в памяти бота",
             "type": "integer",
-            "default_value": 1000,
+            "default_value": 500,
             "accepted_values": range(1, 5000),
             "protected": False,
             "advanced": False,
@@ -62,7 +62,7 @@ chat_configs = {
             "description": "Желаемое максимальное количество токенов в памяти бота. <code>0</code> - отключает лимит",
             "type": "integer",
             "default_value": 0,
-            "accepted_values": range(0, 128000),
+            "accepted_values": range(0, 127990),
             "protected": False,
             "advanced": False,
             "private": False
@@ -80,7 +80,7 @@ chat_configs = {
             "description": "Максимальная длина ответа, что может сгенерировать бот",
             "type": "integer",
             "default_value": 2048,
-            "accepted_values": range(0, 8192),
+            "accepted_values": range(0, 65536),
             "protected": False,
             "advanced": True,
             "private": False
@@ -137,7 +137,7 @@ chat_configs = {
     },
     "openai": {
         "o_url": {
-            "description": "Ссылка на эндпоинт, который будет использовать бот. Должна заканчиваться на \"/\".",
+            "description": "Ссылка на эндпоинт, который будет использовать бот.",
             "type": "text",
             "default_value": None,
             "accepted_values": None,
@@ -173,7 +173,7 @@ chat_configs = {
             "private": False
         },
         "o_add_system_prompt": {
-            "description": "Добавлять ли системное сообщение, нацеленное на улучшение качества ответов",
+            "description": "Добавлять ли встроенное системное сообщение, нацеленное на улучшение качества ответов",
             "type": "boolean",
             "default_value": True,
             "accepted_values": [True, False],
@@ -194,7 +194,7 @@ chat_configs = {
             "description": "Максимальное время ожидания ответа OpenAI API",
             "type": "integer",
             "default_value": 60,
-            "accepted_values": range(1, 120),
+            "accepted_values": range(1, 300),
             "protected": False,
             "advanced": True,
             "private": False
@@ -248,7 +248,7 @@ chat_configs = {
             "private": False
         },
         "o_log_prompt": {
-            "description": "кирилл если будешь это дергать я тебя выебу",
+            "description": "Сохранять ли запросы в логи бота. Полезно при отладке администраторами.",
             "type": "boolean",
             "default_value": False,
             "accepted_values": [True, False],
