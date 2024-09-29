@@ -136,19 +136,21 @@ async def set_command(message: Message) -> None:
 
     # Check if it's private
     if available_parameters[requested_parameter]["private"] and message.from_user.id != message.chat.id:
-        pending_sets[message.from_user.id] = [
-            message.chat.id,
-            requested_parameter,
-            False
-        ]
-
         builder = InlineKeyboardBuilder()
         builder.row(InlineKeyboardButton(
             text="Открыть диалог",
             url=f"https://t.me/{os.getenv('BOT_USERNAME')}")
         )
-        await message.reply("👋 <b>Давайте перейдём в личные сообщения, чтобы установить этот параметр, не раскрывая "
+        notif_message = await message.reply("👋 <b>Давайте перейдём в личные сообщения, чтобы установить этот параметр, не раскрывая "
                             "его другим.</b>", reply_markup=builder.as_markup())
+
+        pending_sets[message.from_user.id] = [
+            message.chat.id,
+            requested_parameter,
+            False,
+            notif_message.message_id
+        ]
+
         await asyncio.sleep(1)
         try:
             await handle_private_setting(message)
@@ -233,5 +235,7 @@ async def handle_private_setting(message: Message):
 
     await db.set_chat_parameter(pending_set[0], pending_set[1], message.text)
     await message.reply("✅ <b>Значение установлено!</b>")
+
+    await bot.edit_message_text("✅ <b>Значение установлено!</b>", chat_id=pending_set[0], message_id=pending_set[3])
 
     pending_sets.pop(message.from_user.id)
