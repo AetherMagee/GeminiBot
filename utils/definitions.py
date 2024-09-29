@@ -9,8 +9,9 @@ chat_configs = {
             "type": "text",
             "default_value": "\'google\'",
             "accepted_values": ["google", "openai"],
-            "protected": True,  # Only the bot's admin can change this
-            "advanced": False
+            "protected": False,
+            "advanced": False,
+            "private": False
         },
         "message_limit": {
             "description": "Максимум сообщений в памяти бота",
@@ -18,7 +19,8 @@ chat_configs = {
             "default_value": 1000,
             "accepted_values": range(1, 5000),
             "protected": False,
-            "advanced": False
+            "advanced": False,
+            "private": False
         },
         "memory_alter_permission": {
             "description": "Кто может пользоваться командами /reset и /forget",
@@ -26,7 +28,8 @@ chat_configs = {
             "default_value": "\'all\'",
             "accepted_values": ["all", "admins", "owner"],
             "protected": False,
-            "advanced": False
+            "advanced": False,
+            "private": False
         },
         "show_advanced_settings": {
             "description": "Показ продвинутых настроек в /settings (они всё еще доступны в /set)",
@@ -34,7 +37,8 @@ chat_configs = {
             "default_value": False,
             "accepted_values": [True, False],
             "protected": False,
-            "advanced": False
+            "advanced": False,
+            "private": False
         },
         "show_error_messages": {
             "description": "Показывать ли подробные сообщения об ошибке",
@@ -42,7 +46,8 @@ chat_configs = {
             "default_value": False,
             "accepted_values": [True, False],
             "protected": False,
-            "advanced": True
+            "advanced": True,
+            "private": False
         },
         "add_reply_to": {
             "description": "Добавлять ли в сообщения \"REPLY TO\", чтобы показать модели, кто кому отвечает",
@@ -50,7 +55,8 @@ chat_configs = {
             "default_value": False,
             "accepted_values": [True, False],
             "protected": False,
-            "advanced": True
+            "advanced": True,
+            "private": False
         },
         "token_limit": {
             "description": "Желаемое максимальное количество токенов в памяти бота. <code>0</code> - отключает лимит",
@@ -58,7 +64,8 @@ chat_configs = {
             "default_value": 0,
             "accepted_values": range(0, 128000),
             "protected": False,
-            "advanced": False
+            "advanced": False,
+            "private": False
         },
         "token_limit_action": {
             "description": "Что делать при достижении лимита токенов",
@@ -66,7 +73,8 @@ chat_configs = {
             "default_value": "\'warn\'",
             "accepted_values": ["warn", "block"],
             "protected": False,
-            "advanced": False
+            "advanced": False,
+            "private": False
         },
         "max_output_tokens": {
             "description": "Максимальная длина ответа, что может сгенерировать бот",
@@ -74,7 +82,8 @@ chat_configs = {
             "default_value": 2048,
             "accepted_values": range(0, 8192),
             "protected": False,
-            "advanced": True
+            "advanced": True,
+            "private": False
         },
         "media_context_max_depth": {
             "description": "Сколько сообщений сканировать на наличие медиафайлов в цепочке ответов",
@@ -82,7 +91,8 @@ chat_configs = {
             "default_value": 5,
             "accepted_values": range(1, 20),
             "protected": False,
-            "advanced": True
+            "advanced": True,
+            "private": False
         }
     },
     "google": {
@@ -92,7 +102,8 @@ chat_configs = {
             "default_value": "\'gemini-1.5-pro-latest\'",
             "accepted_values": api.google.get_available_models(),
             "protected": False,
-            "advanced": False
+            "advanced": False,
+            "private": False
         },
         "g_temperature": {
             "description": "Температура сэмплинга. Чем выше - тем более случайные ответы может вернуть модель",
@@ -100,7 +111,8 @@ chat_configs = {
             "default_value": 1.0,
             "accepted_values": frange(0, 1, 0.01),
             "protected": False,
-            "advanced": True
+            "advanced": True,
+            "private": False
         },
         "g_top_p": {
             "description": "Вероятностный порог для nucleus sampling. Модель рассматривает только токены, "
@@ -109,7 +121,8 @@ chat_configs = {
             "default_value": 0.95,
             "accepted_values": frange(0, 1, 0.01),
             "protected": False,
-            "advanced": True
+            "advanced": True,
+            "private": False
         },
         "g_top_k": {
             "description": "Количество наиболее вероятных токенов, из которых модель выбирает при генерации. Меньшие "
@@ -118,17 +131,37 @@ chat_configs = {
             "default_value": 40,
             "accepted_values": range(1, 100),
             "protected": False,
-            "advanced": True
+            "advanced": True,
+            "private": False
         }
     },
     "openai": {
+        "o_url": {
+            "description": "Ссылка на эндпоинт, который будет использовать бот. Должна заканчиваться на \"/\".",
+            "type": "text",
+            "default_value": None,
+            "accepted_values": None,
+            "protected": False,
+            "advanced": False,
+            "private": True
+        },
+        "o_key": {
+            "description": "Ключ авторизации для эндпоинта, установленного в <code>o_url</code>",
+            "type": "text",
+            "default_value": None,
+            "accepted_values": None,
+            "protected": False,
+            "advanced": False,
+            "private": True
+        },
         "o_model": {
             "description": "Используемая ботом модель",
             "type": "text",
             "default_value": "\'gpt-4o\'",
-            "accepted_values": api.openai.get_hardcoded_models() if not api.openai.get_available_models() else api.openai.get_available_models(),
+            "accepted_values": None,
             "protected": False,
-            "advanced": False
+            "advanced": False,
+            "private": False
         },
         "o_auto_fallback": {
             "description": "Разрешить ли боту автоматически переключаться на Gemini API в случае сбоя эндпоинта OpenAI",
@@ -136,7 +169,8 @@ chat_configs = {
             "default_value": True,
             "accepted_values": [True, False],
             "protected": False,
-            "advanced": False
+            "advanced": False,
+            "private": False
         },
         "o_add_system_prompt": {
             "description": "Добавлять ли системное сообщение, нацеленное на улучшение качества ответов",
@@ -145,6 +179,7 @@ chat_configs = {
             "accepted_values": [True, False],
             "protected": False,
             "advanced": True,
+            "private": False
         },
         "o_vision": {
             "description": "Разрешить ли модели работать с изображениями",
@@ -152,7 +187,8 @@ chat_configs = {
             "default_value": False,
             "accepted_values": [True, False],
             "protected": False,
-            "advanced": False
+            "advanced": False,
+            "private": False
         },
         "o_timeout": {
             "description": "Максимальное время ожидания ответа OpenAI API",
@@ -160,7 +196,8 @@ chat_configs = {
             "default_value": 60,
             "accepted_values": range(1, 120),
             "protected": False,
-            "advanced": True
+            "advanced": True,
+            "private": False
         },
         "o_temperature": {
             "description": "Температура сэмплинга. Чем выше - тем более случайные ответы может вернуть модель",
@@ -168,7 +205,8 @@ chat_configs = {
             "default_value": 1.0,
             "accepted_values": frange(0, 2, 0.01),
             "protected": False,
-            "advanced": True
+            "advanced": True,
+            "private": False
         },
         "o_top_p": {
             "description": "Вероятностный порог для nucleus sampling. Модель рассматривает только токены, "
@@ -177,7 +215,8 @@ chat_configs = {
             "default_value": 1.0,
             "accepted_values": frange(0, 1, 0.01),
             "protected": False,
-            "advanced": True
+            "advanced": True,
+            "private": False
         },
         "o_presence_penalty": {
             "description": "Штраф за повторение тем. Положительные значения поощряют модель говорить о новых темах",
@@ -185,7 +224,8 @@ chat_configs = {
             "default_value": 0.0,
             "accepted_values": frange(-2, 2, 0.01),
             "protected": False,
-            "advanced": True
+            "advanced": True,
+            "private": False
         },
         "o_frequency_penalty": {
             "description": "Штраф за повторение конкретных слов. Положительные значения снижают вероятность "
@@ -194,7 +234,8 @@ chat_configs = {
             "default_value": 0.0,
             "accepted_values": frange(-2, 2, 0.01),
             "protected": False,
-            "advanced": True
+            "advanced": True,
+            "private": False
         },
         "o_clarify_target_message": {
             "description": "Добавлять ли дополнительные инструкции, помогающие модели понять, на что конкретно нужно "
@@ -203,7 +244,8 @@ chat_configs = {
             "default_value": True,
             "accepted_values": [True, False],
             "protected": False,
-            "advanced": True
+            "advanced": True,
+            "private": False
         },
         "o_log_prompt": {
             "description": "кирилл если будешь это дергать я тебя выебу",
@@ -211,7 +253,8 @@ chat_configs = {
             "default_value": False,
             "accepted_values": [True, False],
             "protected": True,
-            "advanced": True
+            "advanced": True,
+            "private": False
         }
     }
 }
