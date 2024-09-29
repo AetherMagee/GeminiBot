@@ -1,5 +1,4 @@
 from aiogram.types import Message
-from loguru import logger
 
 import db
 from main import ADMIN_IDS, bot
@@ -27,7 +26,7 @@ async def preset_command(message: Message):
 
     target_preset = command[1].lower()
     if target_preset not in presets.keys():
-        await message.reply("❌ <b>Неизвестный пресет.</b>")
+        await message.reply("❌ <b>Неизвестный пресет.</b> \nДоступные пресеты: " + ", ".join(presets.keys()))
         return
 
     endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
