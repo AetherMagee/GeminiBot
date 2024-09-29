@@ -20,6 +20,9 @@ pending_sets = {
 
 
 def obfuscate_string(s: str) -> str:
+    if s == "None" or s is None:
+        return str(s)
+
     prefix = ""
     if s.startswith("https://"):
         prefix = "https://"
@@ -207,6 +210,9 @@ async def set_command(message: Message) -> None:
                 await message.reply("⚠️ <b>Значение параметра вне списка разрешённых, но так как вы - администратор бота, "
                                     "оно всё равно будет установлено.</b>")
 
+    if not accepted_values and requested_value == "null":
+        requested_value = None
+
     # Set the parameter
     try:
         await db.set_chat_parameter(message.chat.id, requested_parameter, requested_value)
@@ -232,6 +238,9 @@ async def handle_private_setting(message: Message):
                                f"<b>Пожалуйста, отправьте сюда новое значение параметра <code>{pending_set[1]}</code>. Оно будет установлено в чате с идентификатором {pending_set[0]}</b>\n<i>(его можно проверить командой /status в целевом чате)</i>")
         pending_set[2] = True
         return
+
+    if pending_set[1] == "null":
+        pending_set[1] = None
 
     await db.set_chat_parameter(pending_set[0], pending_set[1], message.text)
     await message.reply("✅ <b>Значение установлено!</b>")
