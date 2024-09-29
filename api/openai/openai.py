@@ -15,7 +15,6 @@ from api.google import ERROR_MESSAGES, format_message_for_prompt
 from api.google.media import get_photo
 from utils import simulate_typing
 
-OPENAI_URL = os.getenv("OAI_API_URL")
 OPENAI_API_KEY = os.getenv("OAI_API_KEY")
 with open(os.getenv("OAI_PROMPT_PATH"), "r") as f:
     system_prompt_template = f.read()
@@ -23,6 +22,8 @@ with open(os.getenv("OAI_PROMPT_PATH"), "r") as f:
 
 async def _send_request(
         messages_list: List[dict],
+        url: str,
+        key: str,
         model: str,
         request_id: int,
         temperature: float,
@@ -34,7 +35,7 @@ async def _send_request(
 ) -> dict:
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {OPENAI_API_KEY}"
+        "Authorization": f"Bearer {key}"
     }
     data = {
         "model": model,
@@ -45,9 +46,9 @@ async def _send_request(
         "presence_penalty": presence_penalty,
         "max_tokens": max_output_tokens
     }
-    logger.info(f"{request_id} | Sending request to {OPENAI_URL}")
+    logger.info(f"{request_id} | Sending request to {url}")
     async with aiohttp.ClientSession() as session:
-        async with session.post(OPENAI_URL + "v1/chat/completions", headers=headers, json=data,
+        async with session.post(url + "v1/chat/completions", headers=headers, json=data,
                                 timeout=timeout) as response:
             try:
                 response_decoded = await response.json()
@@ -176,10 +177,22 @@ async def generate_response(message: Message) -> str:
     timeout = int(await db.get_chat_parameter(message.chat.id, "o_timeout"))
     timed_out = False
 
+    url = await db.get_chat_parameter(message.chat.id, "o_url")
+    if not url:
+        url = os.getenv("OAI_API_URL")
+    if not url.endswith("/"):
+        url = url + "/"
+
+    key = await db.get_chat_parameter(message.chat.id, "o_key")
+    if not url:
+        key = os.getenv("OAI_API_KEY")
+
     typing_task = asyncio.create_task(simulate_typing(message.chat.id))
     try:
         api_task = asyncio.create_task(_send_request(
             prompt,
+            url,
+            key,
             model,
             request_id,
             float(await db.get_chat_parameter(message.chat.id, "o_temperature")),
@@ -226,25 +239,6 @@ async def generate_response(message: Message) -> str:
             await db.save_system_message(message.chat.id, ERROR_MESSAGES["system_failure"])
 
         return output
-
-
-def get_available_models() -> list:
-    try:
-        logger.info("OAI | Getting available models...")
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {OPENAI_API_KEY}"
-        }
-
-        response = requests.get(OPENAI_URL + "models", headers=headers, timeout=5)
-        result = []
-        for model in response.json()["data"]:
-            result.append(model["id"])
-
-        return result
-    except Exception:
-        traceback.print_exc()
-        return []
 
 
 def get_hardcoded_models() -> list:

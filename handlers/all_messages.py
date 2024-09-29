@@ -13,6 +13,7 @@ import db
 from api.google import ERROR_MESSAGES
 from utils import get_message_text
 from .commands.shared import is_allowed_to_alter_memory
+import handlers.commands.settings_command as settings
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 bot_username = os.getenv("BOT_USERNAME")
@@ -103,6 +104,10 @@ async def handle_response(message: Message, output: str) -> None:
 
 
 async def handle_new_message(message: Message) -> None:
+    if message.from_user.id in settings.pending_sets:
+        await settings.handle_private_setting(message)
+        return
+
     endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
 
     if not await meets_endpoint_requirements(message, endpoint):
