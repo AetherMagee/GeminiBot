@@ -3,7 +3,7 @@ import difflib
 import os
 import traceback
 
-from aiogram.exceptions import TelegramForbiddenError
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import InlineKeyboardButton, Message, ReactionTypeEmoji
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
@@ -228,6 +228,7 @@ async def handle_private_setting(message: Message):
     global pending_sets
 
     if message.from_user.id not in pending_sets.keys():
+        logger.warning(f"Was just called but the ID ({message.from_user.id}) is not in the pending list.")
         await message.reply("❌ <b>Произошёл непредвиденный сбой.</b>")
         return
 
@@ -239,12 +240,15 @@ async def handle_private_setting(message: Message):
         pending_set[2] = True
         return
 
-    if pending_set[1] == "null":
+    if pending_set[1] == "null" or pending_set[1] == "none":
         pending_set[1] = None
 
     await db.set_chat_parameter(pending_set[0], pending_set[1], message.text)
     await message.reply("✅ <b>Значение установлено!</b>")
 
-    await bot.edit_message_text("✅ <b>Значение установлено!</b>", chat_id=pending_set[0], message_id=pending_set[3])
+    try:
+        await bot.edit_message_text("✅ <b>Значение установлено!</b>", chat_id=pending_set[0], message_id=pending_set[3])
+    except TelegramBadRequest:
+        logger.warning(f"Failed to edit message {pending_set[3]} at {pending_set[0]}")
 
     pending_sets.pop(message.from_user.id)
