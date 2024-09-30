@@ -1,5 +1,5 @@
 aiogram~=3.13.1
-aiohttp~=3.10.7
+aiohttp~=3.10.8
 async-lru~=2.0.4
 asyncpg~=0.29.0
 google-generativeai~=0.8.2
