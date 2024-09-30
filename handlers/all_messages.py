@@ -104,7 +104,7 @@ async def handle_response(message: Message, output: str) -> None:
 
 
 async def handle_new_message(message: Message) -> None:
-    if message.from_user.id in settings.pending_sets:
+    if message.from_user.id in settings.pending_sets and message.from_user.id == message.chat.id:
         await settings.handle_private_setting(message)
         return
 
