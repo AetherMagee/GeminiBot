@@ -92,7 +92,7 @@ async def settings_command(message: Message) -> None:
         else:
             try:
                 accepted_values = ", ".join(_value_range)
-            except Exception:
+            except TypeError:
                 accepted_values = "True, False"
 
         if _value_range:
@@ -144,8 +144,8 @@ async def set_command(message: Message) -> None:
             text="Открыть диалог",
             url=f"https://t.me/{os.getenv('BOT_USERNAME')}")
         )
-        notif_message = await message.reply("👋 <b>Давайте перейдём в личные сообщения, чтобы установить этот параметр, не раскрывая "
-                            "его другим.</b>", reply_markup=builder.as_markup())
+        notif_message = await message.reply("👋 <b>Давайте перейдём в личные сообщения, чтобы установить этот "
+                                            "параметр, не раскрывая его другим.</b>", reply_markup=builder.as_markup())
 
         pending_sets[message.from_user.id] = [
             message.chat.id,
@@ -198,17 +198,17 @@ async def set_command(message: Message) -> None:
             if message.from_user.id not in ADMIN_IDS:
                 reply_text = "❌ <b>Недопустимое значение для параметра.</b> "
                 if available_parameters[requested_parameter]["type"] == "text":
-                    probable_value = difflib.get_close_matches(requested_value,
-                                                               available_parameters[requested_parameter]['accepted_values'],
-                                                               1,
-                                                               0.4)
-                    if len(probable_value) > 0:
-                        reply_text += f"Может быть, вы имели в виду <code>{probable_value[0]}</code>?"
+                    guess = difflib.get_close_matches(requested_value,
+                                                      available_parameters[requested_parameter]['accepted_values'],
+                                                      1,
+                                                      0.4)
+                    if len(guess) > 0:
+                        reply_text += f"Может быть, вы имели в виду <code>{guess[0]}</code>?"
                 await message.reply(reply_text)
                 return
             else:
-                await message.reply("⚠️ <b>Значение параметра вне списка разрешённых, но так как вы - администратор бота, "
-                                    "оно всё равно будет установлено.</b>")
+                await message.reply("⚠️ <b>Значение параметра вне списка разрешённых, но так как вы - администратор "
+                                    "бота, оно всё равно будет установлено.</b>")
 
     if not accepted_values and requested_value == "null":
         requested_value = None
@@ -236,7 +236,9 @@ async def handle_private_setting(message: Message):
 
     if not pending_set[2]:
         await bot.send_message(message.from_user.id,
-                               f"<b>Пожалуйста, отправьте сюда новое значение параметра <code>{pending_set[1]}</code>. Оно будет установлено в чате с идентификатором {pending_set[0]}</b>\n<i>(его можно проверить командой /status в целевом чате)</i>")
+                               f"<b>Пожалуйста, отправьте сюда новое значение параметра <code>{pending_set[1]}</code"
+                               f">. Оно будет установлено в чате с идентификатором {pending_set[0]}</b>\n<i>(его "
+                               f"можно проверить командой /status в целевом чате)</i>")
         pending_set[2] = True
         return
 
