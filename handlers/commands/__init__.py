@@ -1,5 +1,6 @@
 from .forget_command import forget_command
 from .help_command import help_command
+from .hide_command import hide_command
 from .preset_command import preset_command
 from .raw_request import raw_command
 from .replace_command import replace_command
