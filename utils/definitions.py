@@ -109,7 +109,7 @@ chat_configs = {
             "description": "Температура сэмплинга. Чем выше - тем более случайные ответы может вернуть модель",
             "type": "decimal",
             "default_value": 1.0,
-            "accepted_values": frange(0, 1, 0.01),
+            "accepted_values": frange(0, 2, 0.01),
             "protected": False,
             "advanced": True,
             "private": False
