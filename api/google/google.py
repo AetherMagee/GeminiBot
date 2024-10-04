@@ -55,7 +55,7 @@ def _get_api_key() -> str:
 
 
 async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name: str,
-                           temperature: float, top_p: float, top_k: int, max_output_tokens: int) \
+                           temperature: float, top_p: float, top_k: int, max_output_tokens: int, code_execution: bool) \
         -> Union[AsyncGenerateContentResponse, str, Exception, None]:
     safety = {
         HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
@@ -73,7 +73,10 @@ async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name
 
     logger.debug(f"{request_id} | Using model {model_name}")
 
-    model = genai.GenerativeModel(model_name)
+    model = genai.GenerativeModel(
+        model_name,
+        tools = "code_execution" if code_execution else None,
+    )
 
     for attempt in range(1, MAX_API_ATTEMPTS + 1):
         if not any(isinstance(item, File) for item in prompt):
@@ -243,7 +246,8 @@ async def generate_response(message: Message) -> str:
         float(await db.get_chat_parameter(message.chat.id, "g_temperature")),
         float(await db.get_chat_parameter(message.chat.id, "g_top_p")),
         int(await db.get_chat_parameter(message.chat.id, "g_top_k")),
-        int(await db.get_chat_parameter(message.chat.id, "max_output_tokens"))
+        int(await db.get_chat_parameter(message.chat.id, "max_output_tokens")),
+        bool(await db.get_chat_parameter(message.chat.id, "g_code_execution"))
     ))
 
     response = await api_task

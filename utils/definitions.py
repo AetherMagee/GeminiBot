@@ -133,7 +133,18 @@ chat_configs = {
             "protected": False,
             "advanced": True,
             "private": False
-        }
+        },
+        "g_code_execution": {
+            "description": "Разрешить ли модели выполнять код Python в выделенном контейнере. Применяются <a "
+                           "href=\"https://ai.google.dev/gemini-api/docs/code-execution?lang=python#limitations"
+                           "\">ограничения</a>.",
+            "type": "boolean",
+            "default_value": False,
+            "accepted_values": [True, False],
+            "protected": False,
+            "advanced": False,
+            "private": False
+        },
     },
     "openai": {
         "o_url": {
