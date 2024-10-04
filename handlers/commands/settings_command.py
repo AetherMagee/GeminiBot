@@ -2,6 +2,7 @@ import asyncio
 import difflib
 import os
 import traceback
+from decimal import Decimal, ROUND_HALF_UP
 
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import InlineKeyboardButton, Message, ReactionTypeEmoji
@@ -42,6 +43,17 @@ async def settings_command(message: Message) -> None:
     chat_endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
     show_advanced = await db.get_chat_parameter(message.chat.id, "show_advanced_settings")
     available_parameters = chat_configs["all_endpoints"] | chat_configs[chat_endpoint]
+
+    async def get_current_value(chat_id: int, param: str):
+        value = await db.get_chat_parameter(chat_id, param)
+        if isinstance(value, Decimal):
+            value = value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+        if available_parameters[param]["private"] and isinstance(value, str):
+            value = obfuscate_string(value)
+
+        return value
+
     if len(command) == 1:
         text = "<b>Доступные параметры бота:</b> \n"
 
@@ -52,9 +64,7 @@ async def settings_command(message: Message) -> None:
             if parameter not in chat_configs["all_endpoints"] and "===" not in text:
                 text += "\n<b>============</b>"
 
-            current_value = await db.get_chat_parameter(message.chat.id, parameter)
-            if available_parameters[parameter]["private"] and isinstance(current_value, str):
-                current_value = obfuscate_string(current_value)
+            current_value = await get_current_value(message.chat.id, parameter)
             text += f"\n<code>{parameter}</code> - {current_value} "
 
         text += ("\n\n<b>Для подробностей по параметру:</b> /settings [параметр]\n<b>Установить новое значение:</b> "
@@ -68,9 +78,7 @@ async def settings_command(message: Message) -> None:
             await message.reply("❌ <b>Неизвестный параметр</b>")
             return
 
-        current_value = await db.get_chat_parameter(message.chat.id, requested_parameter)
-        if available_parameters[requested_parameter]["private"]:
-            current_value = obfuscate_string(current_value)
+        current_value = await get_current_value(message.chat.id, requested_parameter)
 
         try:
             default_value = available_parameters[requested_parameter]['default_value'].replace("\'", "")
