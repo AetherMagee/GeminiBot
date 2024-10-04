@@ -101,7 +101,7 @@ async def settings_command(message: Message) -> None:
         if available_parameters[requested_parameter]["protected"]:
             text += "\n⚠️ <b>Этот параметр защищён - его могут менять только администраторы бота.</b>"
 
-        await message.reply(text)
+        await message.reply(text, disable_web_page_preview=True)
 
 
 async def set_command(message: Message) -> None:
