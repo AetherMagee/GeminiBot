@@ -8,7 +8,6 @@ import api.google
 import api.openai
 import db
 from utils import log_command
-from utils.definitions import chat_configs
 
 GIT_COMMIT_HASH: Optional[str] = None
 
