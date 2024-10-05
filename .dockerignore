@@ -3,3 +3,7 @@ data
 .gitignore
 .env
 .idea
+.github
+.git
+!.git/HEAD
+!.git/refs/heads
