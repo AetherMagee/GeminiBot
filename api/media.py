@@ -29,7 +29,11 @@ async def get_file_id_from_chain(
 
     lookup_dict = {sublist[1]: sublist for sublist in all_messages}
 
-    trigger_message = lookup_dict[trigger_message_id]
+    try:
+        trigger_message = lookup_dict[trigger_message_id]
+    except KeyError:
+        logger.warning("Failed to find trigger message in lookup dictionary")
+        return None
 
     if trigger_message["media_file_id"] and trigger_message["media_type"] == required_type:
         return trigger_message["media_file_id"]
