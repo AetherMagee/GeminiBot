@@ -30,6 +30,7 @@ async def main() -> None:
     async with db.shared.pool.acquire() as connection:
         await db.create_chat_config_table(connection)
         await db.create_blacklist_table(connection)
+        await db.drop_orphan_columns(connection)
 
     logger.info("DB init complete")
 
