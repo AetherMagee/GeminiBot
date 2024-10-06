@@ -12,6 +12,7 @@ services:
     volumes:
       - ./data/bot:/data
       - ./data/cache:/cache
+      - ./data/logs:/logs
     tty: true
 
   db:
