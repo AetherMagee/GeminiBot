@@ -20,7 +20,8 @@ bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 keys_path = os.getenv("DATA_PATH") + "gemini_api_keys.txt"
 
 if not os.path.exists(keys_path):
-    logger.exception(f"Couldn't find the key list file in the configured data folder. Please mare sure that {keys_path} exists.")
+    logger.exception(
+        f"Couldn't find the key list file in the configured data folder. Please mare sure that {keys_path} exists.")
     exit(1)
 
 api_keys = []
@@ -221,6 +222,20 @@ async def _handle_api_response(
         show_error_message: bool
 ) -> str:
     try:
+        if "error" in response.keys():
+            logger.debug(f"{request_id} | Received an error. Raw response: {response}")
+
+            readable_error = None
+            output = "❌ *Произошёл сбой Gemini API.*"
+            if "status" in response["error"].keys():
+                if response["error"]["status"] == "RESOURCE_EXHAUSTED":
+                    readable_error = "Ежедневный ресурс API закончился. Пожалуйста, попробуйте через несколько часов."
+
+            if readable_error and show_error_message:
+                output += f"\n\n{readable_error}"
+
+            return output
+
         return response["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
         traceback.print_exc()
