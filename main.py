@@ -10,11 +10,10 @@ from dotenv import load_dotenv
 from loguru import logger
 
 if __name__ == "__main__":
-    logger.add(os.getenv("LOGS_PATH") + "{time}.log", rotation="1 day", backtrace=True, diagnose=True)
-
     if os.path.exists(".env"):
-        logger.info("Loading a .env file...")
         load_dotenv()
+
+    logger.add(os.getenv("LOGS_PATH") + "{time}.log", rotation="1 day", backtrace=True, diagnose=True)
 
 bot = Bot(os.getenv("TELEGRAM_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
