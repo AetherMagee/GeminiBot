@@ -1,3 +1,5 @@
+import os
+
 from aiogram import html
 from aiogram.types import FSInputFile, Message
 
@@ -25,9 +27,10 @@ async def sql_command(message: Message):
             await message.reply(html.quote(str(result)))
     except Exception as e:
         if "too long" in str(e):
-            with open(f"/cache/out.txt", "w") as file:
+            path = os.getenv("CACHE_PATH") + "out.txt"
+            with open(path, "w") as file:
                 file.write(str(result))
-            await bot.send_document(message.chat.id, FSInputFile(path="/cache/out.txt", filename="out.txt"))
+            await bot.send_document(message.chat.id, FSInputFile(path=path, filename="out.txt"))
         else:
             await message.reply(str(e))
 

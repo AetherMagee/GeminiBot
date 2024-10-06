@@ -32,8 +32,12 @@ async def create_chat_config_table(conn: Connection) -> None:
     command = "CREATE TABLE IF NOT EXISTS chat_config(chat_id bigint NOT NULL PRIMARY KEY"
     for parameter_list in chat_configs.keys():
         for parameter in chat_configs[parameter_list]:
+            default_value = chat_configs[parameter_list][parameter]['default_value']
+            if default_value is None:
+                default_value = "NULL"
+
             command += (f", {parameter} {chat_configs[parameter_list][parameter]['type']} DEFAULT "
-                        f"{chat_configs[parameter_list][parameter]['default_value']}")
+                        f"{default_value}")
     command += ")"
 
     await conn.execute(command)

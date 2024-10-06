@@ -5,7 +5,7 @@ import traceback
 from typing import List, Union
 
 import google.generativeai as genai
-import magic
+import puremagic
 from aiogram.types import Message
 from asyncpg import Record
 from google.generativeai.types import File
@@ -17,11 +17,13 @@ from main import bot
 from utils import ReturnValueThread
 from ..media import get_file_id_from_chain
 
+cache_path = os.getenv('CACHE_PATH')
+
 
 async def _download_if_necessary(file_id: str):
-    if not os.path.exists(f"/cache/{file_id}"):
+    if not os.path.exists(cache_path + file_id):
         logger.debug(f"Downloading {file_id}")
-        await bot.download(file_id, f"/cache/{file_id}")
+        await bot.download(file_id, cache_path + file_id)
 
 
 async def get_other_media(message: Message, gemini_token: str, all_messages: List[Record]) -> list:
@@ -36,8 +38,7 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
     if file_id:
         await _download_if_necessary(file_id)
 
-        mime = magic.Magic(mime=True)
-        mime_type = mime.from_file("/cache/" + file_id)
+        mime_type = puremagic.from_file(cache_path + file_id, mime=True)
         if mime_type == "application/octet-stream":
             mime_type = "application/pdf"
 
@@ -45,7 +46,7 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
 
         genai.configure(api_key=gemini_token)
         upload_thread = ReturnValueThread(target=genai.upload_file, kwargs={
-            "path": "/cache/" + file_id,
+            "path": cache_path + file_id,
             "display_name": f"Media file by {message.from_user.id}",
             "mime_type": mime_type
         })
@@ -76,9 +77,9 @@ async def get_photo(message: Message, all_messages: List[Record], mode: str = "p
         logger.debug(f"Loading an image with mode {mode}")
         await _download_if_necessary(photo_file_id)
         if mode == "pillow":
-            return Image.open(f"/cache/{photo_file_id}")
+            return Image.open(cache_path + photo_file_id)
         elif mode == "base64":
-            with open(f"/cache/{photo_file_id}", "rb") as f:
+            with open(cache_path + photo_file_id, "rb") as f:
                 try:
                     result = base64.b64encode(f.read()).decode("utf-8")
                 except Exception as exc:

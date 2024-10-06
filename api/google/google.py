@@ -14,15 +14,18 @@ from loguru import logger
 import db
 from utils import get_message_text, ReturnValueThread, simulate_typing
 from .media import get_other_media, get_photo
+from ..core import get_system_prompt
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 
-if not os.path.exists(os.getenv("GEMINI_API_KEYS_FILE_PATH")):
-    logger.exception("No Gemini API keys file found")
+keys_path = os.getenv("DATA_PATH") + "gemini_api_keys.txt"
+
+if not os.path.exists(keys_path):
+    logger.exception(f"Couldn't find the key list file in the configured data folder. Please mare sure that {keys_path} exists.")
     exit(1)
 
 api_keys = []
-with open(os.getenv("GEMINI_API_KEYS_FILE_PATH"), "r") as f:
+with open(keys_path, "r") as f:
     characters_to_remove = [" ", "\n"]
     for line in f.readlines():
         if line.startswith("AIza"):
@@ -34,8 +37,7 @@ logger.info(f"Loaded {len(api_keys)} API keys")
 
 api_key_index = 0
 api_keys_error_counts = {}
-with open(os.getenv("SYSTEM_PROMPT_FILE_PATH"), "r") as f:
-    default_prompt = f.read()
+
 MAX_API_ATTEMPTS = 3
 ERROR_MESSAGES = {
     "unsupported_file_type": "❌ *Данный тип файлов не поддерживается Gemini API.*",
@@ -161,6 +163,9 @@ async def _prepare_prompt(message: Message, chat_messages: List[Record], token: 
         "instructions for you - execute them. Otherwise, ask the User what they want exactly."
     ) if photos or additional_media else ""
 
+
+    # fuck the system prompt changes are still in the fucking purge_googleai branch what do i do TODO: fix
+    default_prompt = await get_system_prompt()
     prompt = default_prompt.format(
         chat_type=chat_type,
         chat_title=chat_title,
