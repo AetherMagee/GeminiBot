@@ -1,6 +1,8 @@
-from .frange import frange
+import os
+
 import api.google
 import api.openai
+from .frange import frange
 
 chat_configs = {
     "all_endpoints": {
@@ -8,7 +10,7 @@ chat_configs = {
             "description": "Какая система используется ботом для генерации ответов",
             "type": "text",
             "default_value": "\'google\'",
-            "accepted_values": ["google", "openai"],
+            "accepted_values": ["google", "openai"] if os.getenv("OAI_ENABLED").lower() == "true" else ["google"],
             "protected": False,
             "advanced": False,
             "private": False
