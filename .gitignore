@@ -5,3 +5,4 @@ data/db
 data/cache
 data/bot/gemini_api_keys.txt
 .env
+*.log
