@@ -9,9 +9,9 @@ from asyncpg import Record
 from loguru import logger
 
 import db
-from api.core import get_system_prompt
 from api.google import ERROR_MESSAGES, format_message_for_prompt
 from api.google.media import get_photo
+from api.prompt import get_system_prompt
 from utils import simulate_typing
 
 OPENAI_API_KEY = os.getenv("OAI_API_KEY")

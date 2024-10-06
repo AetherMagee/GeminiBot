@@ -11,9 +11,9 @@ from asyncpg import Record
 from loguru import logger
 
 import db
+from api.prompt import get_system_prompt
 from utils import get_message_text, simulate_typing
 from .media import get_other_media, get_photo
-from ..core import get_system_prompt
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 
