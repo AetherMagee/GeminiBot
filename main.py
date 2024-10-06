@@ -85,7 +85,6 @@ async def main() -> None:
 if __name__ == "__main__":
     try:
         import uvloop
-
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
         logger.success("Running with uvloop!")
     except ImportError:
