@@ -32,8 +32,12 @@ async def create_chat_config_table(conn: Connection) -> None:
     command = "CREATE TABLE IF NOT EXISTS chat_config(chat_id bigint NOT NULL PRIMARY KEY"
     for parameter_list in chat_configs.keys():
         for parameter in chat_configs[parameter_list]:
+            default_value = chat_configs[parameter_list][parameter]['default_value']
+            if default_value is None:
+                default_value = "NULL"
+
             command += (f", {parameter} {chat_configs[parameter_list][parameter]['type']} DEFAULT "
-                        f"{chat_configs[parameter_list][parameter]['default_value']}")
+                        f"{default_value}")
     command += ")"
 
     await conn.execute(command)
@@ -57,3 +61,31 @@ async def create_chat_config_table(conn: Connection) -> None:
 async def create_blacklist_table(conn: Connection) -> None:
     command = "CREATE TABLE IF NOT EXISTS blacklist(internal_id serial PRIMARY KEY, entity_id bigint NOT NULL)"
     await conn.execute(command)
+
+
+async def drop_orphan_columns(conn: Connection) -> None:
+    # Get the expected columns from chat_configs
+    expected_columns = set()
+    for param_group in chat_configs.values():
+        for param, config in param_group.items():
+            expected_columns.add(param)
+    expected_columns.add("chat_id")
+
+    # Fetch existing columns from 'chat_config' table
+    existing_columns_query = """
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_name = 'chat_config'
+    """
+    existing_columns = {row['column_name'] for row in await conn.fetch(existing_columns_query)}
+
+    # Identify orphan columns
+    orphan_columns = existing_columns - expected_columns
+
+    # Drop orphan columns
+    for column in orphan_columns:
+        try:
+            logger.warning(f"Dropping orphan column from chat_config: {column}")
+            await conn.execute(f"ALTER TABLE chat_config DROP COLUMN {column}")
+        except Exception as e:
+            logger.error(f"Failed to drop column {column} from chat_config: {e}")

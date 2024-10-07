@@ -1,6 +1,8 @@
-from .frange import frange
+import os
+
 import api.google
 import api.openai
+from .frange import frange
 
 chat_configs = {
     "all_endpoints": {
@@ -8,7 +10,7 @@ chat_configs = {
             "description": "Какая система используется ботом для генерации ответов",
             "type": "text",
             "default_value": "\'google\'",
-            "accepted_values": ["google", "openai"],
+            "accepted_values": ["google", "openai"] if os.getenv("OAI_ENABLED").lower() == "true" else ["google"],
             "protected": False,
             "advanced": False,
             "private": False
@@ -101,6 +103,16 @@ chat_configs = {
             "type": "text",
             "default_value": "\'gemini-1.5-pro-latest\'",
             "accepted_values": api.google.get_available_models(),
+            "protected": False,
+            "advanced": False,
+            "private": False
+        },
+        "g_safety_threshold": {
+            "description": "На каком уровне уверенности в небезопасности контента блокировать ответ бота.\nP.S. Даже "
+                           "при block_none всё равно происходит сканирование на наличие CSAM и подобного.",
+            "type": "text",
+            "default_value": "\'none\'",
+            "accepted_values": ["none", "only_high", "medium_and_above", "low_and_above"],
             "protected": False,
             "advanced": False,
             "private": False

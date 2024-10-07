@@ -65,7 +65,6 @@ async def status_command(message: Message):
     reply = await message.reply(text_to_send)
 
     if current_endpoint == "google":
-        token_count = await api.google.count_tokens_for_chat(messages,
-                                                             await db.get_chat_parameter(message.chat.id, "model"))
+        token_count = await api.google.count_tokens_for_chat(message)
         text_to_send = text_to_send.replace("⏱ Секунду...", f"{token_count} токенов")
         await reply.edit_text(text_to_send)

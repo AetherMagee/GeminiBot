@@ -12,6 +12,7 @@ services:
     volumes:
       - ./data/bot:/data
       - ./data/cache:/cache
+      - ./data/logs:/logs
     tty: true
 
   db:
@@ -22,3 +23,5 @@ services:
       - .env
     volumes:
       - ./data/db:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"

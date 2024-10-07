@@ -6,14 +6,14 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
+from dotenv import load_dotenv
 from loguru import logger
 
-if os.path.exists(".env"):
-    if __name__ == "__main__":
-        logger.error("A .env file is present. This indicates that the bot is not running in Docker.")
-        logger.error("The bot currently has hardcoded paths that make running in Docker mandatory.")
-        logger.error("Shutting down...")
-        exit(1)
+if __name__ == "__main__":
+    if os.path.exists(".env"):
+        load_dotenv()
+
+    logger.add(os.getenv("LOGS_PATH") + "{time}.log", rotation="1 day", backtrace=True, diagnose=True)
 
 bot = Bot(os.getenv("TELEGRAM_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
@@ -30,6 +30,7 @@ async def main() -> None:
     async with db.shared.pool.acquire() as connection:
         await db.create_chat_config_table(connection)
         await db.create_blacklist_table(connection)
+        await db.drop_orphan_columns(connection)
 
     logger.info("DB init complete")
 
@@ -82,4 +83,14 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    try:
+        import uvloop
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+        logger.success("Running with uvloop!")
+    except ImportError:
+        if os.name != "nt":
+            if os.path.exists(".env"):
+                logger.info("Unable to use uvloop. Please run `pip install uvloop`.")
+            else:
+                logger.error("Unable to use uvloop. It appears that we're in a container, so this is a bug!")
     asyncio.run(main())

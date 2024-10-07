@@ -1,28 +1,31 @@
 import asyncio
 import os
 import random
-from typing import List, Union
+import traceback
+from typing import Dict, List
 
-import google.generativeai as genai
+import aiohttp
+import requests
 from aiogram.types import Message
 from asyncpg import Record
-from google.api_core.exceptions import InvalidArgument
-from google.generativeai import GenerationConfig
-from google.generativeai.types import AsyncGenerateContentResponse, File, HarmBlockThreshold, HarmCategory
 from loguru import logger
 
 import db
-from utils import get_message_text, ReturnValueThread, simulate_typing
+from api.prompt import get_system_prompt
+from utils import get_message_text, simulate_typing
 from .media import get_other_media, get_photo
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 
-if not os.path.exists(os.getenv("GEMINI_API_KEYS_FILE_PATH")):
-    logger.exception("No Gemini API keys file found")
+keys_path = os.getenv("DATA_PATH") + "gemini_api_keys.txt"
+
+if not os.path.exists(keys_path):
+    logger.exception(
+        f"Couldn't find the key list file in the configured data folder. Please mare sure that {keys_path} exists.")
     exit(1)
 
 api_keys = []
-with open(os.getenv("GEMINI_API_KEYS_FILE_PATH"), "r") as f:
+with open(keys_path, "r") as f:
     characters_to_remove = [" ", "\n"]
     for line in f.readlines():
         if line.startswith("AIza"):
@@ -34,8 +37,7 @@ logger.info(f"Loaded {len(api_keys)} API keys")
 
 api_key_index = 0
 api_keys_error_counts = {}
-with open(os.getenv("SYSTEM_PROMPT_FILE_PATH"), "r") as f:
-    default_prompt = f.read()
+
 MAX_API_ATTEMPTS = 3
 ERROR_MESSAGES = {
     "unsupported_file_type": "❌ *Данный тип файлов не поддерживается Gemini API.*",
@@ -54,59 +56,53 @@ def _get_api_key() -> str:
     return api_keys[api_key_index % len(api_keys)]
 
 
-async def _call_gemini_api(request_id: int, prompt: list, token: str, model_name: str,
-                           temperature: float, top_p: float, top_k: int, max_output_tokens: int, code_execution: bool) \
-        -> Union[AsyncGenerateContentResponse, str, Exception, None]:
-    safety = {
-        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE
+async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, model_name: str, token_to_use: str,
+                           temperature: float, top_p: float, top_k: int, max_output_tokens: int, code_execution: bool,
+                           safety_threshold: str):
+    headers = {
+        "Content-Type": "application/json"
     }
 
-    config = GenerationConfig(
-        temperature=temperature,
-        top_p=top_p,
-        top_k=top_k,
-        max_output_tokens=max_output_tokens
-    )
+    safety_settings = []
+    for safety_setting in ["HARM_CATEGORY_SEXUALLY_EXPLICIT", "HARM_CATEGORY_HATE_SPEECH", "HARM_CATEGORY_HARASSMENT",
+                           "HARM_CATEGORY_DANGEROUS_CONTENT", "HARM_CATEGORY_CIVIC_INTEGRITY"]:
+        safety_settings.append({
+            "category": safety_setting,
+            "threshold": "BLOCK_" + safety_threshold.upper()
+        })
 
-    logger.debug(f"{request_id} | Using model {model_name}")
+    data = {
+        "system_instruction": system_prompt,
+        "contents": prompt,
+        "safetySettings": safety_settings,
+        "generationConfig": {
+            "temperature": temperature,
+            "topP": top_p,
+            "topK": top_k,
+            "maxOutputTokens": max_output_tokens,
+        }
+    }
+    if code_execution:
+        data["tools"] = [{'code_execution': {}}]
 
-    model = genai.GenerativeModel(
-        model_name,
-        tools = "code_execution" if code_execution else None,
-    )
+    other_media_present = False
+    for part in prompt[-1]["parts"]:
+        if "file_data" in part.keys():
+            other_media_present = True
+            logger.info(f"{request_id} | Found other media in prompt, will not rotate keys.")
+            break
 
-    for attempt in range(1, MAX_API_ATTEMPTS + 1):
-        if not any(isinstance(item, File) for item in prompt):
-            token = _get_api_key()
-            genai.configure(api_key=token)
-            model = genai.GenerativeModel(model_name)
-        else:
-            logger.debug(f"{request_id} | Media in prompt, key rotation canceled")
-
-        logger.info(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS}")
-        try:
-            response = await model.generate_content_async(
-                prompt,
-                safety_settings=safety,
-                generation_config=config
-            )
-            return response
-        except InvalidArgument:
-            return ERROR_MESSAGES["unsupported_file_type"]
-        except Exception as e:
-            logger.error(f"{request_id} | Error \"{e}\" on key: {token}")
-            if token not in api_keys_error_counts.keys():
-                api_keys_error_counts[token] = 1
+    async with aiohttp.ClientSession() as session:
+        for attempt in range(1, MAX_API_ATTEMPTS + 1):
+            if other_media_present:
+                key = token_to_use
             else:
-                api_keys_error_counts[token] += 1
-
-            if attempt == MAX_API_ATTEMPTS:
-                return e
-
-    return None
+                key = _get_api_key()
+            logger.info(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS}")
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
+            async with session.post(url, headers=headers, json=data) as response:
+                decoded_response = await response.json()
+                return decoded_response
 
 
 async def format_message_for_prompt(message: Record, add_reply_to: bool = True) -> str:
@@ -131,85 +127,154 @@ async def format_message_for_prompt(message: Record, add_reply_to: bool = True) 
     return result
 
 
-async def _prepare_prompt(message: Message, chat_messages: List[Record], token: str) -> Union[list, None]:
-    all_messages_list = [await format_message_for_prompt(msg) for msg in chat_messages]
-    all_messages = "\n".join(all_messages_list)
+async def _prepare_prompt(trigger_message: Message, chat_messages: List[Record], token: str) -> List[Dict]:
+    result = []
 
-    photos = [await get_photo(message, chat_messages)]
-    photos = photos if photos[0] else []
+    user_message_buffer = []
+    for index, message in enumerate(chat_messages):
+        if message["sender_id"] not in [0, 727]:
+            user_message_buffer.append(await format_message_for_prompt(message))
+            if index == len(chat_messages) - 1:
+                result.append({
+                    "role": "user",
+                    "parts": [{
+                        "text": "\n".join(user_message_buffer)
+                    }],
+                })
+                break
+        else:
+            if user_message_buffer:
+                result.append({
+                    "role": "user",
+                    "parts": [{
+                        "text": "\n".join(user_message_buffer)
+                    }],
+                })
+                user_message_buffer.clear()
+            # if message["sender_id"] == 727:
+            #     result.append({
+            #         "role": "system",
+            #         "parts": [{
+            #             "text": (await format_message_for_prompt(message, False)).replace("SYSTEM: ", "", 1)
+            #         }]
+            #     })
+            if message["sender_id"] == 0:
+                result.append({
+                    "role": "model",
+                    "parts": [{
+                        "text": (await format_message_for_prompt(message, False)).replace("You: ", "", 1)
+                    }]
+                })
+            else:
+                logger.error("How did we get here?")
+                logger.debug(index)
+                logger.debug(message)
 
-    try:
-        additional_media = await get_other_media(message, token, chat_messages)
-    except AttributeError:
-        return
-
-    chat_type = "direct message (DM)" if message.from_user.id == message.chat.id else "group"
-    chat_title = f" called {message.chat.title}" if message.from_user.id != message.chat.id else f" with {message.from_user.first_name}"
-
-    media_warning = (
-        "\n- Your target message or a message related to it happen to contain some media files. "
-        "They have been attached for your analysis. When working with these files, follow these "
-        "rules: 1) If you are sure that it wasn't described before in the chat history, "
-        "describe PERFECTLY and AS THOROUGHLY AS POSSIBLE whatever is contained in the mediafile. "
-        "You won't be able to see it again, and the User might ask additional questions, "
-        "so these notes will also function as your future guidelines. When describing, start with "
-        "\"This <media_type> contains\" in the User's language. For example, when working with an "
-        "image and talking in a Russian -speaking chat, start with \"Это изображение содержит\". 2) "
-        "Perform what the user asks you to do. So, if it's an image and the User wants the text on "
-        "it - say it. If it's an audio resembling a voice message - transcript it as accurately as "
-        "possible, then handle it as a normal message directed at you. So, if it has any "
-        "instructions for you - execute them. Otherwise, ask the User what they want exactly."
-    ) if photos or additional_media else ""
-
-    prompt = default_prompt.format(
-        chat_type=chat_type,
-        chat_title=chat_title,
-        all_messages=all_messages,
-        target_message=all_messages_list[-1],
-        media_warning=media_warning
+    image = await get_photo(
+        trigger_message,
+        chat_messages,
+        "base64"
     )
+    other_file = await get_other_media(trigger_message, token, chat_messages)
 
-    return [prompt] + photos + additional_media
+    if image:
+        index = -1
+        last_message = result[index]
+
+        parts = last_message["parts"]
+        parts.append({
+            "inline_data": {
+                "mime_type": "image/jpeg",
+                "data": image
+            }
+        })
+
+        result[-1] = {
+            "role": last_message["role"],
+            "parts": parts
+        }
+
+    elif other_file:
+        index = -1
+        last_message = result[index]
+        parts = last_message["parts"]
+
+        parts.append({
+            "file_data": {
+                "mime_type": other_file["mime_type"],
+                "file_uri": other_file["uri"]
+            }
+        })
+
+        result[-1] = {
+            "role": last_message["role"],
+            "parts": parts
+        }
+
+    return result
 
 
 async def _handle_api_response(
         request_id: int,
-        response: Union[AsyncGenerateContentResponse, str, Exception, None],
+        response: dict,
         message: Message,
         store: bool,
         show_error_message: bool
 ) -> str:
-    if isinstance(response, AsyncGenerateContentResponse):
-        logger.debug(f"{request_id} | {response.prompt_feedback} | {response.prompt_feedback.block_reason}")
-        if response.prompt_feedback.block_reason:
-            output = ERROR_MESSAGES["censored"]
-            if random.randint(1, 4) == 3:
-                output += ("\n\n_Если проблема повторяется - попробуйте /reset.\nЕсли есть идея, какое сообщение "
-                           "вызывает блокировку - используйте на нем /forget_")
-        else:
-            output = response.text.replace("  ", " ")[:-1]
-    elif isinstance(response, str):
-        output = response
-    elif isinstance(response, Exception):
-        if show_error_message:
-            if "have permission" in str(response):
-                error_message = ": Бот перегружен файлами. Попробуйте снова через пару минут"
-            elif "text is empty" in str(response):
-                error_message = ": Был получен пустой ответ. Если проблема повторится, попробуйте /reset"
-            elif "check quota" in str(response):
-                error_message = ": Ежедневный ресурс API закончился"
-            else:
-                error_message = (": " + str(response))
-        else:
-            error_message = ""
-        output = ERROR_MESSAGES["unknown"].format(error_message)
-    else:
-        logger.error(f"{request_id} | Unexpected response type: {type(response)}")
-        if store:
-            await db.save_system_message(message.chat.id, ERROR_MESSAGES["system_failure"])
-        output = ERROR_MESSAGES['unknown'].format("")
+    censordict = {
+        "HARM_CATEGORY_SEXUALLY_EXPLICIT": "Сексуальный контент",
+        "HARM_CATEGORY_HARASSMENT": "Оскорбления",
+        "HARM_CATEGORY_HATE_SPEECH": "Разжигание ненависти",
+        "HARM_CATEGORY_DANGEROUS_CONTENT": "Опасный контент",
+        "LOW": "Низкая",
+        "MEDIUM": "Средняя",
+        "HIGH": "Высокая"
+    }
+    errordict = {
+        "RESOURCE_EXHAUSTED": "Ежедневный ресурс API закончился. Пожалуйста, попробуйте через несколько часов.",
+        "INTERNAL": "Произошел сбой на стороне Google. Пожалуйста, попробуйте через пару минут"
+    }
 
-    return output
+    try:
+        if isinstance(response, Exception):
+            logger.debug(f"{request_id} | Received an exception: {response}")
+            output = "❌ *Произошёл сбой Gemini API.*"
+            if show_error_message:
+                output += f"\n\n{response}"
+
+            return output
+
+        if "error" in response.keys():
+            logger.debug(f"{request_id} | Received an error. Raw response: {response}")
+
+            readable_error = None
+            output = "❌ *Произошёл сбой Gemini API.*"
+            if "status" in response["error"].keys():
+                if response["error"]["status"] in errordict.keys() and show_error_message:
+                    output += f"\n\n{errordict[response["error"]["status"]]}"
+
+            if readable_error and show_error_message:
+                output += f"\n\n{readable_error}"
+
+            return output
+
+        if "candidates" in response.keys() and response["candidates"][0]["finishReason"] == "SAFETY":
+            output = "❌ *Запрос был заблокирован цензурой Gemini API.*"
+            output += "\n\n*Уверенность цензуры по категориям:*"
+            for category in [detection for detection in response['candidates'][0]['safetyRatings'] if
+                             detection['probability'] != "NEGLIGIBLE"]:
+                output += f"\n{censordict[category['category']]} - {censordict[category['probability']]} уверенность"
+
+            return output
+
+        return response["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception as e:
+        traceback.print_exc()
+        output = "❌ *Непредвиденный сбой обработки ответа Gemini API.*"
+        if show_error_message:
+            output += f"\n\n{str(e)}"
+
+        return output
 
 
 async def generate_response(message: Message) -> str:
@@ -238,19 +303,38 @@ async def generate_response(message: Message) -> str:
 
     model_name = await db.get_chat_parameter(message.chat.id, "g_model")
 
+    chat_type = "direct message (DM)" if message.from_user.id == message.chat.id else "group"
+    chat_title = f" called {message.chat.title}" if message.from_user.id != message.chat.id else f" with {message.from_user.first_name}"
+
+    sys_prompt_template = await get_system_prompt()
+    system_prompt = {
+        "parts": {
+            "text": sys_prompt_template.format(
+                chat_title=chat_title,
+                chat_type=chat_type,
+            )
+        }
+    }
+
     api_task = asyncio.create_task(_call_gemini_api(
         request_id,
         prompt,
-        token,
+        system_prompt,
         model_name,
+        token,
         float(await db.get_chat_parameter(message.chat.id, "g_temperature")),
         float(await db.get_chat_parameter(message.chat.id, "g_top_p")),
         int(await db.get_chat_parameter(message.chat.id, "g_top_k")),
         int(await db.get_chat_parameter(message.chat.id, "max_output_tokens")),
-        bool(await db.get_chat_parameter(message.chat.id, "g_code_execution"))
+        bool(await db.get_chat_parameter(message.chat.id, "g_code_execution")),
+        str(await db.get_chat_parameter(message.chat.id, "g_safety_threshold"))
     ))
 
-    response = await api_task
+    try:
+        response = await api_task
+    except Exception as api_error:
+        traceback.print_exc()
+        response = api_error
     typing_task.cancel()
     try:
         await typing_task
@@ -271,40 +355,45 @@ async def generate_response(message: Message) -> str:
         return ERROR_MESSAGES['unknown'].format(error_message)
 
 
-async def count_tokens_for_chat(messages_list: list, model_name: str) -> int:
+async def count_tokens_for_chat(trigger_message: Message) -> int:
     key = _get_api_key()
-    genai.configure(api_key=key)
-    model = genai.GenerativeModel(model_name)
 
-    all_messages_list = [await format_message_for_prompt(message) for message in messages_list]
-    all_messages = "\n".join(all_messages_list)
+    prompt = await _prepare_prompt(trigger_message, await db.get_messages(trigger_message.chat.id), key)
+
+    headers = {
+        "Content-Type": "application/json"
+    }
+    data = {
+        "contents": prompt
+    }
+    model = await db.get_chat_parameter(trigger_message.chat.id, "g_model")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:countTokens?key={key}"
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=data) as response:
+            decoded_response = await response.json()
+
+    if not decoded_response:
+        return 0
 
     try:
-        token_count = (await model.count_tokens_async(all_messages)).total_tokens
+        return decoded_response["totalTokens"]
     except Exception as e:
-        logger.error(f"Failed to count tokens. Exception: {e}")
-        token_count = 0
-
-    return token_count
+        logger.error(f"Failed to count tokens: {e}")
+        return 0
 
 
 def get_available_models() -> list:
     logger.info("GOOGLE | Getting available models...")
-    genai.configure(api_key=_get_api_key())
     model_list = []
     try:
-        thread = ReturnValueThread(target=genai.list_models)
-        thread.start()
+        response = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={_get_api_key()}")
+        decoded_response = response.json()
 
-        thread.join(timeout=10)
-        if thread.is_alive():
-            raise TimeoutError
-
-        models = thread.result
         hidden = ["bison", "aqa", "embedding", "gecko"]
-        for model in models:
-            if not any(hidden_word in model.name for hidden_word in hidden):
-                model_list.append(model.name.replace("models/", ""))
+        for model in decoded_response["models"]:
+            if not any(hidden_word in model["name"] for hidden_word in hidden):
+                model_list.append(model["name"].replace("models/", ""))
     except Exception as e:
         logger.error(f"Failed to get available models. Exception: {e}")
 

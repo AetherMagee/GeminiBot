@@ -11,11 +11,10 @@ from loguru import logger
 import db
 from api.google import ERROR_MESSAGES, format_message_for_prompt
 from api.google.media import get_photo
+from api.prompt import get_system_prompt
 from utils import simulate_typing
 
 OPENAI_API_KEY = os.getenv("OAI_API_KEY")
-with open(os.getenv("OAI_PROMPT_PATH"), "r") as f:
-    system_prompt_template = f.read()
 
 
 async def _send_request(
@@ -66,6 +65,7 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
     chat_type = "direct message (DM)" if trigger_message.from_user.id == trigger_message.chat.id else "group"
     chat_title = f" called {trigger_message.chat.title}" if trigger_message.from_user.id != trigger_message.chat.id \
         else f" with {trigger_message.from_user.first_name}"
+    system_prompt_template = await get_system_prompt()
 
     add_reply_to = await db.get_chat_parameter(trigger_message.chat.id, "add_reply_to")
 
@@ -163,6 +163,11 @@ async def generate_response(message: Message) -> str:
     logger.debug(
         f"RID: {request_id} | UID: {message.from_user.id} | CID: {message.chat.id} | MID: {message.message_id}"
     )
+
+    if not os.getenv("OAI_ENABLED") or os.getenv("OAI_ENABLED").lower != "true":
+        logger.warning(f"{request_id} | OAI endpoint is disabled yet a request was received. Throwing an exception.")
+        raise NotImplementedError("OpenAI endpoint is disabled globally.")
+
     show_errors = await db.get_chat_parameter(message.chat.id, "show_error_messages")
     append_system_prompt = await db.get_chat_parameter(message.chat.id, "o_add_system_prompt")
 
@@ -247,14 +252,3 @@ async def generate_response(message: Message) -> str:
             await db.save_system_message(message.chat.id, ERROR_MESSAGES["system_failure"])
 
         return output
-
-
-def get_hardcoded_models() -> list:
-    result = []
-    with open(os.getenv("OAI_MODEL_LIST_PATH"), "r") as file:
-        for line in file.readlines():
-            if line.strip() and not line.startswith("#"):
-                result.append(line.strip())
-
-    logger.debug(f"Loaded {len(result)} hardcoded OpenAI models")
-    return result
