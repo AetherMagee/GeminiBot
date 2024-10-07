@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import os
 import traceback
@@ -19,7 +20,7 @@ cache_path = os.getenv('CACHE_PATH')
 
 async def _download_if_necessary(file_id: str):
     if not os.path.exists(cache_path + file_id):
-        logger.debug(f"Downloading {file_id}")
+        logger.info(f"Downloading {file_id}")
         await bot.download(file_id, cache_path + file_id)
 
 
@@ -75,6 +76,19 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
                         data=open(cache_path + file_id, "rb")
                 ) as response:
                     upload_result = await response.json()
+
+                sleep_time = 0.25
+                total_sleep_time = 0
+                max_sleep_time = 5
+                while total_sleep_time < max_sleep_time:
+                    await asyncio.sleep(sleep_time)
+                    async with session.get(upload_result['file']['uri'] + f"?key={gemini_token}") as response:
+                        decoded_response = await response.json()
+                        if decoded_response['state'] == "ACTIVE":
+                            break
+                    total_sleep_time += sleep_time
+
+                logger.debug(f"Waited for {total_sleep_time}s for the file to process")
 
                 return {
                     "mime_type": mime_type,
