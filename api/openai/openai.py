@@ -164,7 +164,7 @@ async def generate_response(message: Message) -> str:
         f"RID: {request_id} | UID: {message.from_user.id} | CID: {message.chat.id} | MID: {message.message_id}"
     )
 
-    if not os.getenv("OAI_ENABLED") or os.getenv("OAI_ENABLED").lower != "true":
+    if not os.getenv("OAI_ENABLED") or os.getenv("OAI_ENABLED").lower() != "true":
         logger.warning(f"{request_id} | OAI endpoint is disabled yet a request was received. Throwing an exception.")
         raise NotImplementedError("OpenAI endpoint is disabled globally.")
 
