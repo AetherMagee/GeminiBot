@@ -9,4 +9,4 @@ pillow~=10.4.0
 python-dotenv~=1.0.1
 python-magic~=0.4.27
 requests~=2.32.3
-tiktoken~=0.7.0
+tiktoken~=0.8.0
