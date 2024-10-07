@@ -57,7 +57,8 @@ def _get_api_key() -> str:
 
 
 async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, model_name: str, token_to_use: str,
-                           temperature: float, top_p: float, top_k: int, max_output_tokens: int, code_execution: bool):
+                           temperature: float, top_p: float, top_k: int, max_output_tokens: int, code_execution: bool,
+                           safety_threshold: str):
     headers = {
         "Content-Type": "application/json"
     }
@@ -67,7 +68,7 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
                            "HARM_CATEGORY_DANGEROUS_CONTENT", "HARM_CATEGORY_CIVIC_INTEGRITY"]:
         safety_settings.append({
             "category": safety_setting,
-            "threshold": "BLOCK_NONE"
+            "threshold": "BLOCK_" + safety_threshold.upper()
         })
 
     data = {
@@ -221,7 +222,25 @@ async def _handle_api_response(
         store: bool,
         show_error_message: bool
 ) -> str:
+    censordict = {
+        "HARM_CATEGORY_SEXUALLY_EXPLICIT": "Сексуальный контент",
+        "HARM_CATEGORY_HARASSMENT": "Оскорбления",
+        "HARM_CATEGORY_HATE_SPEECH": "Разжигание ненависти",
+        "HARM_CATEGORY_DANGEROUS_CONTENT": "Опасный контент",
+        "LOW": "Низкая",
+        "MEDIUM": "Средняя",
+        "HIGH": "Высокая"
+    }
+
     try:
+        if isinstance(response, Exception):
+            logger.debug(f"{request_id} | Received an exception: {response}")
+            output = "❌ *Произошёл сбой Gemini API.*"
+            if show_error_message:
+                output += f"\n\n{response}"
+
+            return output
+
         if "error" in response.keys():
             logger.debug(f"{request_id} | Received an error. Raw response: {response}")
 
@@ -236,12 +255,23 @@ async def _handle_api_response(
 
             return output
 
+        if "candidates" in response.keys() and response["candidates"][0]["finishReason"] == "SAFETY":
+            output = "❌ *Запрос был заблокирован цензурой Gemini API.*"
+            output += "\n\n*Уверенность цензуры по категориям:*"
+            for category in [detection for detection in response['candidates'][0]['safetyRatings'] if
+                             detection['probability'] != "NEGLIGIBLE"]:
+                output += f"\n{censordict[category['category']]} - {censordict[category['probability']]} уверенность"
+
+            return output
+
         return response["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
         traceback.print_exc()
         output = "❌ *Непредвиденный сбой обработки ответа Gemini API.*"
         if show_error_message:
             output += f"\n\n{str(e)}"
+
+        return output
 
 
 async def generate_response(message: Message) -> str:
@@ -293,10 +323,15 @@ async def generate_response(message: Message) -> str:
         float(await db.get_chat_parameter(message.chat.id, "g_top_p")),
         int(await db.get_chat_parameter(message.chat.id, "g_top_k")),
         int(await db.get_chat_parameter(message.chat.id, "max_output_tokens")),
-        bool(await db.get_chat_parameter(message.chat.id, "g_code_execution"))
+        bool(await db.get_chat_parameter(message.chat.id, "g_code_execution")),
+        str(await db.get_chat_parameter(message.chat.id, "g_safety_threshold"))
     ))
 
-    response = await api_task
+    try:
+        response = await api_task
+    except Exception as api_error:
+        traceback.print_exc()
+        response = api_error
     typing_task.cancel()
     try:
         await typing_task

@@ -107,6 +107,16 @@ chat_configs = {
             "advanced": False,
             "private": False
         },
+        "g_safety_threshold": {
+            "description": "На каком уровне уверенности в небезопасности контента блокировать ответ бота.\nP.S. Даже "
+                           "при block_none всё равно происходит сканирование на наличие CSAM и подобного.",
+            "type": "text",
+            "default_value": "\'none\'",
+            "accepted_values": ["none", "only_high", "medium_and_above", "low_and_above"],
+            "protected": False,
+            "advanced": False,
+            "private": False
+        },
         "g_temperature": {
             "description": "Температура сэмплинга. Чем выше - тем более случайные ответы может вернуть модель",
             "type": "decimal",
