@@ -102,7 +102,6 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
             async with session.post(url, headers=headers, json=data) as response:
                 decoded_response = await response.json()
-                logger.debug(decoded_response)
                 return decoded_response
 
 
@@ -231,6 +230,10 @@ async def _handle_api_response(
         "MEDIUM": "Средняя",
         "HIGH": "Высокая"
     }
+    errordict = {
+        "RESOURCE_EXHAUSTED": "Ежедневный ресурс API закончился. Пожалуйста, попробуйте через несколько часов.",
+        "INTERNAL": "Произошел сбой на стороне Google. Пожалуйста, попробуйте через пару минут"
+    }
 
     try:
         if isinstance(response, Exception):
@@ -247,8 +250,8 @@ async def _handle_api_response(
             readable_error = None
             output = "❌ *Произошёл сбой Gemini API.*"
             if "status" in response["error"].keys():
-                if response["error"]["status"] == "RESOURCE_EXHAUSTED":
-                    readable_error = "Ежедневный ресурс API закончился. Пожалуйста, попробуйте через несколько часов."
+                if response["error"]["status"] in errordict.keys() and show_error_message:
+                    output += f"\n\n{errordict[response["error"]["status"]]}"
 
             if readable_error and show_error_message:
                 output += f"\n\n{readable_error}"
