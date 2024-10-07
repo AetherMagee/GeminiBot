@@ -11,6 +11,10 @@ async def system_command(message: Message) -> None:
         await message.reply("❌ <b>У вас нет доступа к этой команде.</b>")
         return
 
+    if await db.get_chat_parameter(message.chat.id, "endpoint") != "openai":
+        await message.reply("❌ <b>Эта команда пока что доступна только на эндпоинтах OpenAI.</b>")
+        return
+
     text = await get_message_text(message)
     try:
         text = text.split(" ", maxsplit=1)[1]
