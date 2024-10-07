@@ -160,7 +160,8 @@ async def _prepare_prompt(trigger_message: Message, chat_messages: List[Record],
             #     })
             if message["sender_id"] == 727:
                 logger.warning("Got a system message. Ignoring...")
-            if message["sender_id"] == 0:
+                continue
+            elif message["sender_id"] == 0:
                 result.append({
                     "role": "model",
                     "parts": [{
