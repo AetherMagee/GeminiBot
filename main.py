@@ -88,5 +88,9 @@ if __name__ == "__main__":
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
         logger.success("Running with uvloop!")
     except ImportError:
-        logger.info("Unable to use uvloop. If you're on Windows, you can ignore this. If not, run `pip install uvloop`")
+        if os.name != "nt":
+            if os.path.exists(".env"):
+                logger.info("Unable to use uvloop. Please run `pip install uvloop`.")
+            else:
+                logger.error("Unable to use uvloop. It appears that we're in a container, so this is a bug!")
     asyncio.run(main())
