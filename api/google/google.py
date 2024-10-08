@@ -275,6 +275,7 @@ async def _handle_api_response(
 
         return response["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
+        logger.debug(response)
         traceback.print_exc()
         output = "❌ *Непредвиденный сбой обработки ответа Gemini API.*"
         if show_error_message:
