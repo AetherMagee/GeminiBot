@@ -77,6 +77,7 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
                 ) as response:
                     upload_result = await response.json()
 
+                logger.info("Waiting for the file to become available...")
                 sleep_time = 0.25
                 total_sleep_time = 0
                 max_sleep_time = 5
@@ -88,7 +89,8 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
                             break
                     total_sleep_time += sleep_time
 
-                logger.debug(f"Waited for {total_sleep_time}s for the file to process")
+                if total_sleep_time > 1:
+                    logger.warning(f"Waited for {total_sleep_time}s for the file to process")
 
                 return {
                     "mime_type": mime_type,
