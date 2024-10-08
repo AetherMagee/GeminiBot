@@ -273,6 +273,12 @@ async def _handle_api_response(
 
             return output
 
+        if "promptFeedback" in response.keys() and "blockReason" in response["promptFeedback"].keys():
+            if response["promptFeedback"]["blockReason"] == "OTHER":
+                output = "❌ *Запрос был заблокирован цензурой Gemini API по неизвестным причинам.*"
+                output += "\nЕсли ошибка повторяется, попробуйте очистить память - /reset"
+                return output
+
         return response["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
         logger.debug(response)
