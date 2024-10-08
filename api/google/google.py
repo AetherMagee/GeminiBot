@@ -264,7 +264,7 @@ async def _handle_api_response(
 
             return output
 
-        if "candidates" in response.keys() and response["candidates"][0]["finishReason"] == "SAFETY":
+        if "candidates" in response.keys() and response["candidates"][0]["finishReason"] in ["SAFETY", "OTHER"]:
             output = "❌ *Запрос был заблокирован цензурой Gemini API.*"
             output += "\n\n*Уверенность цензуры по категориям:*"
             for category in [detection for detection in response['candidates'][0]['safetyRatings'] if
