@@ -1,5 +1,5 @@
 aiogram[fast]~=3.13.1
-aiohttp~=3.10.9
+aiohttp
 async-lru~=2.0.4
 asyncpg~=0.29.0
 loguru~=0.7.2
