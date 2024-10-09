@@ -56,15 +56,7 @@ async def _prepare_prompt(trigger_message: Message, chat_messages: List[Record],
                     }],
                 })
                 user_message_buffer.clear()
-            # if message["sender_id"] == 727:
-            #     result.append({
-            #         "role": "system",
-            #         "parts": [{
-            #             "text": (await format_message_for_prompt(message, False)).replace("SYSTEM: ", "", 1)
-            #         }]
-            #     })
             if message["sender_id"] == 727:
-                logger.warning("Got a system message. Ignoring...")
                 continue
             elif message["sender_id"] == 0:
                 result.append({
