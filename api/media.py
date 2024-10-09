@@ -2,7 +2,6 @@ from typing import List
 
 from aiogram.types import Message
 from asyncpg import Record
-from loguru import logger
 
 
 async def get_file(message: Message) -> List[str] or None:
@@ -32,7 +31,6 @@ async def get_file_id_from_chain(
     try:
         trigger_message = lookup_dict[trigger_message_id]
     except KeyError:
-        logger.warning("Failed to find trigger message in lookup dictionary")
         return None
 
     if trigger_message["media_file_id"] and trigger_message["media_type"] == required_type:
