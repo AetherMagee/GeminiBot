@@ -10,10 +10,10 @@ from more_itertools import sliced
 import api
 import api.openai
 import db
+import handlers.commands.settings_command as settings
 from api.google import ERROR_MESSAGES
 from utils import get_message_text
 from .commands.shared import is_allowed_to_alter_memory
-import handlers.commands.settings_command as settings
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 bot_username = os.getenv("BOT_USERNAME")
@@ -79,10 +79,6 @@ async def handle_response(message: Message, output: str) -> None:
         logger.error(f"Failed to send response: {e}")
         try:
             our_message = await message.reply(html.quote(output))
-            await db.save_system_message(
-                message.chat.id,
-                "Your previous message was not accepted by the endpoint due to bad formatting. The user sees your "
-                "message WITHOUT your formatting. Do better next time. Keep the formatting rules in mind.")
         except TelegramBadRequest:
             if len(output) > 2000:
                 chunks = list(sliced(output, 1500))

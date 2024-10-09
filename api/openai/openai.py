@@ -9,7 +9,7 @@ from asyncpg import Record
 from loguru import logger
 
 import db
-from api.google import ERROR_MESSAGES, format_message_for_prompt
+from api.google import format_message_for_prompt
 from api.google.media import get_photo
 from api.prompt import get_system_prompt
 from utils import simulate_typing
@@ -247,8 +247,5 @@ async def generate_response(message: Message) -> str:
                 output += "\n\n" + response["error"]["message"]
             else:
                 output += "\n\n" + str(error)
-    finally:
-        if output.startswith("❌"):
-            await db.save_system_message(message.chat.id, ERROR_MESSAGES["system_failure"])
 
-        return output
+    return output

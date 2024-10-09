@@ -255,8 +255,6 @@ async def generate_response(message: Message) -> str:
         return await _handle_api_response(request_id, response, message, store, show_error_message)
     except Exception as e:
         logger.error(f"{request_id} | Failed to generate message. Exception: {e}")
-        if store:
-            await db.save_system_message(message.chat.id, ERROR_MESSAGES['system_failure'])
         error_message = (": " + str(e)) if show_error_message else ""
         return ERROR_MESSAGES['unknown'].format(error_message)
 
