@@ -101,7 +101,8 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
             async with session.post(url, headers=headers, json=data) as response:
                 if response.status != 200:
                     logger.error(f"{request_id} | Got an error: {await response.json()}")
-                    continue
+                    if attempt != MAX_API_ATTEMPTS:
+                        continue
                 decoded_response = await response.json()
                 return decoded_response
 
