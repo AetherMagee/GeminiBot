@@ -11,7 +11,6 @@ import api
 import api.openai
 import db
 import handlers.commands.settings_command as settings
-from api.google import ERROR_MESSAGES
 from utils import get_message_text
 from .commands.shared import is_allowed_to_alter_memory
 
@@ -95,7 +94,7 @@ async def handle_response(message: Message, output: str) -> None:
                 our_message = await message.reply(f"❌ <b>Telegram не принимает ответ бота.</b>")
     finally:
         if output.startswith("❌"):
-            output = ERROR_MESSAGES["system_failure"]
+            output = ""
         await db.save_our_message(message, output, our_message.message_id)
 
 
