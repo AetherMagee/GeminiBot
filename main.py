@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
@@ -89,9 +90,12 @@ if __name__ == "__main__":
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
         logger.success("Running with uvloop!")
     except ImportError:
-        if os.name != "nt":
+        if sys.platform != 'win32':
             if os.path.exists(".env"):
                 logger.info("Unable to use uvloop. Please run `pip install uvloop`.")
             else:
                 logger.error("Unable to use uvloop. It appears that we're in a container, so this is a bug!")
+        else:
+            logger.info("Running on Windows without uvloop.")
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main())
