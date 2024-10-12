@@ -80,9 +80,12 @@ async def handle_response(message: Message, output: str) -> None:
             our_message = await message.reply(html.quote(output))
         except TelegramBadRequest:
             if len(output) > 2000:
-                chunks = list(sliced(output, 1500))
+                chunks = list(sliced(output, 1900))
+                logger.warning(
+                    f"Failed to send {len(output)} symbols at once, sending it in {len(chunks)} chunks instead...")
                 for index, chunk in enumerate(chunks):
                     try:
+                        logger.debug(f"Sending chunk {index} to {message.chat.id}")
                         our_message = await message.reply(chunk, parse_mode=ParseMode.MARKDOWN)
                     except TelegramBadRequest:
                         try:
