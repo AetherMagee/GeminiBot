@@ -55,20 +55,22 @@ async def settings_command(message: Message) -> None:
         return value
 
     if len(command) == 1:
-        text = "<b>Доступные параметры бота:</b> \n"
+        text = "⚙️ <b>Доступные параметры бота:</b> \n"
 
+        have_separated = False
         for parameter in available_parameters.keys():
             if available_parameters[parameter]["advanced"] and not show_advanced:
                 continue
 
-            if parameter not in chat_configs["all_endpoints"] and "===" not in text:
-                text += "\n<b>============</b>"
+            if parameter not in chat_configs["all_endpoints"] and not have_separated:
+                text += "\n"
+                have_separated = True
 
             current_value = await get_current_value(message.chat.id, parameter)
             text += f"\n<code>{parameter}</code> - {current_value} "
 
-        text += ("\n\n<b>Для подробностей по параметру:</b> /settings [параметр]\n<b>Установить новое значение:</b> "
-                 "/set [параметр] [значение]")
+        text += ("\n\n❔ <b>Для подробностей по параметру:</b> /settings <i>[параметр]</i>\n💾 <b>Установить новое "
+                 "значение:</b> /set <i>[параметр] [значение]</i>")
 
         await message.reply(text)
     else:
@@ -85,12 +87,12 @@ async def settings_command(message: Message) -> None:
         except AttributeError:
             default_value = str(available_parameters[requested_parameter]['default_value'])
 
-        text = f"<b>Параметр</b> <code>{requested_parameter}</code>:\n"
-        text += f"<i>{available_parameters[requested_parameter]['description']}</i>\n"
-        text += "<b>Значения:</b> \n"
-        text += f"Нынешнее: {current_value}"
+        text = f"⚙️ <b>Параметр</b> <code>{requested_parameter}</code>:\n"
+        text += f"<i>{available_parameters[requested_parameter]['description']}</i>\n\n"
+        text += "❔ <b>Значения:</b> \n"
+        text += f"<b>Нынешнее: <i>{current_value}</i></b>"
         if default_value != "None":
-            text += f" | Стандартное: {default_value}"
+            text += f"\nСтандартное: {default_value}"
 
         _value_range = available_parameters[requested_parameter]['accepted_values']
         if isinstance(_value_range, range):
@@ -104,10 +106,10 @@ async def settings_command(message: Message) -> None:
                 accepted_values = "True, False"
 
         if _value_range:
-            text += f" | Допустимые: {accepted_values}"
+            text += f"\nДопустимые: {accepted_values}"
 
         if available_parameters[requested_parameter]["protected"]:
-            text += "\n⚠️ <b>Этот параметр защищён - его могут менять только администраторы бота.</b>"
+            text += "\n\n⚠️ <b>Этот параметр защищён - его могут менять только администраторы бота.</b>"
 
         await message.reply(text, disable_web_page_preview=True)
 

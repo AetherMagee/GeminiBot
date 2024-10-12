@@ -91,7 +91,7 @@ async def handle_response(message: Message, output: str) -> None:
                             logger.error(f"Failed to send chunk {index} to {message.chat.id}")
                             logger.debug(chunk)
             else:
-                our_message = await message.reply(f"❌ <b>Telegram не принимает ответ бота.</b>")
+                our_message = await message.reply(f"❌ <b>Telegram почему-то не принимает ответ бота.</b>")
     finally:
         if output.startswith("❌"):
             output = ""
