@@ -5,5 +5,3 @@ data
 .idea
 .github
 .git
-!.git/HEAD
-!.git/refs/heads
