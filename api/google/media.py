@@ -39,6 +39,10 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
         if mime_type == "application/octet-stream":
             mime_type = "application/pdf"
 
+        if any([mime_type.endswith(audiotype) for audiotype in
+                ["wav", "mp3", "aiff", "aac", "ogg", "flac"]]) and mime_type.startswith("application/"):
+            mime_type = mime_type.replace("application/", "audio/")
+
         logger.info(f"Uploading {file_id} of type {mime_type} on token {gemini_token}")
 
         # Set up headers and data for the resumable upload request
