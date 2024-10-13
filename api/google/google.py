@@ -98,7 +98,7 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
             async with session.post(url, headers=headers, json=data) as response:
                 if response.status != 200:
-                    logger.error(f"{request_id} | Got an error: {await response.json()}")
+                    logger.error(f"{request_id} | Got an error: {await response.json()} | Key: {key}")
                     if attempt != MAX_API_ATTEMPTS:
                         continue
                 decoded_response = await response.json()
