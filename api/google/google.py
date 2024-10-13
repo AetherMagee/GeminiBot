@@ -55,6 +55,8 @@ def _get_api_key() -> str:
 async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, model_name: str, token_to_use: str,
                            temperature: float, top_p: float, top_k: int, max_output_tokens: int, code_execution: bool,
                            safety_threshold: str):
+    global api_keys_error_counts
+
     headers = {
         "Content-Type": "application/json"
     }
@@ -99,6 +101,13 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
             async with session.post(url, headers=headers, json=data) as response:
                 if response.status != 200:
                     logger.error(f"{request_id} | Got an error: {await response.json()} | Key: {key}")
+
+                    if not other_media_present:
+                        if key not in api_keys_error_counts.keys():
+                            api_keys_error_counts[key] = 1
+                        else:
+                            api_keys_error_counts[key] += 1
+
                     if attempt != MAX_API_ATTEMPTS:
                         continue
                 decoded_response = await response.json()
