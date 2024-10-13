@@ -207,7 +207,7 @@ chat_configs = {
         "o_vision": {
             "description": "Разрешить ли модели работать с изображениями",
             "type": "boolean",
-            "default_value": False,
+            "default_value": True,
             "accepted_values": [True, False],
             "protected": False,
             "advanced": False,
