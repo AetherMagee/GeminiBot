@@ -103,6 +103,8 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
                         "content": (await format_message_for_prompt(message, False)).replace("SYSTEM: ", "", 1)
                     })
             elif message["sender_id"] == 0:
+                if len(final) == 0:
+                    continue
                 final.append({
                     "role": "assistant",
                     "content": (await format_message_for_prompt(message, False)).replace("You: ", "", 1)
