@@ -137,8 +137,23 @@ async def set_command(message: Message) -> None:
     available_parameters = chat_configs["all_endpoints"] | chat_configs[chat_endpoint]
 
     if requested_parameter not in available_parameters.keys():
-        await message.reply("❌ <b>Неизвестный параметр.</b>")
-        return
+        # Try to find parameters that start with the requested_parameter
+        matching_parameters = [param for param in available_parameters.keys() if param.startswith(requested_parameter)]
+
+        if len(matching_parameters) == 1:
+            # Exactly one parameter matches the prefix, use it
+            requested_parameter = matching_parameters[0]
+        elif len(matching_parameters) > 1:
+            # Multiple parameters match the prefix, inform the user
+            await message.reply(
+                f"❌ <b>Неизвестный параметр.</b> Найдено несколько параметров, начинающихся с "
+                f"<code>{requested_parameter}</code>:\n" +
+                "\n".join(f"• <code>{param}</code>" for param in matching_parameters)
+            )
+            return
+        else:
+            await message.reply("❌ <b>Неизвестный параметр.</b>")
+            return
 
     # Check if the parameter is protected
     if available_parameters[requested_parameter]["protected"]:
@@ -202,23 +217,53 @@ async def set_command(message: Message) -> None:
     accepted_values = available_parameters[requested_parameter]['accepted_values']
     if accepted_values:
         if isinstance(accepted_values, range):
-            accepted_values = range(accepted_values.start,
-                                    accepted_values.stop + 1)
+            accepted_values = range(accepted_values.start, accepted_values.stop + 1)
         if requested_value not in accepted_values:
-            if message.from_user.id not in ADMIN_IDS:
-                reply_text = "❌ <b>Недопустимое значение для параметра.</b> "
-                if available_parameters[requested_parameter]["type"] == "text":
-                    guess = difflib.get_close_matches(requested_value,
-                                                      available_parameters[requested_parameter]['accepted_values'],
-                                                      1,
-                                                      0.4)
-                    if len(guess) > 0:
-                        reply_text += f"Может быть, вы имели в виду <code>{guess[0]}</code>?"
-                await message.reply(reply_text)
-                return
+            if available_parameters[requested_parameter]["type"] == "text":
+                # Try to find accepted values that start with the requested_value
+                matching_values = [value for value in accepted_values if value.startswith(requested_value)]
+
+                if len(matching_values) == 1:
+                    # Exactly one value matches the prefix, use it
+                    requested_value = matching_values[0]
+                elif len(matching_values) > 1:
+                    # Multiple values match the prefix, inform the user
+                    reply_text = (
+                            "❌ <b>Недопустимое значение для параметра.</b> "
+                            f"Найдено несколько значений, начинающихся с <code>{requested_value}</code>:\n" +
+                            "\n".join(f"• <code>{value}</code>" for value in matching_values)
+                    )
+                    await message.reply(reply_text)
+                    return
+                else:
+                    # No matches, suggest the closest match
+                    if message.from_user.id not in ADMIN_IDS:
+                        reply_text = "❌ <b>Недопустимое значение для параметра.</b> "
+                        guess = difflib.get_close_matches(
+                            requested_value,
+                            accepted_values,
+                            1,
+                            0.4
+                        )
+                        if guess:
+                            reply_text += f"Может быть, вы имели в виду <code>{guess[0]}</code>?"
+                        await message.reply(reply_text)
+                        return
+                    else:
+                        await message.reply(
+                            "⚠️ <b>Значение параметра вне списка разрешённых, но так как вы - администратор "
+                            "бота, оно всё равно будет установлено.</b>"
+                        )
             else:
-                await message.reply("⚠️ <b>Значение параметра вне списка разрешённых, но так как вы - администратор "
-                                    "бота, оно всё равно будет установлено.</b>")
+                # Non-text type or no accepted values
+                if message.from_user.id not in ADMIN_IDS:
+                    await message.reply("❌ <b>Недопустимое значение для параметра.</b>")
+                    return
+                else:
+                    await message.reply(
+                        "⚠️ <b>Значение параметра вне списка разрешённых, но так как вы - администратор "
+                        "бота, оно всё равно будет установлено.</b>"
+                    )
 
     if not accepted_values and requested_value == "null":
         requested_value = None
