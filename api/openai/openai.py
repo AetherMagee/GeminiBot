@@ -79,47 +79,39 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
             )
         })
 
-    user_message_buffer = []
+    last_role = None
     for index, message in enumerate(messages_list):
-        if message["sender_id"] not in [0, 727]:
-            user_message_buffer.append(await format_message_for_prompt(message, add_reply_to))
-            if index == len(messages_list) - 1:
-                final.append({
-                    "role": "user",
-                    "content": "\n".join(user_message_buffer)
-                })
-                break
+        sender_id = message["sender_id"]
+
+        if sender_id == 727:
+            role = "system"
+        elif sender_id == 0:
+            role = "assistant"
         else:
-            if user_message_buffer:
-                final.append({
-                    "role": "user",
-                    "content": "\n".join(user_message_buffer)
-                })
-                user_message_buffer.clear()
-            if message["sender_id"] == 727:
-                if system_prompt:
-                    final.append({
-                        "role": "system",
-                        "content": (await format_message_for_prompt(message, False)).replace("SYSTEM: ", "", 1)
-                    })
-            elif message["sender_id"] == 0:
-                if len(final) == 0:
-                    continue
-                final.append({
-                    "role": "assistant",
-                    "content": (await format_message_for_prompt(message, False)).replace("You: ", "", 1)
-                })
-            else:
-                logger.error("How did we get here?")
-                logger.debug(index)
-                logger.debug(message)
+            role = "user"
+
+        formatted_message = await format_message_for_prompt(message, add_reply_to)
+
+        if role == "system":
+            formatted_message = formatted_message.replace("SYSTEM: ", "", 1)
+        elif role == "assistant":
+            formatted_message = formatted_message.replace("You: ", "", 1)
+
+        if last_role == role and final:
+            final[-1]["content"] += "\n" + formatted_message
+        else:
+            final.append({
+                "role": role,
+                "content": formatted_message
+            })
+            last_role = role
 
     if await db.get_chat_parameter(trigger_message.chat.id, "o_clarify_target_message"):
         final.append({
             "role": "assistant",
-            "content": "Now please provide me with the target message that I need to respond to. I will ensure that "
-                       "my reply is in the User's language, maintains proper context awareness, and does not mix "
-                       "topics."
+            "content": "System, please now provide me with the target message that I need to respond to. I will "
+                       "ensure that my reply is in the User's language, maintains proper context awareness, and does "
+                       "not mix topics."
         })
         final.append({
             "role": "user",
