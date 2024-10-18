@@ -45,7 +45,7 @@ chat_configs = {
         "show_error_messages": {
             "description": "Показывать ли подробные сообщения об ошибке",
             "type": "boolean",
-            "default_value": False,
+            "default_value": True,
             "accepted_values": [True, False],
             "protected": False,
             "advanced": True,
