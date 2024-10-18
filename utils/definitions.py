@@ -260,16 +260,6 @@ chat_configs = {
             "advanced": True,
             "private": False
         },
-        "o_clarify_target_message": {
-            "description": "Добавлять ли дополнительные инструкции, помогающие модели понять, на что конкретно нужно "
-                           "отвечать",
-            "type": "boolean",
-            "default_value": False,
-            "accepted_values": [True, False],
-            "protected": False,
-            "advanced": True,
-            "private": False
-        },
         "o_log_prompt": {
             "description": "Сохранять ли запросы в логи бота. Полезно при отладке администраторами.",
             "type": "boolean",

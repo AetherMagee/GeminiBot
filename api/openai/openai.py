@@ -106,21 +106,6 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
             })
             last_role = role
 
-    if await db.get_chat_parameter(trigger_message.chat.id, "o_clarify_target_message"):
-        final.append({
-            "role": "assistant",
-            "content": "System, please now provide me with the target message that I need to respond to. I will "
-                       "ensure that my reply is in the User's language, maintains proper context awareness, and does "
-                       "not mix topics."
-        })
-        final.append({
-            "role": "user",
-            "content": await format_message_for_prompt(
-                await db.get_specific_message(trigger_message.chat.id, trigger_message.message_id),
-                add_reply_to
-            )
-        })
-
     if await db.get_chat_parameter(trigger_message.chat.id, "o_vision"):
         image = await get_photo(
             trigger_message,
