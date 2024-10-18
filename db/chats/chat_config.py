@@ -25,7 +25,10 @@ async def set_chat_parameter(chat_id: int, parameter_name: str, value):
     await _create_config_entry(chat_id)
 
     chat_endpoint = await get_chat_parameter(chat_id, "endpoint")
-    available_parameters = chat_configs["all_endpoints"] | chat_configs[chat_endpoint]
+    try:
+        available_parameters = chat_configs["all_endpoints"] | chat_configs[chat_endpoint]
+    except KeyError:
+        available_parameters = chat_configs["all_endpoints"]
 
     if available_parameters[parameter_name]["type"] == "text":
         value = f"{value}"
