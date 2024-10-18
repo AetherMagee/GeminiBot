@@ -42,7 +42,10 @@ async def settings_command(message: Message) -> None:
     command = message.text.split(" ", maxsplit=1)
     chat_endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
     show_advanced = await db.get_chat_parameter(message.chat.id, "show_advanced_settings")
-    available_parameters = chat_configs["all_endpoints"] | chat_configs[chat_endpoint]
+    try:
+        available_parameters = chat_configs["all_endpoints"] | chat_configs[chat_endpoint]
+    except KeyError:
+        available_parameters = chat_configs["all_endpoints"]
 
     async def get_current_value(chat_id: int, param: str):
         value = await db.get_chat_parameter(chat_id, param)
@@ -134,7 +137,10 @@ async def set_command(message: Message) -> None:
     # Validate target parameter
     requested_parameter = command[1].lower()
     chat_endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
-    available_parameters = chat_configs["all_endpoints"] | chat_configs[chat_endpoint]
+    try:
+        available_parameters = chat_configs["all_endpoints"] | chat_configs[chat_endpoint]
+    except KeyError:
+        available_parameters = chat_configs["all_endpoints"]
 
     if requested_parameter not in available_parameters.keys():
         # Try to find parameters that start with the requested_parameter

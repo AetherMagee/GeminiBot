@@ -28,7 +28,8 @@ async def meets_endpoint_requirements(message: Message, endpoint: str) -> bool:
     if endpoint in endpoint_requirements.keys():
         return any(endpoint_requirements[endpoint])
     else:
-        raise ValueError(f"Unknown endpoint: {endpoint}")
+        logger.error(f"Unknown endpoint {endpoint}")
+        return False
 
 
 async def should_generate_response(message: Message) -> bool:

@@ -18,7 +18,7 @@ async def status_command(message: Message):
     elif current_endpoint == "google":
         table_prefix = "g_"
     else:
-        raise ValueError("what.")
+        table_prefix = "o_"
     current_model = await db.get_chat_parameter(message.chat.id, table_prefix + "model")
 
     token_count = "⏱ Секунду..."
@@ -31,6 +31,10 @@ async def status_command(message: Message):
 💬 <b>Память:</b> {len(messages)}/{messages_limit} сообщений <i>({token_count})</i>
 ✨ <b>Модель:</b> <i>{current_model}</i>
 🆔 <b>ID чата:</b> <code>{message.chat.id}</code>"""
+
+    if current_endpoint not in ["openai", "google"]:
+        text_to_send += ("\n⚠️ <b>Неизвестное значение параметра <code>endpoint</code></b>. Значительная часть функций "
+                         "бота недоступна.")
 
     reply = await message.reply(text_to_send)
 

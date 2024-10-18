@@ -264,7 +264,7 @@ chat_configs = {
             "description": "Добавлять ли дополнительные инструкции, помогающие модели понять, на что конкретно нужно "
                            "отвечать",
             "type": "boolean",
-            "default_value": True,
+            "default_value": False,
             "accepted_values": [True, False],
             "protected": False,
             "advanced": True,
