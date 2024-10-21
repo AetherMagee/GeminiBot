@@ -1,7 +1,11 @@
-FROM python:3.12-alpine
-COPY --from=ghcr.io/astral-sh/uv:0.4.18 /uv /bin/uv
-WORKDIR /bot
+FROM python:3.13-alpine AS builder
+RUN apk add --no-cache build-base
+WORKDIR /temp
 COPY requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/uv uv pip install --system -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip3 install -r requirements.txt
+
+FROM python:3.13-alpine
+COPY --from=builder /usr/local/lib/python3.13 /usr/local/lib/python3.13
+WORKDIR /bot
 COPY . .
 ENTRYPOINT ["python3", "/bot/main.py"]

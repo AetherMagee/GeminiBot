@@ -2,6 +2,7 @@ import asyncio
 import os
 import sys
 
+import aiogram
 from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -97,6 +98,6 @@ if __name__ == "__main__":
             else:
                 logger.error("Unable to use uvloop. It appears that we're in a container, so this is a bug!")
         else:
-            logger.info("Running on Windows without uvloop.")
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    logger.debug(f"Running Python {sys.version_info.major}.{sys.version_info.minor}, aiogram {aiogram.__version__}")
     asyncio.run(main())
