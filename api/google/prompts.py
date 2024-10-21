@@ -72,8 +72,7 @@ async def _prepare_prompt(trigger_message: Message, chat_messages: List[Record],
 
     image = await get_photo(
         trigger_message,
-        chat_messages,
-        "base64"
+        chat_messages
     )
     other_file = await get_other_media(trigger_message, token, chat_messages)
 

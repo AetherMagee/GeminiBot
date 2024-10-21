@@ -4,7 +4,6 @@ async-lru~=2.0.4
 asyncpg~=0.29.0
 loguru~=0.7.2
 more-itertools~=10.5.0
-pillow~=10.4.0
 python-dotenv~=1.0.1
 puremagic~=1.28
 requests~=2.32.3

@@ -102,7 +102,7 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
                 }
 
 
-async def get_photo(message: Message, all_messages: List[Record], mode: str = "pillow") -> Union[Image, bytes]:
+async def get_photo(message: Message, all_messages: List[Record]) -> Union[Image, bytes]:
     photo_file_id = await get_file_id_from_chain(
         message.message_id,
         all_messages,
@@ -113,12 +113,9 @@ async def get_photo(message: Message, all_messages: List[Record], mode: str = "p
     if photo_file_id:
         logger.debug(f"Loading an image with mode {mode}")
         await _download_if_necessary(photo_file_id)
-        if mode == "pillow":
-            return Image.open(cache_path + photo_file_id)
-        elif mode == "base64":
-            with open(cache_path + photo_file_id, "rb") as f:
-                try:
-                    result = base64.b64encode(f.read()).decode("utf-8")
-                except Exception as exc:
-                    traceback.print_exc()
-            return result
+        with open(cache_path + photo_file_id, "rb") as f:
+            try:
+                result = base64.b64encode(f.read()).decode("utf-8")
+            except Exception as exc:
+                traceback.print_exc()
+        return result
