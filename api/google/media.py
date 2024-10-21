@@ -2,14 +2,13 @@ import asyncio
 import base64
 import os
 import traceback
-from typing import Dict, List, Union
+from typing import Dict, List
 
 import aiohttp
 import puremagic
 from aiogram.types import Message
 from asyncpg import Record
 from loguru import logger
-from PIL import Image
 
 import db
 from main import bot
@@ -102,7 +101,7 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
                 }
 
 
-async def get_photo(message: Message, all_messages: List[Record]) -> Union[Image, bytes]:
+async def get_photo(message: Message, all_messages: List[Record]) -> str:
     photo_file_id = await get_file_id_from_chain(
         message.message_id,
         all_messages,
@@ -111,7 +110,6 @@ async def get_photo(message: Message, all_messages: List[Record]) -> Union[Image
     )
 
     if photo_file_id:
-        logger.debug(f"Loading an image with mode {mode}")
         await _download_if_necessary(photo_file_id)
         with open(cache_path + photo_file_id, "rb") as f:
             try:
