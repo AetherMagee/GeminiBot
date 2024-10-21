@@ -1,7 +1,7 @@
 aiogram[fast]~=3.13.1
 aiohttp
 async-lru~=2.0.4
-asyncpg~=0.29.0
+asyncpg~=0.30.0
 loguru~=0.7.2
 more-itertools~=10.5.0
 pillow~=10.4.0
