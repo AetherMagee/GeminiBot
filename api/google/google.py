@@ -2,6 +2,7 @@ import asyncio
 import os
 import random
 import traceback
+from collections import defaultdict
 
 import aiohttp
 import requests
@@ -10,6 +11,7 @@ from loguru import logger
 
 import db
 from api.prompt import get_system_prompt
+from main import bot
 from utils import get_message_text, simulate_typing
 from .prompts import _prepare_prompt, get_system_messages
 
@@ -19,7 +21,7 @@ keys_path = os.getenv("DATA_PATH") + "gemini_api_keys.txt"
 
 if not os.path.exists(keys_path):
     logger.exception(
-        f"Couldn't find the key list file in the configured data folder. Please mare sure that {keys_path} exists.")
+        f"Couldn't find the key list file in the configured data folder. Please make sure that {keys_path} exists.")
     exit(1)
 
 api_keys = []
@@ -30,13 +32,21 @@ with open(keys_path, "r") as f:
             for character in characters_to_remove:
                 line = line.replace(character, "")
             api_keys.append(line.strip())
+
 random.shuffle(api_keys)
 logger.info(f"Loaded {len(api_keys)} API keys")
 
+active_api_keys = api_keys.copy()
 api_key_index = 0
-api_keys_error_counts = {}
+api_keys_error_counts = defaultdict(int)
+resource_exhausted_error_counts = defaultdict(int)
+keys_lock = asyncio.Lock()
 
+RESOURCE_EXHAUSTED_THRESHOLD = 10
 MAX_API_ATTEMPTS = 3
+admin_ids_str = os.getenv("ADMIN_IDS", "")
+admin_ids = [int(x.strip()) for x in admin_ids_str.split(",") if x.strip()]
+
 ERROR_MESSAGES = {
     "unsupported_file_type": "❌ *Данный тип файлов не поддерживается Gemini API.*",
     "censored": "❌ *Запрос был заблокирован цензурой Gemini API.*",
@@ -44,18 +54,22 @@ ERROR_MESSAGES = {
 }
 
 
-def _get_api_key() -> str:
+async def _get_api_key() -> str:
     global api_key_index
-    api_key_index += 1
-    if api_key_index % 50 == 0:
-        logger.debug(f"Error counts: {api_keys_error_counts}")
-    return api_keys[api_key_index % len(api_keys)]
+    async with keys_lock:
+        if not active_api_keys:
+            raise Exception("No active API keys available")
+        key = active_api_keys[api_key_index % len(active_api_keys)]
+        api_key_index += 1
+        if api_key_index % 50 == 0:
+            logger.debug(f"Error counts: {dict(api_keys_error_counts)}")
+        return key
 
 
 async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, model_name: str, token_to_use: str,
                            temperature: float, top_p: float, top_k: int, max_output_tokens: int, code_execution: bool,
                            safety_threshold: str):
-    global api_keys_error_counts
+    global api_keys_error_counts, resource_exhausted_error_counts
 
     headers = {
         "Content-Type": "application/json"
@@ -95,23 +109,48 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
             if other_media_present:
                 key = token_to_use
             else:
-                key = _get_api_key()
+                try:
+                    key = await _get_api_key()
+                except Exception as e:
+                    logger.error(f"{request_id} | No active API keys available.")
+                    return {"error": {"status": "RESOURCE_EXHAUSTED", "message": "No active API keys available."}}
+
             logger.info(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS}")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
             async with session.post(url, headers=headers, json=data) as response:
-                if response.status != 200:
-                    logger.error(f"{request_id} | Got an error: {await response.json()} | Key: {key}")
-
-                    if not other_media_present:
-                        if key not in api_keys_error_counts.keys():
-                            api_keys_error_counts[key] = 1
-                        else:
-                            api_keys_error_counts[key] += 1
-
-                    if attempt != MAX_API_ATTEMPTS:
-                        continue
                 decoded_response = await response.json()
-                return decoded_response
+                if response.status != 200:
+                    logger.error(f"{request_id} | Got an error: {decoded_response} | Key: {key}")
+
+                    error_status = decoded_response.get("error", {}).get("status", "")
+                    if error_status == "RESOURCE_EXHAUSTED":
+                        async with keys_lock:
+                            resource_exhausted_error_counts[key] += 1
+                            if resource_exhausted_error_counts[key] >= RESOURCE_EXHAUSTED_THRESHOLD:
+                                if key in active_api_keys:
+                                    active_api_keys.remove(key)
+                                logger.warning(
+                                    f"Key {key} has reached RESOURCE_EXHAUSTED error threshold and is removed from "
+                                    f"active keys.")
+
+                                try:
+                                    await bot.send_message(admin_ids[0],
+                                                           f"⚠️ <b>Ключ <code>{key[-6:]}</code> автоматически "
+                                                           f"удалён из циркуляции.</b>")
+                                except Exception as e:
+                                    logger.error(f"Failed to send message to admin {admin_ids[0]}: {e}")
+                        if not other_media_present:
+                            continue
+                    else:
+                        if not other_media_present:
+                            async with keys_lock:
+                                api_keys_error_counts[key] += 1
+                            if attempt != MAX_API_ATTEMPTS:
+                                continue
+                else:
+                    return decoded_response
+
+        return decoded_response
 
 
 async def _handle_api_response(
@@ -152,7 +191,7 @@ async def _handle_api_response(
             output = "❌ *Произошёл сбой Gemini API.*"
             if "status" in response["error"].keys():
                 if response["error"]["status"] in errordict.keys() and show_error_message:
-                    output += f"\n\n{errordict[response["error"]["status"]]}"
+                    output += f"\n\n{errordict[response['error']['status']]}"
 
             if readable_error and show_error_message:
                 output += f"\n\n{readable_error}"
@@ -187,7 +226,7 @@ async def _handle_api_response(
 
 async def generate_response(message: Message) -> str:
     request_id = random.randint(100000, 999999)
-    token = _get_api_key()
+    token = await _get_api_key()
     message_text = await get_message_text(message)
 
     logger.info(
@@ -269,7 +308,7 @@ async def generate_response(message: Message) -> str:
 
 
 async def count_tokens_for_chat(trigger_message: Message) -> int:
-    key = _get_api_key()
+    key = await _get_api_key()
 
     prompt = await _prepare_prompt(trigger_message, await db.get_messages(trigger_message.chat.id), key)
 
@@ -300,7 +339,7 @@ def get_available_models() -> list:
     logger.info("GOOGLE | Getting available models...")
     model_list = []
     try:
-        response = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={_get_api_key()}")
+        response = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={api_keys[0]}")
         decoded_response = response.json()
 
         hidden = ["bison", "aqa", "embedding", "gecko"]
