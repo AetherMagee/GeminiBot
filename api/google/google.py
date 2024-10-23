@@ -115,12 +115,12 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
                     logger.error(f"{request_id} | No active API keys available.")
                     return {"error": {"status": "RESOURCE_EXHAUSTED", "message": "No active API keys available."}}
 
-            logger.info(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS}")
+            logger.info(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS} (key ...{key[-6:]})")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
             async with session.post(url, headers=headers, json=data) as response:
                 decoded_response = await response.json()
                 if response.status != 200:
-                    logger.error(f"{request_id} | Got an error: {decoded_response} | Key: {key}")
+                    logger.error(f"{request_id} | Got an error: {decoded_response} | Key: ...{key[-6:]}")
 
                     error_status = decoded_response.get("error", {}).get("status", "")
                     if error_status == "RESOURCE_EXHAUSTED":
