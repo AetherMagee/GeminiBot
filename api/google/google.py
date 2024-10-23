@@ -198,17 +198,23 @@ async def _handle_api_response(
 
             return output
 
-        if "candidates" in response.keys() and response["candidates"][0]["finishReason"] in ["SAFETY", "OTHER"]:
-            output = "❌ *Запрос был заблокирован цензурой Gemini API.*"
-            output += "\n\n*Уверенность цензуры по категориям:*"
-            for category in [detection for detection in response['candidates'][0]['safetyRatings'] if
-                             detection['probability'] != "NEGLIGIBLE"]:
-                output += f"\n{censordict[category['category']]} - {censordict[category['probability']]} уверенность"
+        if "candidates" in response.keys():
+            if response["candidates"][0]["finishReason"] in ["SAFETY", "OTHER"]:
+                output = "❌ *Запрос был заблокирован цензурой Gemini API.*"
+                output += "\n\n*Уверенность цензуры по категориям:*"
+                for category in [detection for detection in response['candidates'][0]['safetyRatings'] if
+                                 detection['probability'] != "NEGLIGIBLE"]:
+                    output += f"\n{censordict[category['category']]} - {censordict[category['probability']]} уверенность"
 
-            return output
+                return output
+
+            if response["candidates"][0]["finishReason"] == "PROHIBITED_CONTENT":
+                output = "❌ *Запрос был заблокирован цензурой Gemini API по неизвестным причинам.*"
+                output += "\nЕсли ошибка повторяется, попробуйте очистить память - /reset"
+                return output
 
         if "promptFeedback" in response.keys() and "blockReason" in response["promptFeedback"].keys():
-            if response["promptFeedback"]["blockReason"] == "OTHER":
+            if response["promptFeedback"]["blockReason"] in ["OTHER", "PROHIBITED_CONTENT"]:
                 output = "❌ *Запрос был заблокирован цензурой Gemini API по неизвестным причинам.*"
                 output += "\nЕсли ошибка повторяется, попробуйте очистить память - /reset"
                 return output
