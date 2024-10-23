@@ -93,7 +93,8 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
         formatted_message = await format_message_for_prompt(message, add_reply_to)
 
         if role == "system":
-            formatted_message = formatted_message.replace("SYSTEM: ", "", 1)
+            if system_prompt:
+                formatted_message = formatted_message.replace("SYSTEM: ", "", 1)
         elif role == "assistant":
             formatted_message = await format_message_for_prompt(message, False)
             formatted_message = formatted_message.replace("You: ", "", 1)
