@@ -108,6 +108,20 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
             })
             last_role = role
 
+    if system_prompt and await db.get_chat_parameter(trigger_message.chat.id, "o_clarify_target_message"):
+        final.append({
+            "role": "system",
+            "content": "That's it with the chat history. The next User message will be your TARGET message. This is "
+                       "the message that triggered this request in the first place. Read it, "
+                       "make sure to not confuse what it's asking or talking about while NOT CONFUSING ONGOING TOPICS "
+                       "based on the current chat history, and respond to it."
+        })
+        target_msg = await db.get_specific_message(trigger_message.chat.id, trigger_message.message_id)
+        final.append({
+            "role": "user",
+            "content": await format_message_for_prompt(target_msg, add_reply_to)
+        })
+
     if await db.get_chat_parameter(trigger_message.chat.id, "o_vision"):
         image = await get_photo(
             trigger_message,

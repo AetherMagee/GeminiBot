@@ -204,6 +204,16 @@ chat_configs = {
             "advanced": True,
             "private": False
         },
+        "o_clarify_target_message": {
+            "description": "Добавлять ли дополнительное системное сообщение, чтобы помочь модели понять, на что нужно "
+                           "отвечать",
+            "type": "boolean",
+            "default_value": True,
+            "accepted_values": [True, False],
+            "protected": False,
+            "advanced": True,
+            "private": False
+        },
         "o_vision": {
             "description": "Разрешить ли модели работать с изображениями",
             "type": "boolean",
@@ -279,7 +289,8 @@ presets = {
         "g_model": "gemini-1.5-pro-latest",
         "o_add_system_prompt": True,
         "o_timeout": 60,
-        "o_vision": True
+        "o_vision": True,
+        "o_clarify_target_message": True
     },
     "o1": {
         "endpoint": "openai",
@@ -287,6 +298,7 @@ presets = {
         "o_model": "o1-preview",
         "o_vision": False,
         "o_timeout": 300,
-        "o_add_system_prompt": False
+        "o_add_system_prompt": False,
+        "o_clarify_target_message": False
     }
 }
