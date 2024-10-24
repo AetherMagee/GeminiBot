@@ -3,7 +3,7 @@ import os
 from aiogram import html
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import Message
+from aiogram.types import Message, ReactionTypeEmoji
 from loguru import logger
 from more_itertools import sliced
 
@@ -11,11 +11,13 @@ import api
 import api.openai
 import db
 import handlers.commands.settings_command as settings
+from main import ADMIN_IDS, bot
 from utils import get_message_text
 from .commands.shared import is_allowed_to_alter_memory
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 bot_username = os.getenv("BOT_USERNAME")
+FEEDBACK_TARGET_ID = os.getenv("FEEDBACK_TARGET_ID")
 
 
 async def meets_endpoint_requirements(message: Message, endpoint: str) -> bool:
@@ -102,9 +104,48 @@ async def handle_response(message: Message, output: str) -> None:
         await db.save_our_message(message, output, our_message.message_id)
 
 
+async def try_handle_feedback_response(message: Message) -> bool:
+    if not FEEDBACK_TARGET_ID:
+        return False
+
+    if message.chat.id != FEEDBACK_TARGET_ID:
+        return False
+
+    if message.from_user.id not in ADMIN_IDS:
+        return False
+
+    if not message.reply_to_message:
+        return False
+
+    if message.reply_to_message.from_user.id != bot_id:
+        return False
+
+    try:
+        target_chatid, target_userid, target_name, target_message_id = message.reply_to_message.text.split("\n")[
+            1].split(" | ")
+    except Exception as e:
+        logger.error(f"Failed to handle feedback response: {e}")
+        return True
+
+    text_to_send = f"👋 <b>{target_name}</b>, вот ответ администратора бота на ваш запрос:\n\n"
+    text_to_send += message.text
+
+    try:
+        await bot.send_message(target_chatid, text_to_send, reply_to_message_id=target_message_id)
+    except TelegramBadRequest:
+        await bot.send_message(target_chatid, text_to_send)
+
+    await message.react([ReactionTypeEmoji(emoji="👌")])
+
+    return True
+
+
 async def handle_new_message(message: Message) -> None:
     if message.from_user.id in settings.pending_sets and message.from_user.id == message.chat.id:
         await settings.handle_private_setting(message)
+        return
+
+    if await try_handle_feedback_response(message):
         return
 
     endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")

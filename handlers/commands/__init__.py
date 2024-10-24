@@ -1,3 +1,4 @@
+from .feedback_command import feedback_command
 from .forget_command import forget_command
 from .help_command import help_command
 from .hide_command import hide_command

@@ -44,6 +44,7 @@ async def main() -> None:
     from handlers import (handle_new_message, reset_command, settings_comand, set_command, raw_command,
                           start_command, status_command, directsend_command, sql_command, restart_command,
                           forget_command, replace_command, help_command, system_command, prune_command,
+                          feedback_command,
                           handle_message_edit, blacklist_command, unblacklist_command, preset_command, hide_command)
 
     dp.message.register(directsend_command, Command("directsend"), adminMessageFilter)
@@ -72,6 +73,7 @@ async def main() -> None:
     dp.message.register(system_command, Command("system"))
     dp.message.register(preset_command, Command("preset"))
     dp.message.register(hide_command, Command("hide"))
+    dp.message.register(feedback_command, Command("feedback"))
 
     @dp.message()
     async def on_any_message(message: Message) -> None:
