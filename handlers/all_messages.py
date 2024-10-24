@@ -106,18 +106,23 @@ async def handle_response(message: Message, output: str) -> None:
 
 async def try_handle_feedback_response(message: Message) -> bool:
     if not FEEDBACK_TARGET_ID:
+        logger.debug("No feedback id, exiting")
         return False
 
     if message.chat.id != FEEDBACK_TARGET_ID:
+        logger.debug("Not the feedback target, exiting")
         return False
 
     if message.from_user.id not in ADMIN_IDS:
+        logger.debug("Not an admin, exiting")
         return False
 
     if not message.reply_to_message:
+        logger.debug("No reply, exiting")
         return False
 
     if message.reply_to_message.from_user.id != bot_id:
+        logger.debug("Replying to someone else, exiting")
         return False
 
     try:
