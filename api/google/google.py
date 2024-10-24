@@ -219,6 +219,11 @@ async def _handle_api_response(
                 output += "\nЕсли ошибка повторяется, попробуйте очистить память - /reset"
                 return output
 
+        tokens = response.get("usageMetadata").get("totalTokenCount")
+
+        if tokens:
+            logger.debug(f"{request_id} | Consumed {tokens} tokens total")
+
         return response["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
         logger.debug(response)
@@ -236,7 +241,7 @@ async def generate_response(message: Message) -> str:
     message_text = await get_message_text(message)
 
     logger.info(
-        f"RID: {request_id} | UID: {message.from_user.id} | CID: {message.chat.id} | MID: {message.message_id}"
+        f"R: {request_id} | U: {message.from_user.id} ({message.from_user.first_name}) | C: {message.chat.id} ({message.chat.title}) | M: {message.message_id}"
     )
 
     chat_messages = await db.get_messages(message.chat.id)
