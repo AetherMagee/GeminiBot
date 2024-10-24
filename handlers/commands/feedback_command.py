@@ -15,6 +15,11 @@ async def feedback_command(message: Message):
     if not FEEDBACK_TARGET_ID:
         return
 
+    text = await get_message_text(message)
+    if len(text.split()) < 2:
+        await message.reply("❌ <b>Использование команды: </b> <i>/feedback [текст]</i>")
+        return
+
     lock.setdefault(message.chat.id, False)
     if lock[message.chat.id]:
         await message.reply("❌ <b>Подождите немного перед повторным запуском этой команды.</b>")
@@ -23,11 +28,6 @@ async def feedback_command(message: Message):
     lock[message.chat.id] = True
 
     try:
-        text = await get_message_text(message)
-        if len(text.split()) < 2:
-            await message.reply("❌ <b>Использование команды: </b> <i>/feedback [текст]</i>")
-            return
-
         text = text.replace("/feedback ", "", 1)
         text_to_send = "👋 <b>Новый вызов /feedback</b>"
         text_to_send += f"\n{message.chat.id} | {message.from_user.id} | {message.from_user.first_name.replace('|', '')} | {message.message_id}\n"
