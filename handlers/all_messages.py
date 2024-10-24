@@ -17,7 +17,7 @@ from .commands.shared import is_allowed_to_alter_memory
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 bot_username = os.getenv("BOT_USERNAME")
-FEEDBACK_TARGET_ID = os.getenv("FEEDBACK_TARGET_ID")
+FEEDBACK_TARGET_ID = int(os.getenv("FEEDBACK_TARGET_ID"))
 
 
 async def meets_endpoint_requirements(message: Message, endpoint: str) -> bool:
@@ -106,23 +106,18 @@ async def handle_response(message: Message, output: str) -> None:
 
 async def try_handle_feedback_response(message: Message) -> bool:
     if not FEEDBACK_TARGET_ID:
-        logger.debug("No feedback id, exiting")
         return False
 
     if message.chat.id != FEEDBACK_TARGET_ID:
-        logger.debug("Not the feedback target, exiting")
         return False
 
     if message.from_user.id not in ADMIN_IDS:
-        logger.debug("Not an admin, exiting")
         return False
 
     if not message.reply_to_message:
-        logger.debug("No reply, exiting")
         return False
 
     if message.reply_to_message.from_user.id != bot_id:
-        logger.debug("Replying to someone else, exiting")
         return False
 
     try:
