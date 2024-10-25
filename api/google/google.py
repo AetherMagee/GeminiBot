@@ -219,7 +219,7 @@ async def _handle_api_response(
                 output += "\nЕсли ошибка повторяется, попробуйте очистить память - /reset"
                 return output
 
-        usage = response.get("usageMetadata").get("totalTokenCount")
+        usage = response.get("usageMetadata")
 
         if usage:
             try:
