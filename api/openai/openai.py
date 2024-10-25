@@ -154,8 +154,8 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
 
 async def generate_response(message: Message) -> str:
     request_id = random.randint(100000, 999999)
-    logger.debug(
-        f"RID: {request_id} | UID: {message.from_user.id} | CID: {message.chat.id} | MID: {message.message_id}"
+    logger.info(
+        f"R: {request_id} | U: {message.from_user.id} ({message.from_user.first_name}) | C: {message.chat.id} ({message.chat.title}) | M: {message.message_id}"
     )
 
     if not os.getenv("OAI_ENABLED") or os.getenv("OAI_ENABLED").lower() != "true":
@@ -233,6 +233,16 @@ async def generate_response(message: Message) -> str:
             output = "❌ *Произошел сбой эндпоинта OpenAI.*"
             if show_errors:
                 output += "\n\n" + response["choices"][0]["message"]["content"]
+
+        usage = response.get("usage")
+        if usage:
+            try:
+                logger.debug(
+                    f"{request_id} | Tokens: {usage['total_tokens']} total ({usage['prompt_tokens']} prompt, {usage['completion_tokens']} completion)")
+            except KeyError:
+                logger.warning(f"{request_id} | Failed to get token usage metadata.")
+                logger.debug(response)
+
     except (KeyError, TypeError) as error:
         logger.debug(response)
         output = "❌ *Произошел сбой эндпоинта OpenAI.*"

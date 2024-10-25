@@ -219,10 +219,15 @@ async def _handle_api_response(
                 output += "\nЕсли ошибка повторяется, попробуйте очистить память - /reset"
                 return output
 
-        tokens = response.get("usageMetadata").get("totalTokenCount")
+        usage = response.get("usageMetadata").get("totalTokenCount")
 
-        if tokens:
-            logger.debug(f"{request_id} | Consumed {tokens} tokens total")
+        if usage:
+            try:
+                logger.debug(
+                    f"{request_id} | Tokens: {usage['totalTokenCount']} total ({usage['promptTokenCount']} prompt, {usage['candidatesTokenCount']} completion)")
+            except KeyError:
+                logger.warning(f"{request_id} | Failed to get token usage metadata.")
+                logger.debug(response)
 
         return response["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
