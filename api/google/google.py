@@ -229,7 +229,7 @@ async def _handle_api_response(
                 logger.warning(f"{request_id} | Failed to get token usage metadata.")
                 logger.debug(response)
 
-        return response["candidates"][0]["content"]["parts"][0]["text"]
+        return response["candidates"][0]["content"]["parts"][0]["text"].replace("  ", " ")
     except Exception as e:
         logger.debug(response)
         traceback.print_exc()
