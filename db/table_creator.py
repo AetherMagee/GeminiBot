@@ -49,6 +49,69 @@ async def create_chat_config_table(conn: Connection) -> None:
 
     await conn.execute(command)
 
+    # Check existing column defaults and values
+    # Claude 3.6 sonnet code ahead
+    for parameter_list in chat_configs.keys():
+        for parameter in chat_configs[parameter_list]:
+            if parameter == 'chat_id':
+                continue
+
+            current_default = await conn.fetchval(
+                f"SELECT column_default FROM information_schema.columns "
+                f"WHERE table_name = 'chat_config' AND column_name = '{parameter}'"
+            )
+
+            if current_default is None:
+                continue
+
+            current_default = current_default.split('::', 1)[0]
+            if current_default.startswith("'") and current_default.endswith("'"):
+                current_default = current_default[1:-1]
+            if current_default.lower() == 'true':
+                current_default = True
+            elif current_default.lower() == 'false':
+                current_default = False
+            elif current_default.replace('.', '').isdigit():
+                if '.' in current_default:
+                    current_default = float(current_default)
+                else:
+                    current_default = int(current_default)
+
+            config_default = chat_configs[parameter_list][parameter]['default_value']
+            if isinstance(config_default, str):
+                config_default = config_default.strip("'")
+
+            if current_default != config_default:
+                logger.warning(
+                    f"Default value mismatch for {parameter}: DB: {current_default} vs Config: {config_default}")
+
+                if config_default is None:
+                    config_default_sql = "NULL"
+                elif isinstance(config_default, str):
+                    config_default_sql = f"'{config_default}'"
+                elif isinstance(config_default, bool):
+                    config_default_sql = str(config_default)
+                else:
+                    config_default_sql = str(config_default)
+
+                if current_default is None:
+                    current_default_sql = "NULL"
+                elif isinstance(current_default, str):
+                    current_default_sql = f"'{current_default}'"
+                elif isinstance(current_default, bool):
+                    current_default_sql = str(current_default)
+                else:
+                    current_default_sql = str(current_default)
+
+                await conn.execute(
+                    f"ALTER TABLE chat_config ALTER COLUMN {parameter} SET DEFAULT {config_default_sql}"
+                )
+
+                await conn.execute(
+                    f"UPDATE chat_config SET {parameter} = {config_default_sql} "
+                    f"WHERE {parameter} IS NOT DISTINCT FROM {current_default_sql}"
+                )
+
     # Check if all the columns are in place
     for parameter_list in chat_configs.keys():
         for parameter in chat_configs[parameter_list]:
