@@ -18,8 +18,8 @@ chat_configs = {
         "message_limit": {
             "description": "Максимум сообщений в памяти бота",
             "type": "integer",
-            "default_value": 250,
-            "accepted_values": range(1, 5000),
+            "default_value": 100,
+            "accepted_values": range(1, 2500),
             "protected": False,
             "advanced": False,
             "private": False
@@ -81,7 +81,7 @@ chat_configs = {
         "max_output_tokens": {
             "description": "Максимальная длина ответа, что может сгенерировать бот",
             "type": "integer",
-            "default_value": 2048,
+            "default_value": 4096,
             "accepted_values": range(0, 65536),
             "protected": False,
             "advanced": True,
@@ -160,7 +160,7 @@ chat_configs = {
     },
     "openai": {
         "o_url": {
-            "description": "Ссылка на эндпоинт, который будет использовать бот.",
+            "description": "Ссылка на эндпоинт, который будет использовать бот. \nБЕЗ /v1/chat/completions",
             "type": "text",
             "default_value": None,
             "accepted_values": None,
