@@ -107,10 +107,11 @@ async def create_chat_config_table(conn: Connection) -> None:
                     f"ALTER TABLE chat_config ALTER COLUMN {parameter} SET DEFAULT {config_default_sql}"
                 )
 
-                await conn.execute(
+                res = await conn.execute(
                     f"UPDATE chat_config SET {parameter} = {config_default_sql} "
                     f"WHERE {parameter} IS NOT DISTINCT FROM {current_default_sql}"
                 )
+                logger.warning(f"Updated {str(res).split(' ')[1]} values for {parameter}")
 
     # Check if all the columns are in place
     for parameter_list in chat_configs.keys():
