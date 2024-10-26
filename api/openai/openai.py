@@ -1,6 +1,7 @@
 import asyncio
 import os
 import random
+import traceback
 from typing import List
 
 import aiohttp
@@ -239,8 +240,15 @@ async def generate_response(message: Message) -> str:
             try:
                 logger.debug(
                     f"{request_id} | Tokens: {usage['total_tokens']} total ({usage['prompt_tokens']} prompt, {usage['completion_tokens']} completion)")
+                await db.statistics.log_generation(
+                    message.chat.id,
+                    message.from_user.id,
+                    "openai",
+                    usage['total_tokens']
+                )
             except KeyError:
-                logger.warning(f"{request_id} | Failed to get token usage metadata.")
+                logger.warning(f"{request_id} | Failed to process token usage metadata.")
+                traceback.print_exc()
                 logger.debug(response)
 
     except (KeyError, TypeError) as error:
