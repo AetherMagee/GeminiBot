@@ -78,7 +78,6 @@ async def handle_response(message: Message, output: str) -> None:
     try:
         our_message = await message.reply(output, parse_mode=ParseMode.MARKDOWN)
     except Exception as e:
-        logger.error(f"Failed to send response: {e}")
         try:
             our_message = await message.reply(html.quote(output))
         except TelegramBadRequest:
