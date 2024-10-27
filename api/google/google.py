@@ -42,7 +42,7 @@ api_keys_error_counts = defaultdict(int)
 resource_exhausted_error_counts = defaultdict(int)
 keys_lock = asyncio.Lock()
 
-RESOURCE_EXHAUSTED_THRESHOLD = 5
+RESOURCE_EXHAUSTED_THRESHOLD = 3
 MAX_API_ATTEMPTS = 3
 admin_ids_str = os.getenv("ADMIN_IDS", "")
 admin_ids = [int(x.strip()) for x in admin_ids_str.split(",") if x.strip()]
