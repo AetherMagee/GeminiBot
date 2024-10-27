@@ -106,6 +106,21 @@ async def get_token_stats() -> Tuple[int, List[Dict]]:
         return total, [{'chat_id': r['chat_id'], 'tokens': r['tokens']} for r in top_chats]
 
 
+async def get_tokens_consumed(days: int) -> int:
+    """Get total tokens consumed in the last N days."""
+    async with dbs.pool.acquire() as conn:
+        cutoff = datetime.datetime.now() - datetime.timedelta(days=days)
+        total_tokens = await conn.fetchval(
+            """
+            SELECT COALESCE(SUM(tokens_consumed), 0)
+            FROM statistics_generations
+            WHERE timestamp >= $1
+            """,
+            cutoff
+        )
+        return total_tokens
+
+
 async def get_generation_counts(days: int) -> int:
     """Get total number of generations in last N days"""
     async with dbs.pool.acquire() as conn:

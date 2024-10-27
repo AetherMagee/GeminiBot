@@ -1,10 +1,9 @@
-# handlers/commands/stats_command.py
 from aiogram.types import Message
 from loguru import logger
 
 import db.statistics as stats
 from main import ADMIN_IDS
-from utils import log_command
+from utils import get_entity_title, log_command
 
 
 async def stats_command(message: Message):
@@ -23,6 +22,8 @@ async def stats_command(message: Message):
         weekly_gens = await stats.get_generation_counts(7)
 
         total_tokens, top_chats = await stats.get_token_stats()
+        tokens_last_24h = await stats.get_tokens_consumed(1)
+
         top_users = await stats.get_top_users(30)
 
         # Format the response
@@ -36,17 +37,20 @@ async def stats_command(message: Message):
 • Последние 7д: {weekly_gens}
 
 💭 <b>Использовано токенов</b>
-Всего: {total_tokens:,}
+• Всего: {total_tokens:,}
+• Последние 24ч: {tokens_last_24h:,}
 
 💬 <b>Топ 5 чатов по потреблению токенов</b>:
 """
 
         for i, chat in enumerate(top_chats, 1):
-            response += f"{i}. {chat['chat_id']}: {chat['tokens']:,}\n"
+            chat_title = await get_entity_title(chat['chat_id'])
+            response += f"{i}. {chat_title} ({chat['chat_id']}): {chat['tokens']:,} tokens\n"
 
         response += "\n👤 <b>Самые активные пользователи (кол-во генераций, 30д)</b>\n"
         for i, user in enumerate(top_users, 1):
-            response += f"{i}. {user['user_id']}: {user['generations']}\n"
+            user_name = await get_entity_title(user['user_id'])
+            response += f"{i}. {user_name} ({user['user_id']}): {user['generations']} generations\n"
 
         await message.reply(response)
 
