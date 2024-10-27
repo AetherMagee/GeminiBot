@@ -62,7 +62,8 @@ async def _send_request(
             return response_decoded
 
 
-async def get_prompt(trigger_message: Message, messages_list: List[Record], system_prompt: bool) -> List[dict]:
+async def get_prompt(trigger_message: Message, messages_list: List[Record], system_prompt: bool,
+                     system_messages: bool) -> List[dict]:
     chat_type = "direct message (DM)" if trigger_message.from_user.id == trigger_message.chat.id else "group"
     chat_title = f" called {trigger_message.chat.title}" if trigger_message.from_user.id != trigger_message.chat.id \
         else f" with {trigger_message.from_user.first_name}"
@@ -71,7 +72,7 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
     add_reply_to = await db.get_chat_parameter(trigger_message.chat.id, "add_reply_to")
 
     final = []
-    if system_prompt:
+    if system_prompt and system_messages:
         final.append({
             "role": "system",
             "content": system_prompt_template.format(
@@ -94,7 +95,7 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
         formatted_message = await format_message_for_prompt(message, add_reply_to)
 
         if role == "system":
-            if system_prompt:
+            if system_messages:
                 formatted_message = formatted_message.replace("SYSTEM: ", "", 1)
         elif role == "assistant":
             formatted_message = await format_message_for_prompt(message, False)
@@ -109,7 +110,8 @@ async def get_prompt(trigger_message: Message, messages_list: List[Record], syst
             })
             last_role = role
 
-    if system_prompt and await db.get_chat_parameter(trigger_message.chat.id, "o_clarify_target_message"):
+    if system_prompt and system_messages and await db.get_chat_parameter(trigger_message.chat.id,
+                                                                         "o_clarify_target_message"):
         final.append({
             "role": "system",
             "content": "That's it with the chat history. The next User message will be your TARGET message. This is "
@@ -165,11 +167,12 @@ async def generate_response(message: Message) -> str:
 
     show_errors = await db.get_chat_parameter(message.chat.id, "show_error_messages")
     append_system_prompt = await db.get_chat_parameter(message.chat.id, "o_add_system_prompt")
+    add_system_messages = await db.get_chat_parameter(message.chat.id, "o_add_system_messages")
 
     messages = await db.get_messages(message.chat.id)
     model = await db.get_chat_parameter(message.chat.id, "o_model")
     log_prompt = await db.get_chat_parameter(message.chat.id, "o_log_prompt")
-    prompt = await get_prompt(message, messages, append_system_prompt)
+    prompt = await get_prompt(message, messages, append_system_prompt, add_system_messages)
     if log_prompt:
         logger.debug(prompt)
 

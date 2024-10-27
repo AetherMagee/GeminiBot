@@ -204,6 +204,15 @@ chat_configs = {
             "advanced": True,
             "private": False
         },
+        "o_add_system_messages": {
+            "description": "Добавлять ли любые системные сообщения в контекст. При отключении скрывает и встроенный системный промпт, и сообщения, добавленные через /system",
+            "type": "boolean",
+            "default_value": True,
+            "accepted_values": [True, False],
+            "protected": False,
+            "advanced": True,
+            "private": False
+        },
         "o_clarify_target_message": {
             "description": "Добавлять ли дополнительное системное сообщение, чтобы помочь модели понять, на что нужно "
                            "отвечать",
@@ -288,6 +297,7 @@ presets = {
         "o_model": "gpt-4o",
         "g_model": "gemini-1.5-pro-latest",
         "o_add_system_prompt": True,
+        "o_add_system_messages": True,
         "o_timeout": 60,
         "o_vision": True,
         "o_clarify_target_message": True
@@ -298,7 +308,7 @@ presets = {
         "o_model": "o1-preview",
         "o_vision": False,
         "o_timeout": 300,
-        "o_add_system_prompt": False,
+        "o_add_system_messages": False,
         "o_clarify_target_message": False
     }
 }
