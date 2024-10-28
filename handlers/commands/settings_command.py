@@ -133,6 +133,7 @@ async def set_command(message: Message) -> None:
     command = message.text.split(" ", maxsplit=2)
     if len(command) < 2:
         await message.reply("❌ <b>Недостаточно аргументов.</b>")
+        return
 
     # Validate target parameter
     requested_parameter = command[1].lower()
