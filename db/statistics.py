@@ -163,3 +163,18 @@ async def get_tokens_consumed_period(start_time: datetime.datetime, end_time: da
             start_time, end_time
         )
         return total_tokens
+
+
+async def get_request_count(chat_id: int, interval: datetime.timedelta) -> int:
+    """Get the number of requests for a chat within a time interval"""
+    async with dbs.pool.acquire() as conn:
+        cutoff = datetime.datetime.now() - interval
+        return await conn.fetchval(
+            """
+            SELECT COUNT(*)
+            FROM statistics_generations
+            WHERE chat_id = $1 AND timestamp > $2
+            """,
+            chat_id,
+            cutoff
+        )

@@ -1,3 +1,4 @@
+import datetime
 import os
 
 from aiogram import html
@@ -59,6 +60,20 @@ async def check_token_limit(message: Message) -> bool:
                 await message.reply(f"❌ <b>Запрос заблокирован: Токенов больше, чем лимит</b> "
                                     f"<i>({current_tokens} > {token_limit})</i>")
                 return True
+    return False
+
+
+async def check_rate_limit(message: Message) -> bool:
+    rate_limit_per_hour = await db.get_chat_parameter(message.chat.id, "max_requests_per_hour")
+
+    if rate_limit_per_hour == 0:
+        return False  # No limit
+
+    request_count = await db.get_request_count(message.chat.id, datetime.timedelta(hours=1))
+    if request_count >= rate_limit_per_hour:
+        logger.warning(f"{message.chat.id} | Rate-limited! ({request_count}/{rate_limit_per_hour})")
+        return True
+
     return False
 
 
@@ -145,6 +160,11 @@ async def handle_new_message(message: Message) -> None:
         return
 
     if await try_handle_feedback_response(message):
+        return
+
+    if await check_rate_limit(message):
+        await message.reply(f"❌ <b>Вы достигли установленного лимита запросов в час. Попробуйте снова через некоторое "
+                            f"время.</b>\n<i>Подробнее - в /status и параметре <code>max_requests_per_hour</code></i>")
         return
 
     endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")

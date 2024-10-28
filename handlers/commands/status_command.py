@@ -1,3 +1,5 @@
+import datetime
+
 from aiogram.types import Message
 
 import api.google
@@ -31,6 +33,12 @@ async def status_command(message: Message):
 💬 <b>Память:</b> {len(messages)}/{messages_limit} сообщений <i>({token_count})</i>
 ✨ <b>Модель:</b> <i>{current_model}</i>
 🆔 <b>ID чата:</b> <code>{message.chat.id}</code>"""
+
+    rate_limit_per_hour = await db.get_chat_parameter(message.chat.id, "max_requests_per_hour")
+    request_count = await db.get_request_count(message.chat.id, datetime.timedelta(hours=1))
+    quota_text = "не ограничен" if rate_limit_per_hour == 0 else f"{request_count}/{rate_limit_per_hour}"
+
+    text_to_send += f"\n📊 <b>Лимит запросов в час:</b> <i>{quota_text}</i>"
 
     if current_endpoint not in ["openai", "google"]:
         text_to_send += ("\n⚠️ <b>Неизвестное значение параметра <code>endpoint</code></b>. Значительная часть функций "
