@@ -100,7 +100,7 @@ chat_configs = {
             "description": "Сколько запросов в час можно отправлять в бота. Устанавливается администраторами. Можно "
                            "запросить повышение лимита через команду обратной связи (просто так не повышаем)",
             "type": "integer",
-            "default_value": 60,
+            "default_value": 120,
             "accepted_values": range(0, 1200),
             "protected": True,
             "advanced": False,
