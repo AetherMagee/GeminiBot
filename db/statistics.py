@@ -1,4 +1,3 @@
-# db/statistics.py
 import datetime
 from typing import Dict, List, Tuple
 
@@ -133,3 +132,34 @@ async def get_generation_counts(days: int) -> int:
             """,
             cutoff
         )
+
+
+async def get_generation_counts_period(start_time: datetime.datetime, end_time: datetime.datetime = None) -> int:
+    """Get total number of generations in a custom time period"""
+    async with dbs.pool.acquire() as conn:
+        if not end_time:
+            end_time = datetime.datetime.now()
+        return await conn.fetchval(
+            """
+            SELECT COUNT(*)
+            FROM statistics_generations
+            WHERE timestamp BETWEEN $1 AND $2
+            """,
+            start_time, end_time
+        )
+
+
+async def get_tokens_consumed_period(start_time: datetime.datetime, end_time: datetime.datetime = None) -> int:
+    """Get total tokens consumed in a custom time period."""
+    async with dbs.pool.acquire() as conn:
+        if not end_time:
+            end_time = datetime.datetime.now()
+        total_tokens = await conn.fetchval(
+            """
+            SELECT COALESCE(SUM(tokens_consumed), 0)
+            FROM statistics_generations
+            WHERE timestamp BETWEEN $1 AND $2
+            """,
+            start_time, end_time
+        )
+        return total_tokens
