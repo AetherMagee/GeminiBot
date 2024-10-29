@@ -97,10 +97,10 @@ chat_configs = {
             "private": False
         },
         "max_requests_per_hour": {
-            "description": "Сколько запросов в час можно отправлять в бота. Устанавливается администраторами. Можно "
+            "description": "Сколько запросов в час можно отправлять в бота. Устанавливается администраторами бота. Можно "
                            "запросить повышение лимита через команду обратной связи (просто так не повышаем)",
             "type": "integer",
-            "default_value": 120,
+            "default_value": 80,
             "accepted_values": range(0, 1200),
             "protected": True,
             "advanced": False,
