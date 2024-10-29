@@ -56,6 +56,8 @@ async def main() -> None:
     dp.message.register(prune_command, Command("prune"), adminMessageFilter)
     dp.message.register(stats_command, Command("stats"), adminMessageFilter)
 
+    dp.message.register(status_command, Command("status"))
+
     @dp.message(BlacklistFilter())
     @dp.edited_message(BlacklistFilter())
     async def blacklist_handler(message: Message):
@@ -65,7 +67,6 @@ async def main() -> None:
     dp.message.register(reset_command, Command("reset"))
     dp.message.register(reset_command, Command("clear"))
     dp.message.register(start_command, CommandStart())
-    dp.message.register(status_command, Command("status"))
     dp.message.register(settings_comand, Command("settings"))
     dp.message.register(set_command, Command("set"))
     dp.message.register(raw_command, Command("raw"))

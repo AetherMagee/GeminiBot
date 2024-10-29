@@ -9,7 +9,15 @@ from utils import log_command
 
 
 async def status_command(message: Message):
+    if await db.is_blacklisted(message.from_user.id):
+        await message.reply("❌ <b>Вы были внесены в чёрный список бота. Ваши сообщения не обрабатываются.</b>")
+        return
+    if await db.is_blacklisted(message.chat.id):
+        await message.reply("❌ <b>Этот чат был внесён в чёрный список бота. Сообщения отсюда не обрабатываются.</b>")
+        return
+
     await log_command(message)
+
     messages = await db.get_messages(message.chat.id)
 
     messages_limit = await db.get_chat_parameter(message.chat.id, "message_limit")
