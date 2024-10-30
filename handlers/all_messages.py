@@ -162,11 +162,6 @@ async def handle_new_message(message: Message) -> None:
     if await try_handle_feedback_response(message):
         return
 
-    if await check_rate_limit(message):
-        await message.reply(f"❌ <b>Вы достигли установленного лимита запросов в час. Попробуйте снова через некоторое "
-                            f"время.</b>\n<i>Подробнее - в /status и <code>/settings max_requests_per_hour</code></i>")
-        return
-
     endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
 
     if not await meets_endpoint_requirements(message, endpoint):
@@ -181,6 +176,11 @@ async def handle_new_message(message: Message) -> None:
         return
 
     if await handle_forced_response(message):
+        return
+
+    if await check_rate_limit(message):
+        await message.reply(f"❌ <b>Вы достигли установленного лимита запросов в час. Попробуйте снова через некоторое "
+                            f"время.</b>\n<i>Подробнее - в /status и <code>/settings max_requests_per_hour</code></i>")
         return
 
     output = await api.generate_response(message, endpoint)
