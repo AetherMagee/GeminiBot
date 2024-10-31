@@ -68,7 +68,7 @@ async def _get_api_key() -> str:
 
 async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, model_name: str, token_to_use: str,
                            temperature: float, top_p: float, top_k: int, max_output_tokens: int, code_execution: bool,
-                           safety_threshold: str):
+                           safety_threshold: str, grounding: bool, grounding_threshold: float):
     global api_keys_error_counts, resource_exhausted_error_counts
 
     headers = {
@@ -96,6 +96,16 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
     }
     if code_execution:
         data["tools"] = [{'code_execution': {}}]
+
+    if grounding:
+        data["tools"] = [{
+            "google_search_retrieval": {
+                "dynamic_retrieval_config": {
+                    "mode": "MODE_DYNAMIC",
+                    "dynamic_threshold": grounding_threshold,
+                }
+            }
+        }]
 
     other_media_present = False
     for part in prompt[-1]["parts"]:
@@ -236,6 +246,15 @@ async def _handle_api_response(
                 traceback.print_exc()
                 logger.debug(response)
 
+        output = response["candidates"][0]["content"]["parts"][0]["text"].replace("  ", " ")
+
+        grounding_metadata = response["candidates"][0].get("groundingMetadata")
+        if grounding_metadata and await db.get_chat_parameter(message.chat.id, "g_web_search_show_sources"):
+            output += "\n\n"
+            output += "Источники:\n"
+            for chunk in grounding_metadata["groundingChunks"]:
+                output += f"- [{chunk['web']['title']}]({chunk['web']['uri']})\n)"
+
         return response["candidates"][0]["content"]["parts"][0]["text"].replace("  ", " ")
     except Exception as e:
         logger.debug(response)
@@ -304,7 +323,9 @@ async def generate_response(message: Message) -> str:
         int(await db.get_chat_parameter(message.chat.id, "g_top_k")),
         int(await db.get_chat_parameter(message.chat.id, "max_output_tokens")),
         bool(await db.get_chat_parameter(message.chat.id, "g_code_execution")),
-        str(await db.get_chat_parameter(message.chat.id, "g_safety_threshold"))
+        str(await db.get_chat_parameter(message.chat.id, "g_safety_threshold")),
+        bool(await db.get_chat_parameter(message.chat.id, "g_web_search")),
+        float(await db.get_chat_parameter(message.chat.id, "g_web_search_threshold"))
     ))
 
     try:

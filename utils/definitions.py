@@ -167,6 +167,36 @@ chat_configs = {
             "advanced": False,
             "private": False
         },
+        "g_web_search": {
+            "description": "Разрешить ли Gemini API использовать веб-поиск, также известный как <a "
+                           "href=\"https://ai.google.dev/gemini-api/docs/grounding\">Grounding</a>",
+            "type": "boolean",
+            "default_value": True,
+            "accepted_values": [True, False],
+            "protected": False,
+            "advanced": False,
+            "private": False
+        },
+        "g_web_search_threshold": {
+            "description": "Коэффициент требовательности к подтверждению моделей её слов. Грубо говоря, чем выше "
+                           "значение, тем больше модель будет проверять себя с помощью веб-поиска",
+            "type": "decimal",
+            "default_value": 0.7,
+            "accepted_values": frange(0, 1.0, 0.01),
+            "protected": False,
+            "advanced": True,
+            "private": False
+        },
+        "g_web_search_show_sources": {
+            "description": "Добавлять ли в конец сообщения источники, которыми воспользовался Gemini API для "
+                           "генерации ответа",
+            "type": "boolean",
+            "default_value": True,
+            "accepted_values": [True, False],
+            "protected": False,
+            "advanced": True,
+            "private": False
+        }
     },
     "openai": {
         "o_url": {
