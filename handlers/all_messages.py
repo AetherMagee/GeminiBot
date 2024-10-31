@@ -139,7 +139,7 @@ async def try_handle_feedback_response(message: Message) -> bool:
             1].split(" | ")
     except Exception as e:
         logger.error(f"Failed to handle feedback response: {e}")
-        return True
+        return False
 
     text_to_send = f"👋 <b>{target_name}</b>, вот ответ администратора бота на ваш запрос:\n\n"
     text_to_send += message.text
