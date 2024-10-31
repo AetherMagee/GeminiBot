@@ -1,8 +1,12 @@
+import asyncio
 import difflib
+import os
+import traceback
 from decimal import Decimal, ROUND_HALF_UP
 
-from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import Message, ReactionTypeEmoji
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from aiogram.types import InlineKeyboardButton, Message, ReactionTypeEmoji
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
 
 import db
@@ -113,72 +117,173 @@ async def settings_command(message: Message) -> None:
         await message.reply(text, disable_web_page_preview=True)
 
 
-async def validate_and_set_parameter(chat_id: int, parameter_name: str, value: str, user_id: int) -> str or None:
-    # Fetch the chat's endpoint
-    chat_endpoint = await db.get_chat_parameter(chat_id, "endpoint")
+async def set_command(message: Message) -> None:
+    global pending_sets
+
+    await log_command(message)
+
+    # Check for administrator
+    if message.chat.id != message.from_user.id and message.from_user.id not in ADMIN_IDS:
+        member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            await message.reply("❌ <b>Параметры могут менять только администраторы.</b>")
+            return
+
+    # Check argument count
+    command = message.text.split(" ", maxsplit=2)
+    if len(command) < 2:
+        await message.reply("❌ <b>Недостаточно аргументов.</b>")
+        return
+
+    # Validate target parameter
+    requested_parameter = command[1].lower()
+    chat_endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
     try:
         available_parameters = chat_configs["all_endpoints"] | chat_configs[chat_endpoint]
     except KeyError:
         available_parameters = chat_configs["all_endpoints"]
 
-    # Verify parameter existence
-    if parameter_name not in available_parameters.keys():
-        matching_parameters = [param for param in available_parameters.keys() if param.startswith(parameter_name)]
+    if requested_parameter not in available_parameters.keys():
+        # Try to find parameters that start with the requested_parameter
+        matching_parameters = [param for param in available_parameters.keys() if param.startswith(requested_parameter)]
+
         if len(matching_parameters) == 1:
-            parameter_name = matching_parameters[0]
-        elif not matching_parameters:
-            return "❌ <b>Неизвестный параметр.</b>"
+            # Exactly one parameter matches the prefix, use it
+            requested_parameter = matching_parameters[0]
+        elif len(matching_parameters) > 1:
+            # Multiple parameters match the prefix, inform the user
+            await message.reply(
+                f"❌ <b>Неизвестный параметр.</b> Найдено несколько параметров, начинающихся с "
+                f"<code>{requested_parameter}</code>:\n" +
+                "\n".join(f"• <code>{param}</code>" for param in matching_parameters)
+            )
+            return
+        else:
+            await message.reply("❌ <b>Неизвестный параметр.</b>")
+            return
 
     # Check if the parameter is protected
-    if available_parameters[parameter_name]["protected"] and user_id not in ADMIN_IDS:
-        return ("❌ <b>У вас нет доступа к этому параметру. Свяжитесь с администратором бота, если хотите его "
-                "изменить.</b>")
+    if available_parameters[requested_parameter]["protected"]:
+        if message.from_user.id not in ADMIN_IDS:
+            await message.reply("❌ <b>У вас нет доступа к этому параметру. Свяжитесь с администратором бота, "
+                                "если хотите его изменить.</b>")
+            return
 
-    # Handle type conversions
-    parameter_type = available_parameters[parameter_name]["type"]
+    # Check if it's private
+    if available_parameters[requested_parameter]["private"] and message.from_user.id != message.chat.id:
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(
+            text="Открыть диалог",
+            url=f"https://t.me/{os.getenv('BOT_USERNAME')}")
+        )
+        notif_message = await message.reply("👋 <b>Давайте перейдём в личные сообщения, чтобы установить этот "
+                                            "параметр, не раскрывая его другим.</b>", reply_markup=builder.as_markup())
+
+        pending_sets[message.from_user.id] = [
+            message.chat.id,
+            requested_parameter,
+            False,
+            notif_message.message_id
+        ]
+
+        await asyncio.sleep(1)
+        try:
+            await handle_private_setting(message)
+        except TelegramForbiddenError:
+            logger.warning("Tried to send a private setting request but failed, waiting for a /start...")
+        return
+
+    # Get target parameter's accepted value type
     try:
-        if parameter_type == "integer":
-            value = int(value)
-        elif parameter_type == "decimal":
-            value = float(value)
-        elif parameter_type == "boolean":
-            value = value.lower() in ["true", "1"]
-    except ValueError:
-        return "❌ <b>Недопустимое значение для параметра.</b>"
-
-    # Validate against accepted values
-    accepted_values = available_parameters[parameter_name]['accepted_values']
-    if accepted_values and value not in accepted_values:
-        if isinstance(accepted_values, (range, FloatRange)):
-            if not (accepted_values.start <= value <= accepted_values.stop):
-                return "❌ <b>Недопустимое значение для параметра.</b>"
-        else:
-            matching_values = difflib.get_close_matches(value, accepted_values, 1, 0.4)
-            if matching_values:
-                return f"Может быть, вы имели в виду <code>{matching_values[0]}</code>?"
-
-    # Set the parameter in the database
-    await db.set_chat_parameter(chat_id, parameter_name, value)
-
-
-async def set_command(message: Message) -> None:
-    await log_command(message)
-    command = message.text.split(" ", maxsplit=2)
-
-    if len(command) < 3:
-        await message.reply("❌ <b>Недостаточно аргументов.</b>")
+        requested_value = command[2].lower()
+    except IndexError:
+        await message.reply("❌ <b>Вы не ввели значение параметра.</b>")
         return
 
-    parameter_name = command[1].lower()
-    value = command[2]
-    chat_id = message.chat.id
-    user_id = message.from_user.id
+    if available_parameters[requested_parameter]["type"] == "integer":
+        try:
+            requested_value = int(requested_value)
+        except ValueError:
+            requested_value = None
+    elif available_parameters[requested_parameter]["type"] == "decimal":
+        try:
+            requested_value = float(requested_value)
+        except ValueError:
+            requested_value = None
+    elif available_parameters[requested_parameter]["type"] == "boolean":
+        try:
+            if requested_value == "true" or requested_value == "1":
+                requested_value = True
+            elif requested_value == "false" or requested_value == "0":
+                requested_value = False
 
-    result_msg = await validate_and_set_parameter(chat_id, parameter_name, value, user_id)
-    if not result_msg:
+        except ValueError:
+            requested_value = None
+
+    # Validate target value
+    accepted_values = available_parameters[requested_parameter]['accepted_values']
+    if accepted_values:
+        if isinstance(accepted_values, range):
+            accepted_values = range(accepted_values.start, accepted_values.stop + 1)
+        if requested_value not in accepted_values:
+            if available_parameters[requested_parameter]["type"] == "text":
+                # Try to find accepted values that start with the requested_value
+                matching_values = [value for value in accepted_values if value.startswith(requested_value)]
+
+                if len(matching_values) == 1:
+                    # Exactly one value matches the prefix, use it
+                    requested_value = matching_values[0]
+                elif len(matching_values) > 1:
+                    # Multiple values match the prefix, inform the user
+                    reply_text = (
+                            "❌ <b>Недопустимое значение для параметра.</b> "
+                            f"Найдено несколько значений, начинающихся с <code>{requested_value}</code>:\n" +
+                            "\n".join(f"• <code>{value}</code>" for value in matching_values)
+                    )
+                    await message.reply(reply_text)
+                    return
+                else:
+                    # No matches, suggest the closest match
+                    if message.from_user.id not in ADMIN_IDS:
+                        reply_text = "❌ <b>Недопустимое значение для параметра.</b> "
+                        guess = difflib.get_close_matches(
+                            requested_value,
+                            accepted_values,
+                            1,
+                            0.4
+                        )
+                        if guess:
+                            reply_text += f"Может быть, вы имели в виду <code>{guess[0]}</code>?"
+                        await message.reply(reply_text)
+                        return
+                    else:
+                        await message.reply(
+                            "⚠️ <b>Значение параметра вне списка разрешённых, но так как вы - администратор "
+                            "бота, оно всё равно будет установлено.</b>"
+                        )
+            else:
+                # Non-text type or no accepted values
+                if message.from_user.id not in ADMIN_IDS:
+                    await message.reply("❌ <b>Недопустимое значение для параметра.</b>")
+                    return
+                else:
+                    await message.reply(
+                        "⚠️ <b>Значение параметра вне списка разрешённых, но так как вы - администратор "
+                        "бота, оно всё равно будет установлено.</b>"
+                    )
+
+    if not accepted_values and requested_value == "null":
+        requested_value = None
+
+    # Set the parameter
+    try:
+        await db.set_chat_parameter(message.chat.id, requested_parameter, requested_value)
         await message.react([ReactionTypeEmoji(emoji="👌")])
+    except Exception as e:
+        logger.error(e)
+        traceback.print_exc()
+        await message.reply("❌ <b>Непредвиденная ошибка при установке параметра.</b>")
         return
-    await message.reply(result_msg)
 
 
 async def handle_private_setting(message: Message):
