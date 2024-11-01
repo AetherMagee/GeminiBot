@@ -117,7 +117,7 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
 
             logger.info(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS} (key ...{key[-6:]})")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
-            async with session.post(url, headers=headers, json=data) as response:
+            async with session.post(url, headers=headers, json=data, proxy=os.getenv("PROXY_URL")) as response:
                 decoded_response = await response.json()
                 if response.status != 200:
                     logger.error(f"{request_id} | Got an error: {decoded_response} | Key: ...{key[-6:]}")
@@ -345,7 +345,7 @@ async def count_tokens_for_chat(trigger_message: Message) -> int:
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:countTokens?key={key}"
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, headers=headers, json=data) as response:
+        async with session.post(url, headers=headers, json=data, proxy=os.getenv("PROXY_URL")) as response:
             decoded_response = await response.json()
 
     if not decoded_response:
@@ -362,7 +362,15 @@ def get_available_models() -> list:
     logger.info("GOOGLE | Getting available models...")
     model_list = []
     try:
-        response = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={api_keys[0]}")
+        proxy = os.getenv("PROXY_URL")
+        if proxy:
+            if proxy.startswith("socks"):
+                proto = "https"
+            else:
+                proto = proxy.split("://")[0]
+            proxies = {proto: proxy}
+        response = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={api_keys[0]}",
+                                proxies=proxies)
         decoded_response = response.json()
 
         hidden = ["bison", "aqa", "embedding", "gecko"]
