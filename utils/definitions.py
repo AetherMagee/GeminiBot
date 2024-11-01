@@ -171,9 +171,9 @@ chat_configs = {
             "description": "Разрешить ли Gemini API использовать веб-поиск, также известный как <a "
                            "href=\"https://ai.google.dev/gemini-api/docs/grounding\">Grounding</a>",
             "type": "boolean",
-            "default_value": True,
+            "default_value": False,
             "accepted_values": [True, False],
-            "protected": False,
+            "protected": True,
             "advanced": False,
             "private": False
         },
