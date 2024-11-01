@@ -63,7 +63,8 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
             async with session.post(
                     f"https://generativelanguage.googleapis.com/upload/v1beta/files?key={gemini_token}",
                     headers=session_headers,
-                    json=data
+                    json=data,
+                    proxy=os.getenv("PROXY_URL")
             ) as response:
                 upload_headers = response.headers
                 upload_url = upload_headers.get("X-Goog-Upload-URL")
@@ -76,7 +77,8 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
                             "X-Goog-Upload-Offset": "0",
                             "X-Goog-Upload-Command": "upload, finalize"
                         },
-                        data=open(cache_path + file_id, "rb")
+                        data=open(cache_path + file_id, "rb"),
+                        proxy=os.getenv("PROXY_URL")
                 ) as response:
                     upload_result = await response.json()
 
@@ -86,7 +88,8 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
                 max_sleep_time = 5
                 while total_sleep_time < max_sleep_time:
                     await asyncio.sleep(sleep_time)
-                    async with session.get(upload_result['file']['uri'] + f"?key={gemini_token}") as response:
+                    async with session.get(upload_result['file']['uri'] + f"?key={gemini_token}",
+                                           proxy=os.getenv("PROXY_URL")) as response:
                         decoded_response = await response.json()
                         if decoded_response['state'] == "ACTIVE":
                             break

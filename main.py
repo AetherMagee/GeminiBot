@@ -5,6 +5,7 @@ import sys
 import aiogram
 from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
@@ -17,7 +18,10 @@ if __name__ == "__main__":
 
     logger.add(os.getenv("LOGS_PATH") + "{time}.log", rotation="1 day", backtrace=True, diagnose=True)
 
-bot = Bot(os.getenv("TELEGRAM_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+proxy = os.getenv("PROXY_URL")
+session = AiohttpSession(proxy=proxy)
+
+bot = Bot(os.getenv("TELEGRAM_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML), session=session)
 dp = Dispatcher()
 
 ADMIN_IDS = [int(admin_id) for admin_id in os.getenv("ADMIN_IDS").split(", ")]

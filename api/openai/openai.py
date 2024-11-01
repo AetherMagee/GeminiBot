@@ -50,7 +50,7 @@ async def _send_request(
     logger.info(f"{request_id} | Sending request to {url}")
     async with aiohttp.ClientSession() as session:
         async with session.post(url + "v1/chat/completions", headers=headers, json=data,
-                                timeout=timeout) as response:
+                                timeout=timeout, proxy=os.getenv("PROXY_URL")) as response:
             try:
                 response_decoded = await response.json()
             except Exception as e:
