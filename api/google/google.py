@@ -2,7 +2,6 @@ import asyncio
 import os
 import random
 import traceback
-from collections import defaultdict
 
 import aiohttp
 import requests
@@ -13,36 +12,14 @@ import db
 from api.prompt import get_system_prompt
 from main import bot
 from utils import get_message_text, simulate_typing
+from .keys import ApiKeyManager
 from .prompts import _prepare_prompt, get_system_messages
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 
-keys_path = os.getenv("DATA_PATH") + "gemini_api_keys.txt"
+keys_path = os.path.join(os.getenv("DATA_PATH"), "gemini_api_keys.txt")
+key_manager = ApiKeyManager(keys_path)
 
-if not os.path.exists(keys_path):
-    logger.exception(
-        f"Couldn't find the key list file in the configured data folder. Please make sure that {keys_path} exists.")
-    exit(1)
-
-api_keys = []
-with open(keys_path, "r") as f:
-    characters_to_remove = [" ", "\n"]
-    for line in f.readlines():
-        if line.startswith("AIza"):
-            for character in characters_to_remove:
-                line = line.replace(character, "")
-            api_keys.append(line.strip())
-
-random.shuffle(api_keys)
-logger.info(f"Loaded {len(api_keys)} API keys")
-
-active_api_keys = api_keys.copy()
-api_key_index = 0
-api_keys_error_counts = defaultdict(int)
-resource_exhausted_error_counts = defaultdict(int)
-keys_lock = asyncio.Lock()
-
-RESOURCE_EXHAUSTED_THRESHOLD = 3
 MAX_API_ATTEMPTS = 3
 admin_ids_str = os.getenv("ADMIN_IDS", "")
 admin_ids = [int(x.strip()) for x in admin_ids_str.split(",") if x.strip()]
@@ -54,16 +31,13 @@ ERROR_MESSAGES = {
 }
 
 
-async def _get_api_key() -> str:
-    global api_key_index
-    async with keys_lock:
-        if not active_api_keys:
-            raise Exception("No active API keys available")
-        key = active_api_keys[api_key_index % len(active_api_keys)]
-        api_key_index += 1
-        if api_key_index % 50 == 0:
-            logger.debug(f"Error counts: {dict(api_keys_error_counts)}")
+async def _get_api_key(billing_only=False) -> str:
+    try:
+        key = await key_manager.get_api_key(billing_only=billing_only)
         return key
+    except Exception as e:
+        logger.error(f"No active {'billing ' if billing_only else ''}API keys available.")
+        raise e
 
 
 async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, model_name: str, token_to_use: str,
@@ -107,12 +81,9 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
             }
         }]
 
-    other_media_present = False
-    for part in prompt[-1]["parts"]:
-        if "file_data" in part.keys():
-            other_media_present = True
-            logger.info(f"{request_id} | Found other media in prompt, will not rotate keys.")
-            break
+    other_media_present = any("file_data" in part for part in prompt[-1]["parts"])
+    if other_media_present:
+        logger.info(f"{request_id} | Found other media in prompt, will not rotate keys.")
 
     async with aiohttp.ClientSession() as session:
         for attempt in range(1, MAX_API_ATTEMPTS + 1):
@@ -120,7 +91,7 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
                 key = token_to_use
             else:
                 try:
-                    key = await _get_api_key()
+                    key = await key_manager.get_api_key(billing_only=grounding)
                 except Exception as e:
                     logger.error(f"{request_id} | No active API keys available.")
                     return {"error": {"status": "RESOURCE_EXHAUSTED", "message": "No active API keys available."}}
@@ -134,29 +105,15 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
 
                     error_status = decoded_response.get("error", {}).get("status", "")
                     if error_status == "RESOURCE_EXHAUSTED":
-                        async with keys_lock:
-                            resource_exhausted_error_counts[key] += 1
-                            if resource_exhausted_error_counts[key] >= RESOURCE_EXHAUSTED_THRESHOLD:
-                                if key in active_api_keys:
-                                    active_api_keys.remove(key)
-                                logger.warning(
-                                    f"Key {key} has reached RESOURCE_EXHAUSTED error threshold and is removed from "
-                                    f"active keys.")
-
-                                try:
-                                    await bot.send_message(admin_ids[0],
-                                                           f"⚠️ <b>Ключ <code>{key[-6:]}</code> автоматически "
-                                                           f"удалён из циркуляции.</b>")
-                                except Exception as e:
-                                    logger.error(f"Failed to send message to admin {admin_ids[0]}: {e}")
+                        await key_manager.handle_key_error(
+                            key, error_status, is_billing=grounding, admin_ids=admin_ids, bot=bot
+                        )
                         if not other_media_present:
                             continue
                     else:
-                        if not other_media_present:
-                            async with keys_lock:
-                                api_keys_error_counts[key] += 1
-                            if attempt != MAX_API_ATTEMPTS:
-                                continue
+                        await key_manager.handle_key_error(key, error_status, is_billing=grounding)
+                        if attempt != MAX_API_ATTEMPTS:
+                            continue
                 else:
                     return decoded_response
 
@@ -379,23 +336,30 @@ async def count_tokens_for_chat(trigger_message: Message) -> int:
         return 0
 
 
-def get_available_models() -> list:
+def get_available_models():
     logger.info("GOOGLE | Getting available models...")
     model_list = []
     try:
+        active_keys = key_manager.get_active_keys()
+        if not active_keys:
+            logger.error("No active API keys available to fetch models.")
+            return model_list
+
+        key = active_keys[0]
         proxy = os.getenv("PROXY_URL")
+        proxies = {}
         if proxy:
             if proxy.startswith("socks"):
                 proto = "https"
             else:
                 proto = proxy.split("://")[0]
             proxies = {proto: proxy}
-        response = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={api_keys[0]}",
+        response = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={key}",
                                 proxies=proxies)
         decoded_response = response.json()
 
         hidden = ["bison", "aqa", "embedding", "gecko"]
-        for model in decoded_response["models"]:
+        for model in decoded_response.get("models", []):
             if not any(hidden_word in model["name"] for hidden_word in hidden):
                 model_list.append(model["name"].replace("models/", ""))
     except Exception as e:
