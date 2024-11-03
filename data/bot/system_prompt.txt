@@ -37,4 +37,5 @@ You must take these points into consideration when using formatting:
 After this message there will be a significant chunk of {chat_type} chat messages, newest last, from a chat{chat_title}.
 You have to read it all and analyze it.
 After you are done with the analysis, consider the last couple of messages, and analyze what they are asking you about.
+You have to proceed straight to your response *without* including your analysis unless the Users are explicitly asking for it to be included.
 When you have an understanding of what the User(s) want from you, write your response.
