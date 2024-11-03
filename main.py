@@ -16,7 +16,8 @@ if __name__ == "__main__":
     if os.path.exists(".env"):
         load_dotenv()
 
-    logger.add(os.getenv("LOGS_PATH") + "{time}.log", rotation="1 day", backtrace=True, diagnose=True)
+    logger.add(os.getenv("LOGS_PATH") + "{time}.log", rotation="12 hours", backtrace=True, diagnose=True,
+               compression="gz")
 
 proxy = os.getenv("PROXY_URL")
 session = AiohttpSession(proxy=proxy)
