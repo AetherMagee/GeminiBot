@@ -199,7 +199,8 @@ async def _handle_api_response(
             return output
 
         if "candidates" in response.keys():
-            if response["candidates"][0]["finishReason"] in ["SAFETY", "OTHER"]:
+            finish_reason = response.get("candidates")[0].get("finishReason")
+            if finish_reason in ["SAFETY", "OTHER"]:
                 output = "❌ *Запрос был заблокирован цензурой Gemini API.*"
                 output += "\n\n*Уверенность цензуры по категориям:*"
                 for category in [detection for detection in response['candidates'][0]['safetyRatings'] if
@@ -208,10 +209,23 @@ async def _handle_api_response(
 
                 return output
 
-            if response["candidates"][0]["finishReason"] == "PROHIBITED_CONTENT":
+            if finish_reason == "PROHIBITED_CONTENT":
                 output = "❌ *Запрос был заблокирован цензурой Gemini API по неизвестным причинам.*"
                 output += "\nЕсли ошибка повторяется, попробуйте очистить память - /reset"
                 return output
+
+            if finish_reason == "RECITATION":
+                output = "❌ *Запрос был заблокирован цензурой Gemini API в связи с тем, что модель начала повторять контент, защищённый авторским правом.*"
+
+                sources = response.get("citationSources")
+                if sources and isinstance(sources, list):
+                    output += "\n\nПроцитированный контент:\n"
+                    for source in sources:
+                        output += f"- {source.get('uri')}"
+
+                return output
+
+
 
         if "promptFeedback" in response.keys() and "blockReason" in response["promptFeedback"].keys():
             if response["promptFeedback"]["blockReason"] in ["OTHER", "PROHIBITED_CONTENT"]:
@@ -223,13 +237,14 @@ async def _handle_api_response(
 
         if usage:
             try:
+                total_tokens = usage['totalTokenCount']
                 logger.debug(
-                    f"{request_id} | Tokens: {usage['totalTokenCount']} total ({usage['promptTokenCount']} prompt, {usage['candidatesTokenCount']} completion)")
+                    f"{request_id} | Tokens: {total_tokens} total ({usage.get('promptTokenCount')} prompt, {usage.get('candidatesTokenCount')} completion)")
                 await db.statistics.log_generation(
                     message.chat.id,
                     message.from_user.id,
                     "google",
-                    usage['totalTokenCount']
+                    total_tokens
                 )
             except KeyError:
                 logger.warning(f"{request_id} | Failed to process token usage metadata.")
