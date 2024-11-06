@@ -18,7 +18,7 @@ chat_configs = {
         "message_limit": {
             "description": "Максимум сообщений в памяти бота",
             "type": "integer",
-            "default_value": 100,
+            "default_value": 50,
             "accepted_values": range(1, 2500),
             "protected": False,
             "advanced": False,
