@@ -384,6 +384,8 @@ def get_available_models() -> list:
             else:
                 proto = proxy.split("://")[0]
             proxies = {proto: proxy}
+        else:
+            proxies = {}
         response = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={api_keys[0]}",
                                 proxies=proxies)
         decoded_response = response.json()
