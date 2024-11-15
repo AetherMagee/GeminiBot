@@ -210,8 +210,6 @@ async def _handle_api_response(
 
         grounding_metadata = response["candidates"][0].get("groundingMetadata")
         if grounding_metadata:
-            logger.debug(response)
-
             chunks = grounding_metadata.get("groundingChunks")
             queries = grounding_metadata.get("webSearchQueries")
             if queries and await db.get_chat_parameter(message.chat.id, "g_web_search_show_queries"):
