@@ -187,6 +187,16 @@ chat_configs = {
             "advanced": True,
             "private": False
         },
+        "g_web_search_show_queries": {
+            "description": "Добавлять ли в конец сообщения запросы, которые отправлял Gemini API в Google для "
+                           "генерации ответа",
+            "type": "boolean",
+            "default_value": True,
+            "accepted_values": [True, False],
+            "protected": False,
+            "advanced": True,
+            "private": False
+        },
         "g_web_search_show_sources": {
             "description": "Добавлять ли в конец сообщения источники, которыми воспользовался Gemini API для "
                            "генерации ответа",

@@ -6,13 +6,14 @@ import traceback
 import aiohttp
 import requests
 from aiogram.types import Message
+from aiohttp_socks import ProxyConnector
 from loguru import logger
 
 import db
 from api.prompt import get_system_prompt
 from main import bot
 from utils import get_message_text, simulate_typing
-from .keys import ApiKeyManager
+from .keys import ApiKeyManager, OutOfBillingKeysException, OutOfKeysException
 from .prompts import _prepare_prompt, get_system_messages
 
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
@@ -85,20 +86,25 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
     if other_media_present:
         logger.info(f"{request_id} | Found other media in prompt, will not rotate keys.")
 
-    async with aiohttp.ClientSession() as session:
+    connector = ProxyConnector.from_url(os.getenv("PROXY_URL"))
+
+    async with aiohttp.ClientSession(connector=connector) as session:
         for attempt in range(1, MAX_API_ATTEMPTS + 1):
             if other_media_present:
                 key = token_to_use
             else:
                 try:
                     key = await key_manager.get_api_key(billing_only=grounding)
-                except Exception as e:
+                except OutOfBillingKeysException:
+                    logger.error(f"{request_id} | No billing API keys available.")
+                    return {"error": {"status": "NO_BILLING", "message": "No billing API keys available."}}
+                except OutOfKeysException:
                     logger.error(f"{request_id} | No active API keys available.")
                     return {"error": {"status": "RESOURCE_EXHAUSTED", "message": "No active API keys available."}}
 
             logger.info(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS} (key ...{key[-6:]})")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
-            async with session.post(url, headers=headers, json=data, proxy=os.getenv("PROXY_URL")) as response:
+            async with session.post(url, headers=headers, json=data) as response:
                 decoded_response = await response.json()
                 if response.status != 200:
                     logger.error(f"{request_id} | Got an error: {decoded_response} | Key: ...{key[-6:]}")
@@ -139,7 +145,8 @@ async def _handle_api_response(
     errordict = {
         "RESOURCE_EXHAUSTED": "Ежедневный ресурс API закончился. Пожалуйста, попробуйте через несколько часов.",
         "INTERNAL": "Произошел сбой на стороне Google. Пожалуйста, попробуйте через пару минут",
-        "UNAVAILABLE": "Выбранная модель недоступна на стороне Gemini API. Возможно, сервера Google перегружены."
+        "UNAVAILABLE": "Выбранная модель недоступна на стороне Gemini API. Возможно, сервера Google перегружены.",
+        "NO_BILLING": "Ресурс веб-поиска закончился. Пожалуйста, попробуйте через несколько часов."
     }
 
     try:
@@ -154,14 +161,10 @@ async def _handle_api_response(
         if "error" in response.keys():
             logger.debug(f"{request_id} | Received an error. Raw response: {response}")
 
-            readable_error = None
             output = "❌ *Произошёл сбой Gemini API.*"
             if "status" in response["error"].keys():
                 if response["error"]["status"] in errordict.keys() and show_error_message:
                     output += f"\n\n{errordict[response['error']['status']]}"
-
-            if readable_error and show_error_message:
-                output += f"\n\n{readable_error}"
 
             return output
 
@@ -206,13 +209,24 @@ async def _handle_api_response(
         output = response["candidates"][0]["content"]["parts"][0]["text"].replace("  ", " ")
 
         grounding_metadata = response["candidates"][0].get("groundingMetadata")
-        if grounding_metadata and await db.get_chat_parameter(message.chat.id, "g_web_search_show_sources"):
-            output += "\n\n"
-            output += "Источники:\n"
-            for chunk in grounding_metadata["groundingChunks"]:
-                output += f"- [{chunk['web']['title']}]({chunk['web']['uri']})\n)"
+        if grounding_metadata:
+            logger.debug(response)
 
-        return response["candidates"][0]["content"]["parts"][0]["text"].replace("  ", " ")
+            chunks = grounding_metadata.get("groundingChunks")
+            queries = grounding_metadata.get("webSearchQueries")
+            if queries and await db.get_chat_parameter(message.chat.id, "g_web_search_show_queries"):
+                output += "\n"
+                output += "*Поисковые запросы:*\n"
+                for query in queries:
+                    output += f"- _{query}_\n"
+
+            if chunks and await db.get_chat_parameter(message.chat.id, "g_web_search_show_sources"):
+                output += "\n"
+                output += "*Источники:*\n"
+                for chunk in chunks:
+                    output += f"- [{chunk['web']['title']}]({chunk['web']['uri']})\n"
+
+        return output
     except Exception as e:
         logger.debug(response)
         traceback.print_exc()
@@ -364,5 +378,6 @@ def get_available_models():
                 model_list.append(model["name"].replace("models/", ""))
     except Exception as e:
         logger.error(f"Failed to get available models. Exception: {e}")
+        traceback.print_exc()
 
     return model_list

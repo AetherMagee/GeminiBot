@@ -21,7 +21,7 @@ if __name__ == "__main__":
 proxy = os.getenv("PROXY_URL")
 session = AiohttpSession(proxy=proxy)
 
-bot = Bot(os.getenv("TELEGRAM_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML), session=session)
+bot = Bot(os.getenv("TELEGRAM_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML, link_preview_is_disabled=True), session=session)
 dp = Dispatcher()
 
 ADMIN_IDS = [int(admin_id) for admin_id in os.getenv("ADMIN_IDS").split(", ")]
