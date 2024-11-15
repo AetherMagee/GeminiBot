@@ -86,7 +86,10 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
     if other_media_present:
         logger.info(f"{request_id} | Found other media in prompt, will not rotate keys.")
 
-    connector = ProxyConnector.from_url(os.getenv("PROXY_URL"))
+    if os.getenv("PROXY_URL"):
+        connector = ProxyConnector.from_url(os.getenv("PROXY_URL"))
+    else:
+        connector = None
 
     async with aiohttp.ClientSession(connector=connector) as session:
         for attempt in range(1, MAX_API_ATTEMPTS + 1):
