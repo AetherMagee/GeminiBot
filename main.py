@@ -16,7 +16,8 @@ if __name__ == "__main__":
     if os.path.exists(".env"):
         load_dotenv()
 
-    logger.add(os.getenv("LOGS_PATH") + "{time}.log", rotation="1 day", backtrace=True, diagnose=True)
+    logger.add(os.getenv("LOGS_PATH") + "{time}.log", rotation="12 hours", backtrace=True, diagnose=True,
+               compression="gz")
 
 proxy = os.getenv("PROXY_URL")
 session = AiohttpSession(proxy=proxy)
@@ -49,7 +50,7 @@ async def main() -> None:
     from handlers import (handle_new_message, reset_command, settings_comand, set_command, raw_command,
                           start_command, status_command, directsend_command, sql_command, restart_command,
                           forget_command, replace_command, help_command, system_command, prune_command,
-                          feedback_command, stats_command, fset_command,
+                          feedback_command, stats_command,
                           handle_message_edit, blacklist_command, unblacklist_command, preset_command, hide_command)
 
     dp.message.register(directsend_command, Command("directsend"), adminMessageFilter)
@@ -59,7 +60,6 @@ async def main() -> None:
     dp.message.register(unblacklist_command, Command("unblacklist"), adminMessageFilter)
     dp.message.register(prune_command, Command("prune"), adminMessageFilter)
     dp.message.register(stats_command, Command("stats"), adminMessageFilter)
-    dp.message.register(fset_command, Command("fset"), adminMessageFilter)
 
     dp.message.register(status_command, Command("status"))
 
