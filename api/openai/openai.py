@@ -6,6 +6,7 @@ from typing import List
 
 import aiohttp
 from aiogram.types import Message
+from aiohttp_socks import ProxyConnector
 from asyncpg import Record
 from loguru import logger
 
@@ -48,9 +49,15 @@ async def _send_request(
         data["max_completion_tokens"] = max_output_tokens
 
     logger.info(f"{request_id} | Sending request to {url}")
-    async with aiohttp.ClientSession() as session:
+
+    if os.getenv("PROXY_URL"):
+        connector = ProxyConnector.from_url(os.getenv("PROXY_URL"))
+    else:
+        connector = None
+
+    async with aiohttp.ClientSession(connector=connector) as session:
         async with session.post(url + "v1/chat/completions", headers=headers, json=data,
-                                timeout=timeout, proxy=os.getenv("PROXY_URL")) as response:
+                                timeout=timeout) as response:
             try:
                 response_decoded = await response.json()
             except Exception as e:
