@@ -86,7 +86,9 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
     if other_media_present:
         logger.info(f"{request_id} | Found other media in prompt, will not rotate keys.")
 
-    if os.getenv("PROXY_URL"):
+    if os.getenv("GROUNDING_PROXY_URL") and grounding:
+        connector = ProxyConnector.from_url(os.getenv("GROUNDING_PROXY_URL"))
+    elif os.getenv("PROXY_URL"):
         connector = ProxyConnector.from_url(os.getenv("PROXY_URL"))
     else:
         connector = None
@@ -107,7 +109,7 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
 
             logger.info(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS} (key ...{key[-6:]})")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
-            async with session.post(url, headers=headers, json=data, proxy=os.getenv("PROXY_URL")) as response:
+            async with session.post(url, headers=headers, json=data) as response:
                 decoded_response = await response.json()
                 if response.status != 200:
                     logger.error(f"{request_id} | Got an error: {decoded_response} | Key: ...{key[-6:]}")
