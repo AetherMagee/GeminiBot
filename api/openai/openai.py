@@ -254,7 +254,9 @@ async def generate_response(message: Message) -> str:
                     message.chat.id,
                     message.from_user.id,
                     "openai",
-                    usage['total_tokens']
+                    usage['prompt_tokens'],
+                    usage['completion_tokens'],
+                    model
                 )
             except KeyError:
                 logger.warning(f"{request_id} | Failed to process token usage metadata.")

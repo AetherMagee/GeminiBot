@@ -40,6 +40,7 @@ async def main() -> None:
         await db.drop_orphan_columns(connection)
         await db.create_indexes(connection)
         await db.create_statistics_table(connection)
+        await db.migrate_statistics_table(connection)
 
     logger.info("DB init complete")
 

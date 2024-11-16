@@ -2,12 +2,7 @@ from aiogram.types import Message
 
 
 async def get_message_text(message: Message, what_to_get: str = "both") -> str:
-    if message.text:
-        text = message.text
-    elif message.caption:
-        text = message.caption
-    else:
-        text = ""
+    text = message.text or message.caption or ""
 
     if what_to_get == "both":
         return text

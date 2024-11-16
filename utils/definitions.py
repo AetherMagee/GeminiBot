@@ -362,3 +362,11 @@ presets = {
         "o_clarify_target_message": False
     }
 }
+
+prices = {
+    # Numbers are USD per million tokens
+    "gpt-4o": {"input": 2.5, "output": 10},
+    "chatgpt-4o-latest": {"input": 5, "output": 15},
+    "gemini-1.5-pro-latest": {"input": 5, "output": 2.5},
+    "o1-preview": {"input": 15, "output": 60}
+}

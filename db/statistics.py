@@ -1,10 +1,12 @@
 import datetime
+from decimal import Decimal
 from typing import Dict, List, Tuple
 
 import asyncpg
 from loguru import logger
 
 import db.shared as dbs
+from utils.definitions import chat_configs
 
 
 async def create_statistics_table(conn: asyncpg.Connection) -> None:
@@ -30,22 +32,28 @@ async def log_generation(
         chat_id: int,
         user_id: int,
         endpoint: str,
-        tokens: int
+        context_tokens: int,
+        completion_tokens: int,
+        model: str = None
 ) -> None:
-    """Log a generation event"""
+    """Log a generation event with enhanced metrics"""
     try:
         async with dbs.pool.acquire() as conn:
             await conn.execute(
                 """
                 INSERT INTO statistics_generations 
-                (timestamp, chat_id, user_id, endpoint, tokens_consumed)
-                VALUES ($1, $2, $3, $4, $5)
+                (timestamp, chat_id, user_id, endpoint, context_tokens, completion_tokens, 
+                tokens_consumed, model)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 """,
                 datetime.datetime.now(),
                 chat_id,
                 user_id,
                 endpoint,
-                tokens
+                context_tokens,
+                completion_tokens,
+                context_tokens + completion_tokens,
+                model
             )
     except Exception as e:
         logger.error(f"Failed to log generation stats: {e}")
@@ -178,3 +186,148 @@ async def get_request_count(chat_id: int, interval: datetime.timedelta) -> int:
             chat_id,
             cutoff
         )
+
+
+async def migrate_statistics_table(conn):
+    """Adds new columns to the statistics table for enhanced tracking"""
+    migrations = [
+        """ALTER TABLE statistics_generations 
+           ADD COLUMN IF NOT EXISTS model TEXT""",
+
+        """ALTER TABLE statistics_generations 
+           ADD COLUMN IF NOT EXISTS context_tokens INTEGER DEFAULT 0""",
+
+        """ALTER TABLE statistics_generations 
+           ADD COLUMN IF NOT EXISTS completion_tokens INTEGER DEFAULT 0""",
+
+        # Set existing tokens as completion tokens for backwards compatibility
+        """UPDATE statistics_generations 
+           SET completion_tokens = tokens_consumed, context_tokens = 0 
+           WHERE completion_tokens IS NULL"""
+    ]
+
+    for migration in migrations:
+        await conn.execute(migration)
+
+
+async def get_model_usage(days: int = 30) -> List[Dict]:
+    """Get usage statistics per model"""
+    async with dbs.pool.acquire() as conn:
+        # First, update NULL models to their defaults based on endpoint
+        await conn.execute(
+            """
+            UPDATE statistics_generations
+            SET model = CASE 
+                WHEN endpoint = 'google' THEN $1
+                WHEN endpoint = 'openai' THEN $2
+                ELSE 'unknown'
+            END
+            WHERE model IS NULL
+            """,
+            chat_configs['google']['g_model']['default_value'].strip("'"),
+            chat_configs['openai']['o_model']['default_value'].strip("'")
+        )
+
+        cutoff = datetime.datetime.now() - datetime.timedelta(days=days)
+
+        # Get usage stats, handling both new and legacy token counting
+        results = await conn.fetch(
+            """
+            SELECT 
+                model,
+                COUNT(*) as requests,
+                SUM(CASE 
+                    WHEN context_tokens > 0 OR completion_tokens > 0 THEN context_tokens
+                    ELSE tokens_consumed * 0.95  -- For legacy records
+                END) as context_tokens,
+                SUM(CASE 
+                    WHEN context_tokens > 0 OR completion_tokens > 0 THEN completion_tokens
+                    ELSE tokens_consumed * 0.05  -- For legacy records
+                END) as completion_tokens,
+                SUM(COALESCE(tokens_consumed, context_tokens + completion_tokens)) as total_tokens
+            FROM statistics_generations
+            WHERE timestamp > $1 AND model IS NOT NULL
+            GROUP BY model
+            ORDER BY requests DESC
+            """,
+            cutoff
+        )
+
+        # Convert to list of dicts for easier manipulation
+        usage_dict = {
+            r['model']: dict(r) for r in results
+        }
+
+        # Add default models if not present
+        default_models = {
+            chat_configs['google']['g_model']['default_value'].strip("'"),
+            chat_configs['openai']['o_model']['default_value'].strip("'")
+        }
+
+        for model in default_models:
+            if model not in usage_dict:
+                usage_dict[model] = {
+                    'model': model,
+                    'requests': 0,
+                    'context_tokens': 0,
+                    'completion_tokens': 0,
+                    'total_tokens': 0
+                }
+
+        return sorted(
+            usage_dict.values(),
+            key=lambda x: x['requests'],
+            reverse=True
+        )
+
+
+async def get_hourly_stats(hours: int) -> List[int]:
+    """Get generation counts per hour for the last N hours"""
+    async with dbs.pool.acquire() as conn:
+        now = datetime.datetime.now()
+        results = []
+        for i in range(hours):
+            start_time = now - datetime.timedelta(hours=i + 1)
+            end_time = now - datetime.timedelta(hours=i)
+            count = await conn.fetchval(
+                """
+                SELECT COUNT(*)
+                FROM statistics_generations
+                WHERE timestamp BETWEEN $1 AND $2
+                """,
+                start_time,
+                end_time
+            )
+            results.append(count)
+        return list(reversed(results))
+
+
+async def calculate_costs(model_usage: List[Dict], prices: Dict) -> Dict:
+    """Calculate costs based on token usage and pricing"""
+    total_cost = Decimal('0')
+    model_costs = {}
+
+    default_pricing = prices.get('default', {'input': 0, 'output': 0})
+
+    for usage in model_usage:
+        model = usage['model']
+        model_pricing = prices.get(model, default_pricing)
+
+        # Convert tokens to Decimal and handle the division
+        context_tokens = Decimal(str(usage['context_tokens']))
+        completion_tokens = Decimal(str(usage['completion_tokens']))
+        input_price = Decimal(str(model_pricing['input']))
+        output_price = Decimal(str(model_pricing['output']))
+
+        # Calculate costs for both input and output tokens
+        context_cost = (context_tokens / Decimal('1000000')) * input_price
+        completion_cost = (completion_tokens / Decimal('1000000')) * output_price
+        model_cost = context_cost + completion_cost
+
+        model_costs[model] = float(model_cost)  # Convert back to float for display
+        total_cost += model_cost
+
+    return {
+        'total': float(total_cost),  # Convert back to float for display
+        'per_model': model_costs
+    }
