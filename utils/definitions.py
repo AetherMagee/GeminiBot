@@ -364,7 +364,7 @@ presets = {
 }
 
 prices = {
-    # OpenAI models
+    # OpenAI models (in USD per million tokens)
     "gpt-4o": {
         "input": 2.50,
         "output": 10.00
@@ -427,32 +427,20 @@ prices = {
     },
 
     # Anthropic Claude models
-    "claude-3-opus-20240229": {
+    "claude-3-opus": {
         "input": 15.00,
         "output": 75.00
     },
-    "claude-3-5-sonnet-20241022": {
+    "claude-3-sonnet": {
         "input": 3.00,
         "output": 15.00
     },
-    "claude-3-5-sonnet-20240620": {
-        "input": 3.00,
-        "output": 15.00
-    },
-    "claude-3-5-haiku-20241022": {
+    "claude-3-haiku": {
         "input": 1.00,
         "output": 5.00
     },
-    "claude-3-sonnet-20240229": {
-        "input": 3.00,
-        "output": 15.00
-    },
-    "claude-3-haiku-20240307": {
-        "input": 0.25,
-        "output": 1.25
-    },
 
-    # Google models
+    # Google models (using consistent Gemini pricing)
     "gemini-1.5-pro-latest": {
         "input": 2.50,
         "output": 10.00
