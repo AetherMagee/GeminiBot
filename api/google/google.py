@@ -200,8 +200,6 @@ async def _handle_api_response(
 
                 return output
 
-
-
         if "promptFeedback" in response.keys() and "blockReason" in response["promptFeedback"].keys():
             if response["promptFeedback"]["blockReason"] in ["OTHER", "PROHIBITED_CONTENT"]:
                 output = "❌ *Запрос был заблокирован цензурой Gemini API по неизвестным причинам.*"
@@ -232,6 +230,17 @@ async def _handle_api_response(
         if grounding_metadata:
             chunks = grounding_metadata.get("groundingChunks")
             queries = grounding_metadata.get("webSearchQueries")
+
+            if chunks or queries:
+                def error_prone_len(inp) -> int:
+                    try:
+                        return len(inp)
+                    except TypeError:
+                        return 0
+
+                logger.debug(f"{request_id} | Response is grounded. {error_prone_len(chunks)} chunks and {error_prone_len(queries)} queries.")
+                output += "\n⎯⎯⎯⎯⎯\n"
+
             if queries and await db.get_chat_parameter(message.chat.id, "g_web_search_show_queries"):
                 output += "\n"
                 output += "*Поисковые запросы:*\n"
