@@ -135,7 +135,6 @@ async def _handle_api_response(
         request_id: int,
         response: dict,
         message: Message,
-        store: bool,
         show_error_message: bool
 ) -> str:
     censordict = {
@@ -276,17 +275,9 @@ async def generate_response(message: Message) -> str:
     chat_messages = await db.get_messages(message.chat.id)
     typing_task = asyncio.create_task(simulate_typing(message.chat.id))
 
-    if not message_text.startswith("/raw"):
-        prompt = await _prepare_prompt(message, chat_messages, token)
-        if not prompt:
-            return ERROR_MESSAGES["censored"]
-
-        store = True
-    else:
-        prompt = [message_text.replace("/raw ", "", 1)]
-        store = "--dont-store" not in prompt[0]
-        if not store:
-            prompt[0] = prompt[0].replace("--dont-store", "", 1)
+    prompt = await _prepare_prompt(message, chat_messages, token)
+    if not prompt:
+        return ERROR_MESSAGES["censored"]
 
     model_name = await db.get_chat_parameter(message.chat.id, "g_model")
 
@@ -342,7 +333,7 @@ async def generate_response(message: Message) -> str:
     show_error_message = await db.get_chat_parameter(message.chat.id, "show_error_messages")
 
     try:
-        return await _handle_api_response(request_id, response, message, store, show_error_message)
+        return await _handle_api_response(request_id, response, message, show_error_message)
     except Exception as e:
         logger.error(f"{request_id} | Failed to generate message. Exception: {e}")
         error_message = (": " + str(e)) if show_error_message else ""
