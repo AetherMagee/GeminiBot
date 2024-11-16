@@ -5,7 +5,7 @@ import asyncpg
 from loguru import logger
 
 import db.shared as dbs
-from utils.definitions import prices
+from utils.definitions import prices, DEFAULT_INPUT_PRICE, DEFAULT_OUTPUT_PRICE
 from utils.usernames import get_entity_title
 
 
@@ -140,8 +140,17 @@ def calculate_model_cost(
         completion_tokens: int,
         model: str
 ) -> float:
-    """Calculate cost for a specific model's usage"""
-    model_prices = prices.get(model, {"input": 5.0, "output": 10.0})  # Default pricing if model not found
+    """
+    Calculate cost for a specific model's usage.
+    All Gemini models use the same fixed pricing regardless of version.
+    Falls back to default pricing for unknown non-Gemini models.
+    """
+    # Fixed pricing for all Gemini models
+    if model and 'gemini' in model.lower():
+        return (context_tokens / 1_000_000) * 2.50 + (completion_tokens / 1_000_000) * 10.00
+
+    # For all other models, use the pricing dictionary or defaults
+    model_prices = prices.get(model, {"input": DEFAULT_INPUT_PRICE, "output": DEFAULT_OUTPUT_PRICE})
 
     context_cost = (context_tokens / 1_000_000) * model_prices["input"]
     completion_cost = (completion_tokens / 1_000_000) * model_prices["output"]
