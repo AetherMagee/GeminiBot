@@ -28,7 +28,8 @@ class FloatRange:
         return min(value, self.stop)
 
     def __iter__(self):
-        return (self[i] for i in range(len(self)))
+        for i in range(len(self)):
+            yield self[i]
 
     def __contains__(self, value):
         if value < self.start or value > self.stop:
