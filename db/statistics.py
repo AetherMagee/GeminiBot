@@ -331,3 +331,105 @@ async def calculate_costs(model_usage: List[Dict], prices: Dict) -> Dict:
         'total': float(total_cost),  # Convert back to float for display
         'per_model': model_costs
     }
+
+
+async def get_cost_stats_for_entities(entity_type: str, limit: int = 5) -> List[Dict]:
+    """Get token usage and cost estimates for users or chats"""
+    async with dbs.pool.acquire() as conn:
+        field = f"{entity_type}_id"
+
+        results = await conn.fetch(
+            f"""
+            SELECT 
+                {field},
+                COUNT(*) as requests,
+                SUM(CASE 
+                    WHEN context_tokens > 0 OR completion_tokens > 0 THEN context_tokens
+                    ELSE tokens_consumed * 0.95
+                END) as context_tokens,
+                SUM(CASE 
+                    WHEN context_tokens > 0 OR completion_tokens > 0 THEN completion_tokens
+                    ELSE tokens_consumed * 0.05
+                END) as completion_tokens,
+                model,
+                SUM(COALESCE(tokens_consumed, context_tokens + completion_tokens)) as total_tokens
+            FROM statistics_generations
+            GROUP BY {field}, model
+            ORDER BY total_tokens DESC
+            """)
+
+        # Organize by entity
+        entities = {}
+        for row in results:
+            entity_id = row[field]
+            if entity_id not in entities:
+                entities[entity_id] = {
+                    'id': entity_id,
+                    'models': {},
+                    'total_tokens': 0,
+                    'total_requests': 0
+                }
+
+            entities[entity_id]['models'][row['model']] = {
+                'context_tokens': row['context_tokens'],
+                'completion_tokens': row['completion_tokens'],
+                'total_tokens': row['total_tokens'],
+                'requests': row['requests']
+            }
+            entities[entity_id]['total_tokens'] += row['total_tokens']
+            entities[entity_id]['total_requests'] += row['requests']
+
+        return sorted(
+            entities.values(),
+            key=lambda x: x['total_tokens'],
+            reverse=True
+        )[:limit]
+
+
+async def get_total_cost_stats() -> Dict:
+    """Get cost statistics for all time and last 30 days"""
+    async with dbs.pool.acquire() as conn:
+        thirty_days_ago = datetime.datetime.now() - datetime.timedelta(days=30)
+
+        results = await conn.fetch(
+            """
+            SELECT 
+                model,
+                SUM(CASE 
+                    WHEN context_tokens > 0 OR completion_tokens > 0 THEN context_tokens
+                    ELSE tokens_consumed * 0.95
+                END) as context_tokens,
+                SUM(CASE 
+                    WHEN context_tokens > 0 OR completion_tokens > 0 THEN completion_tokens
+                    ELSE tokens_consumed * 0.05
+                END) as completion_tokens,
+                SUM(COALESCE(tokens_consumed, context_tokens + completion_tokens)) as total_tokens,
+                COUNT(*) as requests
+            FROM statistics_generations
+            GROUP BY model
+            """)
+
+        recent_results = await conn.fetch(
+            """
+            SELECT 
+                model,
+                SUM(CASE 
+                    WHEN context_tokens > 0 OR completion_tokens > 0 THEN context_tokens
+                    ELSE tokens_consumed * 0.95
+                END) as context_tokens,
+                SUM(CASE 
+                    WHEN context_tokens > 0 OR completion_tokens > 0 THEN completion_tokens
+                    ELSE tokens_consumed * 0.05
+                END) as completion_tokens,
+                SUM(COALESCE(tokens_consumed, context_tokens + completion_tokens)) as total_tokens,
+                COUNT(*) as requests
+            FROM statistics_generations
+            WHERE timestamp > $1
+            GROUP BY model
+            """,
+            thirty_days_ago)
+
+        return {
+            'all_time': results,
+            'last_30d': recent_results
+        }

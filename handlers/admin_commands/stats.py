@@ -1,4 +1,5 @@
 import time
+import traceback
 from datetime import datetime, timedelta
 from typing import List
 
@@ -55,6 +56,15 @@ async def stats_command(message: Message):
         model_usage = await stats.get_model_usage(30)
         costs = await stats.calculate_costs(model_usage, prices)
 
+        # Get new cost statistics
+        total_stats = await stats.get_total_cost_stats()
+        all_time_costs = await stats.calculate_costs(total_stats['all_time'], prices)
+        last_30d_costs = await stats.calculate_costs(total_stats['last_30d'], prices)
+
+        # Get entity costs
+        top_chats_costs = await stats.get_cost_stats_for_entities('chat', 5)
+        top_users_costs = await stats.get_cost_stats_for_entities('user', 5)
+
         # Build enhanced response
         response = f"""📊 <b>Статистика бота</b> 
 
@@ -79,8 +89,9 @@ async def stats_command(message: Message):
 • Сегодня: <b>{tokens_today:,}</b>
 • За последний час: <b>{tokens_last_hour:,}</b>
 
-💰 <b>Оценка затрат (30 дн)</b>
-• Всего: <b>${costs['total']:.2f}</b>"""
+💰 <b>Оценка затрат</b>
+• Всего: <b>${all_time_costs['total']:.2f}</b>
+• За 30 дней: <b>${last_30d_costs['total']:.2f}</b>"""
 
         # Add per-model breakdown
         response += "\n\n📊 <b>Использование моделей (30 дн)</b>"
@@ -89,25 +100,42 @@ async def stats_command(message: Message):
             cost = costs['per_model'].get(model, 0)
             response += f"\n• {model}:"
             response += f" {usage['requests']} запр.,"
-            response += f" {usage['total_tokens']:,} токенов"
+            response += f" {usage['total_tokens']:,} всего"
             if cost > 0:
                 response += f" (${cost:.2f})"
 
-        response += "\n\n💬 <b>Топ 5 чатов по использованию токенов:</b>"
-        for i, chat in enumerate(top_chats, 1):
-            chat_title = await get_entity_title(chat['chat_id'])
-            response += f"\n{i}. {chat_title} (<code>{chat['chat_id']}</code>): <b>{chat['tokens']:,}</b> токенов"
+        response += "\n\n💬 <b>Топ 5 чатов по использованию:</b>"
+        for chat_stats in top_chats_costs:
+            chat_title = await get_entity_title(chat_stats['id'])
+            chat_costs = await stats.calculate_costs([{
+                'model': m,
+                'context_tokens': d['context_tokens'],
+                'completion_tokens': d['completion_tokens']
+            } for m, d in chat_stats['models'].items()], prices)
+            response += f"\n• {chat_title} (<code>{chat_stats['id']}</code>): "
+            response += f"<b>{chat_stats['total_tokens']:,}</b> токенов, "
+            response += f"{chat_stats['total_requests']} запросов"
+            response += f" (${chat_costs['total']:.2f})"
 
         response += "\n\n👤 <b>Самые активные пользователи:</b>"
-        for i, user in enumerate(top_users, 1):
-            user_name = await get_entity_title(user['user_id'])
-            response += f"\n{i}. {user_name} (<code>{user['user_id']}</code>): <b>{user['generations']}</b> запросов"
+        for user_stats in top_users_costs:
+            user_name = await get_entity_title(user_stats['id'])
+            user_costs = await stats.calculate_costs([{
+                'model': m,
+                'context_tokens': d['context_tokens'],
+                'completion_tokens': d['completion_tokens']
+            } for m, d in user_stats['models'].items()], prices)
+            response += f"\n• {user_name} (<code>{user_stats['id']}</code>): "
+            response += f"<b>{user_stats['total_tokens']:,}</b> токенов, "
+            response += f"{user_stats['total_requests']} запросов"
+            response += f" (${user_costs['total']:.2f})"
 
         response_time = time.time() - start_time
-        response += f"\n\n⚡️ Собрано за {response_time:.2f}с"
+        response += f"\n\n⚡️ Сгенерировано за {response_time:.2f}с"
 
         await message.reply(response)
 
     except Exception as e:
         logger.error(f"Failed to get statistics: {e}")
-        await message.reply("❌ Не удалось собрать статистику")
+        logger.debug(traceback.format_exc())
+        await message.reply("❌ Не удалось сгенерировать статистику")
