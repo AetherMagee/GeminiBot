@@ -30,6 +30,14 @@ class FloatRange:
     def __iter__(self):
         return (self[i] for i in range(len(self)))
 
+    def __contains__(self, value):
+        if value < self.start or value > self.stop:
+            return False
+
+        epsilon = 1e-10
+        steps = (value - self.start) / self.step
+        return abs(round(steps) - steps) < epsilon
+
 
 def frange(start, stop=None, step=1.0):
     return FloatRange(start, stop, step)
