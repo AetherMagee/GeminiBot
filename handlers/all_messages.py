@@ -118,8 +118,6 @@ async def handle_response(message: Message, output: str) -> None:
 
         output = output.split("⎯⎯⎯⎯⎯")[0]  # EXTREMELY gore way of not saving the grounding metadata but idc
 
-        logger.debug(output)
-
         await db.save_our_message(message, output, our_message.message_id)
 
 
