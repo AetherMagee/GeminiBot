@@ -210,13 +210,19 @@ async def _handle_api_response(
         if usage:
             try:
                 total_tokens = usage['totalTokenCount']
+                prompt_tokens = usage.get('promptTokenCount')
+                completion_tokens = usage.get('candidatesTokenCount')
+
                 logger.debug(
-                    f"{request_id} | Tokens: {total_tokens} total ({usage.get('promptTokenCount')} prompt, {usage.get('candidatesTokenCount')} completion)")
+                    f"{request_id} | Tokens: {total_tokens} total ({prompt_tokens} prompt, {completion_tokens} completion)")
+
                 await db.statistics.log_generation(
                     message.chat.id,
                     message.from_user.id,
                     "google",
-                    total_tokens
+                    prompt_tokens,
+                    completion_tokens,
+                    await db.get_chat_parameter(message.chat.id, "g_model")
                 )
             except KeyError:
                 logger.warning(f"{request_id} | Failed to process token usage metadata.")
