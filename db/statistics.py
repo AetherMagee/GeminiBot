@@ -1,6 +1,5 @@
 import datetime
 from decimal import Decimal
-from functools import _CacheInfo
 from typing import Dict, List, Tuple
 
 import asyncpg
@@ -447,7 +446,7 @@ async def get_cache_stats():
 
     stats = {}
     for name, cache in caches.items():
-        cache_info: _CacheInfo = cache.cache_info()
+        cache_info = cache.cache_info()
         stats[name] = {
             "size": cache_info[3],
             "maxsize": cache_info[2],
