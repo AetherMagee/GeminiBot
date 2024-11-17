@@ -1,4 +1,4 @@
-import time
+import asyncio
 import traceback
 from datetime import datetime, timedelta
 from typing import List
@@ -7,7 +7,6 @@ from aiogram.types import Message
 from loguru import logger
 
 import db.statistics as stats
-from main import ADMIN_IDS
 from utils import get_entity_title
 
 
@@ -23,48 +22,86 @@ def sparkline(numbers: List[float]) -> str:
 
 
 async def stats_command(message: Message):
-    if message.from_user.id not in ADMIN_IDS:
-        return
-
     try:
-        start_time = time.time()
-
-        # Get all existing stats
         now = datetime.now()
         start_of_today = datetime.combine(now.date(), datetime.min.time())
         one_hour_ago = now - timedelta(hours=1)
 
-        daily_active_count, _ = await stats.get_active_users(1)
-        weekly_active_count, _ = await stats.get_active_users(7)
-        monthly_active_count, _ = await stats.get_active_users(30)
+        # Active users
+        active_users = await asyncio.gather(
+            stats.get_active_users(1),
+            stats.get_active_users(7),
+            stats.get_active_users(30)
+        )
+        daily_active_count, _ = active_users[0]
+        weekly_active_count, _ = active_users[1]
+        monthly_active_count, _ = active_users[2]
 
-        daily_gens = await stats.get_generation_counts_period(start_of_today)
-        hourly_gens = await stats.get_generation_counts_period(one_hour_ago)
-        weekly_gens = await stats.get_generation_counts(7)
-        total_gens = await stats.get_generation_counts_period(datetime.min)
+        # Generation counts
+        generation_counts = await asyncio.gather(
+            stats.get_generation_counts_period(start_of_today),
+            stats.get_generation_counts_period(one_hour_ago),
+            stats.get_generation_counts(7),
+            stats.get_generation_counts_period(datetime.min)
+        )
+        daily_gens, hourly_gens, weekly_gens, total_gens = generation_counts
 
-        total_tokens, top_chats = await stats.get_token_stats()
-        tokens_last_24h = await stats.get_tokens_consumed(1)
-        tokens_today = await stats.get_tokens_consumed_period(start_of_today)
-        tokens_last_hour = await stats.get_tokens_consumed_period(one_hour_ago)
+        # Token stats
+        token_stats = await asyncio.gather(
+            stats.get_token_stats(),
+            stats.get_tokens_consumed(1),
+            stats.get_tokens_consumed_period(start_of_today),
+            stats.get_tokens_consumed_period(one_hour_ago)
+        )
+        (total_tokens, top_chats) = token_stats[0]
+        tokens_last_24h = token_stats[1]
+        tokens_today = token_stats[2]
+        tokens_last_hour = token_stats[3]
 
-        top_users = await stats.get_top_users(30)
+        # Enhanced stats
+        enhanced_stats = await asyncio.gather(
+            stats.get_hourly_stats(24),
+            stats.get_model_usage(30),
+            stats.get_total_cost_stats(),
+            stats.get_cost_stats_for_entities('chat', 5),
+            stats.get_cost_stats_for_entities('user', 5)
+        )
+        hourly_counts = enhanced_stats[0]
+        model_usage = enhanced_stats[1]
+        total_stats = enhanced_stats[2]
+        top_chats_costs = enhanced_stats[3]
+        top_users_costs = enhanced_stats[4]
 
-        # Get new enhanced stats
-        hourly_counts = await stats.get_hourly_stats(24)
-        model_usage = await stats.get_model_usage(30)
+        # Calculate costs
         costs = await stats.calculate_costs(model_usage)
-
-        # Get new cost statistics
-        total_stats = await stats.get_total_cost_stats()
         all_time_costs = await stats.calculate_costs(total_stats['all_time'])
         last_30d_costs = await stats.calculate_costs(total_stats['last_30d'])
 
-        # Get entity costs
-        top_chats_costs = await stats.get_cost_stats_for_entities('chat', 5)
-        top_users_costs = await stats.get_cost_stats_for_entities('user', 5)
+        async def format_entity_stats(entities, entity_type=""):
+            formatted = f"\n\n{'💬' if entity_type == 'chat' else '👤'} <b>{'Топ 5 чатов' if entity_type == 'chat' else 'Самые активные пользователи'} по использованию:</b>"
+            for entity in entities:
+                entity_title = await get_entity_title(entity['id'])
+                entity_costs = await stats.calculate_costs([{
+                    'model': m,
+                    'context_tokens': d['context_tokens'],
+                    'completion_tokens': d['completion_tokens']
+                } for m, d in entity['models'].items()])
+                formatted += f"\n• {entity_title} (<code>{entity['id']}</code>): "
+                formatted += f"<b>{entity['total_tokens']:,}</b> токенов, "
+                formatted += f"{entity['total_requests']} запросов"
+                formatted += f" (${entity_costs['total']:.2f})"
+            return formatted
 
-        # Build enhanced response
+        # Format model usage
+        model_usage_text = "\n\n📊 <b>Использование моделей (30 дн)</b>"
+        for usage in model_usage[:3]:
+            model = usage['model']
+            cost = costs['per_model'].get(model, 0)
+            model_usage_text += (f"\n• {model}: {usage['requests']} запр., "
+                                 f"{usage['total_tokens']:,} токенов"
+                                 f"{f' (${cost:.2f})' if cost > 0 else ''}")
+
+        # Build base response
         response = f"""📊 <b>Статистика бота</b> 
 
 👥 <b>Активные пользователи</b>
@@ -92,53 +129,19 @@ async def stats_command(message: Message):
 • Всего: <b>${all_time_costs['total']:.2f}</b>
 • За 30 дней: <b>${last_30d_costs['total']:.2f}</b>"""
 
-        # Add per-model breakdown
-        response += "\n\n📊 <b>Использование моделей (30 дн)</b>"
-        count = 0
-        for usage in model_usage:
-            if count >= 3:
-                break
-            model = usage['model']
-            cost = costs['per_model'].get(model, 0)
-            response += f"\n• {model}:"
-            response += f" {usage['requests']} запр.,"
-            response += f" {usage['total_tokens']:,} всего"
-            if cost > 0:
-                response += f" (${cost:.2f})"
-            count += 1
+        # Add model usage
+        response += model_usage_text
 
-        response += "\n\n💬 <b>Топ 5 чатов по использованию:</b>"
-        for chat_stats in top_chats_costs:
-            chat_title = await get_entity_title(chat_stats['id'])
-            chat_costs = await stats.calculate_costs([{
-                'model': m,
-                'context_tokens': d['context_tokens'],
-                'completion_tokens': d['completion_tokens']
-            } for m, d in chat_stats['models'].items()])
-            response += f"\n• {chat_title} (<code>{chat_stats['id']}</code>): "
-            response += f"<b>{chat_stats['total_tokens']:,}</b> токенов, "
-            response += f"{chat_stats['total_requests']} запросов"
-            response += f" (${chat_costs['total']:.2f})"
-
-        response += "\n\n👤 <b>Самые активные пользователи:</b>"
-        for user_stats in top_users_costs:
-            user_name = await get_entity_title(user_stats['id'])
-            user_costs = await stats.calculate_costs([{
-                'model': m,
-                'context_tokens': d['context_tokens'],
-                'completion_tokens': d['completion_tokens']
-            } for m, d in user_stats['models'].items()])
-            response += f"\n• {user_name} (<code>{user_stats['id']}</code>): "
-            response += f"<b>{user_stats['total_tokens']:,}</b> токенов, "
-            response += f"{user_stats['total_requests']} запросов"
-            response += f" (${user_costs['total']:.2f})"
-
-        response_time = time.time() - start_time
-        response += f"\n\n⚡️ Сгенерировано за {response_time:.2f}с"
+        # Add entity stats
+        entity_stats = await asyncio.gather(
+            format_entity_stats(top_chats_costs, "chat"),
+            format_entity_stats(top_users_costs, "user")
+        )
+        response += entity_stats[0] + entity_stats[1]
 
         await message.reply(response)
 
     except Exception as e:
         logger.error(f"Failed to get statistics: {e}")
         logger.debug(traceback.format_exc())
-        await message.reply("❌ Не удалось сгенерировать статистику")
+        await message.reply("❌ Не удалось собрать статистику")
