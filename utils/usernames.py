@@ -4,7 +4,7 @@ from async_lru import alru_cache
 from main import bot
 
 
-@alru_cache(maxsize=1024)
+@alru_cache
 async def get_entity_title(target_id: int) -> str:
     try:
         chat = await bot.get_chat(target_id)
