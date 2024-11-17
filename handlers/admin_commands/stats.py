@@ -7,7 +7,7 @@ from aiogram.types import Message
 from loguru import logger
 
 import db.statistics as stats
-from utils import get_entity_title
+from utils import get_entity_title, log_command
 
 
 def sparkline(numbers: List[float]) -> str:
@@ -22,6 +22,8 @@ def sparkline(numbers: List[float]) -> str:
 
 
 async def stats_command(message: Message):
+    await log_command(message)
+
     try:
         now = datetime.now()
         start_of_today = datetime.combine(now.date(), datetime.min.time())
