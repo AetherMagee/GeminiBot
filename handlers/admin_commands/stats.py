@@ -63,8 +63,8 @@ async def stats_command(message: Message):
             stats.get_hourly_stats(24),
             stats.get_model_usage(30),
             stats.get_total_cost_stats(),
-            stats.get_cost_stats_for_entities('chat', 5),
-            stats.get_cost_stats_for_entities('user', 5)
+            stats.get_cost_stats_for_entities('chat', 3),
+            stats.get_cost_stats_for_entities('user', 3)
         )
         hourly_counts = enhanced_stats[0]
         model_usage = enhanced_stats[1]
@@ -78,18 +78,26 @@ async def stats_command(message: Message):
         last_30d_costs = await stats.calculate_costs(total_stats['last_30d'])
 
         async def format_entity_stats(entities, entity_type=""):
-            formatted = f"\n\n{'💬' if entity_type == 'chat' else '👤'} <b>{'Топ 5 чатов' if entity_type == 'chat' else 'Самые активные пользователи'} по использованию:</b>"
-            for entity in entities:
-                entity_title = await get_entity_title(entity['id'])
+            formatted = f"\n\n{'💬' if entity_type == 'chat' else '👤'} <b>{'Топ чатов' if entity_type == 'chat' else 'Самые активные пользователи'}:</b>"
+
+            # Get all titles concurrently
+            entity_titles = await asyncio.gather(
+                *[get_entity_title(entity['id']) for entity in entities]
+            )
+
+            # Zip entities with their titles and format
+            for entity, title in zip(entities, entity_titles):
                 entity_costs = await stats.calculate_costs([{
                     'model': m,
                     'context_tokens': d['context_tokens'],
                     'completion_tokens': d['completion_tokens']
                 } for m, d in entity['models'].items()])
-                formatted += f"\n• {entity_title} (<code>{entity['id']}</code>): "
-                formatted += f"<b>{entity['total_tokens']:,}</b> токенов, "
-                formatted += f"{entity['total_requests']} запросов"
+
+                formatted += f"\n• {title} (<code>{entity['id']}</code>): "
+                formatted += f"<b>{entity['total_requests']}</b> запросов, "
+                formatted += f"<b>{entity['total_tokens']:,}</b> токенов"
                 formatted += f" (${entity_costs['total']:.2f})"
+
             return formatted
 
         # Format model usage
@@ -97,7 +105,7 @@ async def stats_command(message: Message):
         for usage in model_usage[:3]:
             model = usage['model']
             cost = costs['per_model'].get(model, 0)
-            model_usage_text += (f"\n• {model}: {usage['requests']} запр., "
+            model_usage_text += (f"\n• {model}: {usage['requests']} запросов, "
                                  f"{usage['total_tokens']:,} токенов"
                                  f"{f' (${cost:.2f})' if cost > 0 else ''}")
 
