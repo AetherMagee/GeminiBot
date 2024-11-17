@@ -6,7 +6,7 @@ import asyncpg
 from loguru import logger
 
 import db.shared as dbs
-from utils.definitions import chat_configs
+from utils.definitions import chat_configs, prices
 
 
 async def create_statistics_table(conn: asyncpg.Connection) -> None:
@@ -199,6 +199,15 @@ async def migrate_statistics_table(conn):
 
         """ALTER TABLE statistics_generations 
            ADD COLUMN IF NOT EXISTS completion_tokens INTEGER DEFAULT 0""",
+
+        f"""
+            UPDATE statistics_generations
+            SET model = CASE 
+                WHEN endpoint = 'google' THEN '{chat_configs['google']['g_model']['default_value'].strip("'")}'
+                WHEN endpoint = 'openai' THEN '{chat_configs['openai']['o_model']['default_value'].strip("'")}'
+            END
+            WHERE model IS NULL
+            """,
     ]
 
     for migration in migrations:
@@ -208,21 +217,6 @@ async def migrate_statistics_table(conn):
 async def get_model_usage(days: int = 30) -> List[Dict]:
     """Get usage statistics per model"""
     async with dbs.pool.acquire() as conn:
-        # First, update NULL models to their defaults based on endpoint
-        await conn.execute(
-            """
-            UPDATE statistics_generations
-            SET model = CASE 
-                WHEN endpoint = 'google' THEN $1
-                WHEN endpoint = 'openai' THEN $2
-                ELSE 'unknown'
-            END
-            WHERE model IS NULL
-            """,
-            chat_configs['google']['g_model']['default_value'].strip("'"),
-            chat_configs['openai']['o_model']['default_value'].strip("'")
-        )
-
         cutoff = datetime.datetime.now() - datetime.timedelta(days=days)
 
         # Get usage stats, handling both new and legacy token counting
@@ -297,16 +291,26 @@ async def get_hourly_stats(hours: int) -> List[int]:
         return list(reversed(results))
 
 
-async def calculate_costs(model_usage: List[Dict], prices: Dict) -> Dict:
+def get_model_price(model: str) -> Dict:
+    """Get the price for a specific model"""
+
+    if "gemini" in model:
+        return {"input": 2.50, "output": 10.00}
+
+    try:
+        return prices[model]
+    except KeyError:
+        return {"input": 5.00, "output": 10.00}
+
+
+async def calculate_costs(model_usage: List[Dict]) -> Dict:
     """Calculate costs based on token usage and pricing"""
     total_cost = Decimal('0')
     model_costs = {}
 
-    default_pricing = prices.get('default', {'input': 0, 'output': 0})
-
     for usage in model_usage:
         model = usage['model']
-        model_pricing = prices.get(model, default_pricing)
+        model_pricing = get_model_price(model)
 
         # Convert tokens to Decimal and handle the division
         context_tokens = Decimal(str(usage['context_tokens']))

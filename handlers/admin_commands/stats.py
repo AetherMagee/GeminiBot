@@ -9,7 +9,6 @@ from loguru import logger
 import db.statistics as stats
 from main import ADMIN_IDS
 from utils import get_entity_title
-from utils.definitions import prices
 
 
 def sparkline(numbers: List[float]) -> str:
@@ -54,12 +53,12 @@ async def stats_command(message: Message):
         # Get new enhanced stats
         hourly_counts = await stats.get_hourly_stats(24)
         model_usage = await stats.get_model_usage(30)
-        costs = await stats.calculate_costs(model_usage, prices)
+        costs = await stats.calculate_costs(model_usage)
 
         # Get new cost statistics
         total_stats = await stats.get_total_cost_stats()
-        all_time_costs = await stats.calculate_costs(total_stats['all_time'], prices)
-        last_30d_costs = await stats.calculate_costs(total_stats['last_30d'], prices)
+        all_time_costs = await stats.calculate_costs(total_stats['all_time'])
+        last_30d_costs = await stats.calculate_costs(total_stats['last_30d'])
 
         # Get entity costs
         top_chats_costs = await stats.get_cost_stats_for_entities('chat', 5)
@@ -95,7 +94,10 @@ async def stats_command(message: Message):
 
         # Add per-model breakdown
         response += "\n\n📊 <b>Использование моделей (30 дн)</b>"
+        count = 0
         for usage in model_usage:
+            if count >= 3:
+                break
             model = usage['model']
             cost = costs['per_model'].get(model, 0)
             response += f"\n• {model}:"
@@ -103,6 +105,7 @@ async def stats_command(message: Message):
             response += f" {usage['total_tokens']:,} всего"
             if cost > 0:
                 response += f" (${cost:.2f})"
+            count += 1
 
         response += "\n\n💬 <b>Топ 5 чатов по использованию:</b>"
         for chat_stats in top_chats_costs:
@@ -111,7 +114,7 @@ async def stats_command(message: Message):
                 'model': m,
                 'context_tokens': d['context_tokens'],
                 'completion_tokens': d['completion_tokens']
-            } for m, d in chat_stats['models'].items()], prices)
+            } for m, d in chat_stats['models'].items()])
             response += f"\n• {chat_title} (<code>{chat_stats['id']}</code>): "
             response += f"<b>{chat_stats['total_tokens']:,}</b> токенов, "
             response += f"{chat_stats['total_requests']} запросов"
@@ -124,7 +127,7 @@ async def stats_command(message: Message):
                 'model': m,
                 'context_tokens': d['context_tokens'],
                 'completion_tokens': d['completion_tokens']
-            } for m, d in user_stats['models'].items()], prices)
+            } for m, d in user_stats['models'].items()])
             response += f"\n• {user_name} (<code>{user_stats['id']}</code>): "
             response += f"<b>{user_stats['total_tokens']:,}</b> токенов, "
             response += f"{user_stats['total_requests']} запросов"
