@@ -199,11 +199,6 @@ async def migrate_statistics_table(conn):
 
         """ALTER TABLE statistics_generations 
            ADD COLUMN IF NOT EXISTS completion_tokens INTEGER DEFAULT 0""",
-
-        # Set existing tokens as completion tokens for backwards compatibility
-        """UPDATE statistics_generations 
-           SET completion_tokens = tokens_consumed, context_tokens = 0 
-           WHERE completion_tokens IS NULL"""
     ]
 
     for migration in migrations:
