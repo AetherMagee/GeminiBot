@@ -156,6 +156,21 @@ async def stats_command(message: Message):
             response += f"\n• {cache_name}: {info['size']}/{info['maxsize']}"
             response += f" - {info['hit_rate']}% попаданий ({info['hits']:,} к {info['misses']:,})"
 
+        db_stats = await stats.get_database_stats()
+
+        response += "\n\n💾 <b>База данных:</b>"
+        response += f"\n• Размер: {db_stats['total_size']}"
+        response += f"\n• Попадания по кэшам: {db_stats['cache_hit_ratio']:.1%}"
+
+        conn_stats = db_stats["connections"]
+        response += f"\n• Подключения: {conn_stats['total']} всего "
+        response += f"({conn_stats['active']} активных, {conn_stats['idle']} простаивают)"
+
+        response += "\n• Топ таблиц по размеру:"
+        for table in list(db_stats["tables"])[:3]:
+            response += f"\n  - {table['table_name']}: {table['total_size']} "
+            response += f"({table['row_count']:,} строк)"
+
         await message.reply(response)
 
     except Exception as e:

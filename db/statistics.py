@@ -457,3 +457,49 @@ async def get_cache_stats():
             (cache_info[0] + cache_info[1]) > 0 else 0
         }
     return stats
+
+
+async def get_database_stats() -> dict:
+    """Get PostgreSQL database statistics"""
+    async with dbs.pool.acquire() as conn:
+        stats = {}
+
+        # Database size
+        size = await conn.fetchval("""
+            SELECT pg_size_pretty(pg_database_size(current_database()))
+        """)
+        stats["total_size"] = size
+
+        # Table sizes and row counts
+        tables = await conn.fetch("""
+            SELECT 
+                relname as table_name,
+                n_live_tup as row_count,
+                pg_size_pretty(pg_total_relation_size(quote_ident(relname))) as total_size
+            FROM pg_stat_user_tables
+            ORDER BY pg_total_relation_size(quote_ident(relname)) DESC
+        """)
+        stats["tables"] = tables
+
+        # Connection info
+        connections = await conn.fetch("""
+            SELECT 
+                count(*) as total,
+                count(*) filter (where state = 'active') as active,
+                count(*) filter (where state = 'idle') as idle
+            FROM pg_stat_activity 
+            WHERE datname = current_database()
+        """)
+        stats["connections"] = connections[0]
+
+        # Cache hit rates
+        cache_stats = await conn.fetch("""
+            SELECT 
+                sum(heap_blks_read) as heap_read,
+                sum(heap_blks_hit)  as heap_hit,
+                sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) as ratio
+            FROM pg_statio_user_tables
+        """)
+        stats["cache_hit_ratio"] = cache_stats[0]["ratio"] if cache_stats[0]["heap_read"] > 0 else 1.0
+
+        return stats
