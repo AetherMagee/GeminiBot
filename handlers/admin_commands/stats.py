@@ -66,13 +66,15 @@ async def stats_command(message: Message):
             stats.get_model_usage(30),
             stats.get_total_cost_stats(),
             stats.get_cost_stats_for_entities('chat', 3),
-            stats.get_cost_stats_for_entities('user', 3)
+            stats.get_cost_stats_for_entities('user', 3),
+            stats.get_cache_stats()
         )
         hourly_counts = enhanced_stats[0]
         model_usage = enhanced_stats[1]
         total_stats = enhanced_stats[2]
         top_chats_costs = enhanced_stats[3]
         top_users_costs = enhanced_stats[4]
+        cache_stats = enhanced_stats[5]
 
         # Calculate costs
         costs = await stats.calculate_costs(model_usage)
@@ -148,6 +150,11 @@ async def stats_command(message: Message):
             format_entity_stats(top_users_costs, "user")
         )
         response += entity_stats[0] + entity_stats[1]
+
+        response += "\n\n💾 <b>Кэши:</b>"
+        for cache_name, info in cache_stats.items():
+            response += f"\n• {cache_name}: {info['size']}/{info['maxsize']}"
+            response += f" - {info['hit_rate']}% попаданий ({info['hits']:,} к {info['misses']:,})"
 
         await message.reply(response)
 

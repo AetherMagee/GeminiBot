@@ -1,11 +1,14 @@
 import datetime
 from decimal import Decimal
+from functools import _CacheInfo
 from typing import Dict, List, Tuple
 
 import asyncpg
 from loguru import logger
 
+import db
 import db.shared as dbs
+import utils
 from utils.definitions import chat_configs, prices
 
 
@@ -432,3 +435,25 @@ async def get_total_cost_stats() -> Dict:
             'all_time': results,
             'last_30d': recent_results
         }
+
+
+async def get_cache_stats():
+    """Get statistics about the various LRU caches"""
+    caches = {
+        "Черный список": db.chats.blacklist.is_blacklisted,
+        "Параметры": db.chats.chat_config.get_chat_parameter,
+        "Имена": utils.usernames.get_entity_title
+    }
+
+    stats = {}
+    for name, cache in caches.items():
+        cache_info: _CacheInfo = cache.cache_info()
+        stats[name] = {
+            "size": cache_info[3],
+            "maxsize": cache_info[2],
+            "hits": cache_info[0],
+            "misses": cache_info[1],
+            "hit_rate": round(cache_info[0] / (cache_info[0] + cache_info[1]) * 100, 1) if
+            (cache_info[0] + cache_info[1]) > 0 else 0
+        }
+    return stats
