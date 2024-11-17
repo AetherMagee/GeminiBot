@@ -159,7 +159,7 @@ async def stats_command(message: Message):
         db_stats = await stats.get_database_stats()
 
         response += "\n\n💾 <b>База данных:</b>"
-        response += f"\n• Размер: {db_stats['total_size']}"
+        response += f"\n• Размер: {db_stats['total_size']} (💬 {db_stats['messages_tables_size']})"
         response += f"\n• Попадания по кэшам: {db_stats['cache_hit_ratio']:.1%}"
 
         conn_stats = db_stats["connections"]
