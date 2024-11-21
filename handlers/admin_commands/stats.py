@@ -24,6 +24,20 @@ def sparkline(numbers: List[float]) -> str:
 async def stats_command(message: Message):
     await log_command(message)
 
+    command_parts = message.text.strip().split()
+
+    entity_id = None
+    if len(command_parts) > 1:
+        try:
+            entity_id = int(command_parts[1])
+        except ValueError:
+            await message.reply("❌ <b>Некорректный идентификатор.</b>")
+            return
+
+    if entity_id is not None:
+        await display_entity_stats(message, entity_id)
+        return
+
     try:
         now = datetime.now()
         start_of_today = datetime.combine(now.date(), datetime.min.time())
@@ -177,3 +191,73 @@ async def stats_command(message: Message):
         logger.error(f"Failed to get statistics: {e}")
         logger.debug(traceback.format_exc())
         await message.reply("❌ Не удалось собрать статистику")
+
+
+async def display_entity_stats(message: Message, entity_id: int):
+    if entity_id < 0:
+        entity_type = "chat"
+    else:
+        entity_type = "user"
+
+    title = await get_entity_title(entity_id)
+
+    # Get stats
+    total_gens = await stats.get_entity_generation_counts(entity_id, entity_type)
+    total_tokens = await stats.get_entity_tokens_consumed(entity_id, entity_type)
+    model_usage = await stats.get_entity_model_usage(entity_id, entity_type)
+    costs = await stats.calculate_costs(model_usage)
+
+    total_gens_7d = await stats.get_entity_generation_counts(entity_id, entity_type, days=7)
+    total_tokens_7d = await stats.get_entity_tokens_consumed(entity_id, entity_type, days=7)
+    model_usage_7d = await stats.get_entity_model_usage(entity_id, entity_type, days=7)
+    costs_7d = await stats.calculate_costs(model_usage_7d)
+
+    daily_counts = await stats.get_entity_daily_counts(entity_id, entity_type, days=7)
+
+    response = f"📊 <b>Статистика для {'чата' if entity_type == 'chat' else 'пользователя'} {title} (<code>{entity_id}</code>):</b>\n\n"
+    response += f"📈 <b>Всего запросов:</b> <b>{total_gens}</b>\n"
+    response += f"💬 <b>Всего токенов:</b> <b>{total_tokens:,}</b>\n"
+    response += f"💰 <b>Оценка затрат:</b> <b>${costs['total']:.2f}</b>\n\n"
+
+    response += f"🗓 <b>За последние 7 дней:</b>\n"
+    response += f"• 📈 Запросов: <b>{total_gens_7d}</b>\n"
+    response += f"• 💬 Токенов: <b>{total_tokens_7d:,}</b>\n"
+    response += f"• 💰 Затрат: <b>${costs_7d['total']:.2f}</b>\n\n"
+
+    # Add sparkline for daily activity
+    response += f"📊 <b>Активность по дням:</b>\n"
+    response += sparkline(daily_counts) + "\n\n"
+
+    # Add model usage
+    if model_usage:
+        response += "📚 <b>Использование моделей:</b>\n"
+        for usage in model_usage[:5]:
+            model = usage['model']
+            model_cost = costs['per_model'].get(model, 0)
+            response += f"• {model}: {usage['requests']} запросов, {usage['total_tokens']:,} токенов"
+            if model_cost > 0:
+                response += f" (${model_cost:.2f})"
+            response += "\n"
+
+    if entity_type == "chat":
+        # Get top users in chat
+        top_users = await stats.get_top_users_in_chat(entity_id)
+        if top_users:
+            response += "\n👥 <b>Самые активные пользователи:</b>\n"
+            user_titles = await asyncio.gather(
+                *[get_entity_title(user['user_id']) for user in top_users]
+            )
+            for user, user_title in zip(top_users, user_titles):
+                response += f"• {user_title} (<code>{user['user_id']}</code>): {user['generations']} запросов\n"
+    else:
+        # For users, get top chats they are active in
+        top_chats = await stats.get_top_chats_for_user(entity_id)
+        if top_chats:
+            response += "\n💬 <b>Самые активные чаты:</b>\n"
+            chat_titles = await asyncio.gather(
+                *[get_entity_title(chat['chat_id']) for chat in top_chats]
+            )
+            for chat, chat_title in zip(top_chats, chat_titles):
+                response += f"• {chat_title} (<code>{chat['chat_id']}</code>): {chat['generations']} запросов\n"
+
+    await message.reply(response)

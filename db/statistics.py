@@ -508,6 +508,159 @@ async def get_database_stats() -> dict:
                 sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) as ratio
             FROM pg_statio_user_tables
         """)
-        stats["cache_hit_ratio"] = cache_stats[0]["ratio"] if cache_stats[0]["heap_read"] > 0 else 1.0
+
+        total_blocks = cache_stats[0]["heap_read"] + cache_stats[0]["heap_hit"]
+        stats["cache_hit_ratio"] = cache_stats[0]["ratio"] if total_blocks > 0 else 1.0
 
         return stats
+
+
+async def get_entity_tokens_consumed(entity_id: int, entity_type: str, days: int = None) -> int:
+    """Get total tokens consumed by an entity (chat or user) over the last N days"""
+    async with dbs.pool.acquire() as conn:
+        field = f"{entity_type}_id"
+
+        if days:
+            cutoff = datetime.datetime.now() - datetime.timedelta(days=days)
+            total_tokens = await conn.fetchval(
+                f"""
+                SELECT COALESCE(SUM(tokens_consumed), 0)
+                FROM statistics_generations
+                WHERE {field} = $1 AND timestamp >= $2
+                """,
+                entity_id, cutoff
+            )
+        else:
+            # All time
+            total_tokens = await conn.fetchval(
+                f"""
+                SELECT COALESCE(SUM(tokens_consumed), 0)
+                FROM statistics_generations
+                WHERE {field} = $1
+                """,
+                entity_id
+            )
+        return total_tokens
+
+
+async def get_entity_model_usage(entity_id: int, entity_type: str, days: int = None) -> List[Dict]:
+    """Get usage statistics per model for an entity (chat or user)"""
+    async with dbs.pool.acquire() as conn:
+        field = f"{entity_type}_id"
+
+        if days:
+            cutoff = datetime.datetime.now() - datetime.timedelta(days=days)
+            time_condition = "AND timestamp >= $2"
+            params = [entity_id, cutoff]
+        else:
+            time_condition = ""
+            params = [entity_id]
+
+        results = await conn.fetch(
+            f"""
+            SELECT 
+                model,
+                COUNT(*) as requests,
+                SUM(CASE 
+                    WHEN context_tokens > 0 OR completion_tokens > 0 THEN context_tokens
+                    ELSE tokens_consumed * 0.95  -- For legacy records
+                END) as context_tokens,
+                SUM(CASE 
+                    WHEN context_tokens > 0 OR completion_tokens > 0 THEN completion_tokens
+                    ELSE tokens_consumed * 0.05  -- For legacy records
+                END) as completion_tokens,
+                SUM(COALESCE(tokens_consumed, context_tokens + completion_tokens)) as total_tokens
+            FROM statistics_generations
+            WHERE {field} = $1 {time_condition}
+            GROUP BY model
+            ORDER BY requests DESC
+            """,
+            *params
+        )
+        return [dict(r) for r in results]
+
+
+async def get_entity_daily_counts(entity_id: int, entity_type: str, days: int = 7) -> List[int]:
+    """Get daily generation counts for an entity (chat or user) over the last N days"""
+    async with dbs.pool.acquire() as conn:
+        field = f"{entity_type}_id"
+
+        counts = []
+        now = datetime.datetime.now()
+        for i in range(days):
+            start_time = (now - datetime.timedelta(days=(i + 1))).replace(hour=0, minute=0, second=0, microsecond=0)
+            end_time = (now - datetime.timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+            count = await conn.fetchval(
+                f"""
+                SELECT COUNT(*)
+                FROM statistics_generations
+                WHERE {field} = $1 AND timestamp >= $2 AND timestamp < $3
+                """,
+                entity_id, start_time, end_time
+            )
+            counts.append(count)
+        return list(reversed(counts))
+
+
+async def get_top_users_in_chat(chat_id: int, limit: int = 5) -> List[Dict]:
+    """Get top users by generation count in a chat"""
+    async with dbs.pool.acquire() as conn:
+        results = await conn.fetch(
+            """
+            SELECT user_id, COUNT(*) as generations
+            FROM statistics_generations
+            WHERE chat_id = $1
+            GROUP BY user_id
+            ORDER BY generations DESC
+            LIMIT $2
+            """,
+            chat_id,
+            limit
+        )
+        return [{'user_id': r['user_id'], 'generations': r['generations']} for r in results]
+
+
+async def get_entity_generation_counts(entity_id: int, entity_type: str, days: int = None) -> int:
+    """Get total number of generations for an entity (chat or user) over the last N days"""
+    async with dbs.pool.acquire() as conn:
+        field = f"{entity_type}_id"
+
+        if days:
+            cutoff = datetime.datetime.now() - datetime.timedelta(days=days)
+            count = await conn.fetchval(
+                f"""
+                SELECT COUNT(*)
+                FROM statistics_generations
+                WHERE {field} = $1 AND timestamp >= $2
+                """,
+                entity_id, cutoff
+            )
+        else:
+            # All time
+            count = await conn.fetchval(
+                f"""
+                SELECT COUNT(*)
+                FROM statistics_generations
+                WHERE {field} = $1
+                """,
+                entity_id
+            )
+        return count
+
+
+async def get_top_chats_for_user(user_id: int, limit: int = 3) -> List[Dict]:
+    """Get top chats by generation count for a user"""
+    async with dbs.pool.acquire() as conn:
+        results = await conn.fetch(
+            """
+            SELECT chat_id, COUNT(*) as generations
+            FROM statistics_generations
+            WHERE user_id = $1
+            GROUP BY chat_id
+            ORDER BY generations DESC
+            LIMIT $2
+            """,
+            user_id,
+            limit
+        )
+        return [{'chat_id': r['chat_id'], 'generations': r['generations']} for r in results]
