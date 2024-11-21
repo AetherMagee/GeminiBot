@@ -1,4 +1,5 @@
 import os
+import random
 
 from aiogram import html
 from aiogram.types import FSInputFile, Message
@@ -30,7 +31,8 @@ async def sql_command(message: Message):
             path = os.getenv("CACHE_PATH") + "out.txt"
             with open(path, "w") as file:
                 file.write(str(result))
-            await bot.send_document(message.chat.id, FSInputFile(path=path, filename="out.txt"))
+            await bot.send_document(message.chat.id,
+                                    FSInputFile(path=path, filename=f"out{random.randint(100000, 999999)}.txt"))
         else:
             await message.reply(str(e))
 
