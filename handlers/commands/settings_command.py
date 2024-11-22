@@ -11,7 +11,7 @@ from loguru import logger
 
 import db
 from main import ADMIN_IDS, bot
-from utils import log_command
+from utils import log_command, get_message_text
 from utils.definitions import chat_configs
 from utils.frange import FloatRange
 
@@ -81,7 +81,9 @@ async def _parse_requested_value(param_type, requested_value):
 
 async def settings_command(message: Message) -> None:
     await log_command(message)
-    command = message.text.split(" ", maxsplit=1)
+    init_text = await get_message_text(message)
+
+    command = init_text.split(" ")
     chat_id = message.chat.id
     show_advanced = await db.get_chat_parameter(chat_id, "show_advanced_settings")
     available_parameters = await _get_available_parameters(chat_id)
@@ -141,6 +143,10 @@ async def settings_command(message: Message) -> None:
 
         if available_parameters[requested_parameter]["protected"]:
             text += "\n\n⚠️ <b>Этот параметр защищён - его могут менять только администраторы бота.</b>"
+
+        if len(command) > 2:
+            text += (f"\n\n❓ <b>Обнаружены лишние флаги для команды /settings.</b> Нужно поставить новое "
+                     f"значение? Используйте команду /set:\n <code>{init_text.replace('/settings', '/set', 1)}</code>")
 
         await message.reply(text, disable_web_page_preview=True)
 
