@@ -115,7 +115,7 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
                     decoded_response = await response.json()
                 except ContentTypeError:
                     logger.error(f"{request_id} Response is not JSON, but {response.content_type}")
-                    logger.debug(response.text())
+                    logger.debug(await response.text())
                 if response.status != 200:
                     logger.error(f"{request_id} | Got an error: {decoded_response} | Key: ...{key[-6:]}")
 
