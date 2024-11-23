@@ -6,6 +6,7 @@ import traceback
 import aiohttp
 import requests
 from aiogram.types import Message
+from aiohttp import ContentTypeError
 from aiohttp_socks import ProxyConnector
 from loguru import logger
 
@@ -110,7 +111,11 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
             logger.info(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS} (key ...{key[-6:]})")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
             async with session.post(url, headers=headers, json=data) as response:
-                decoded_response = await response.json()
+                try:
+                    decoded_response = await response.json()
+                except ContentTypeError:
+                    logger.error(f"{request_id} Response is not JSON, but {response.content_type}")
+                    logger.debug(response.content)
                 if response.status != 200:
                     logger.error(f"{request_id} | Got an error: {decoded_response} | Key: ...{key[-6:]}")
 
