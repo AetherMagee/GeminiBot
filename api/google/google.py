@@ -161,9 +161,7 @@ async def _handle_api_response(
     try:
         if isinstance(response, Exception):
             logger.debug(f"{request_id} | Received an exception: {response}")
-            output = "❌ *Произошёл сбой Gemini API.*"
-            # if show_error_message:
-            #     output += f"\n\n{response}"
+            output = "❌ *Произошёл неизвестный сбой.*\n\nПожалуйста, попробуйте позже."
 
             return output
 
