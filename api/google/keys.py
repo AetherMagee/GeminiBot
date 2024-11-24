@@ -2,6 +2,7 @@ import asyncio
 import os
 import random
 from collections import defaultdict
+
 from loguru import logger
 
 
@@ -61,12 +62,11 @@ class ApiKeyManager:
                 error_counts = self.billing_api_keys_error_counts if is_billing else self.api_keys_error_counts
                 error_counts[key] += 1
 
-    @staticmethod
-    async def _notify_admin(key, admin_ids, bot):
+    async def _notify_admin(self, key, admin_ids, bot):
         try:
             await bot.send_message(
                 admin_ids[0],
-                f"⚠️ <b>Ключ <code>{key[-6:]}</code> удалён из циркуляции.</b>",
+                f"⚠️ <b>Ключ <code>{key[-6:]}</code> удалён из циркуляции.</b> (осталось {len(self.active_api_keys)} ключей)",
             )
         except Exception as e:
             logger.error(f"Failed to send message to admin {admin_ids[0]}: {e}")
