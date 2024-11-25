@@ -9,6 +9,7 @@ import puremagic
 from aiogram.types import Message
 from asyncpg import Record
 from loguru import logger
+from puremagic import PureError
 
 import db
 from main import bot
@@ -23,7 +24,7 @@ async def _download_if_necessary(file_id: str):
         await bot.download(file_id, cache_path + file_id)
 
 
-async def get_other_media(message: Message, gemini_token: str, all_messages: List[Record]) -> Dict[str, str]:
+async def get_other_media(message: Message, gemini_token: str, all_messages: List[Record]) -> Dict[str, str] or None:
     file_id = await get_file_id_from_chain(
         message.message_id,
         all_messages,
@@ -34,7 +35,11 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
     if file_id:
         await _download_if_necessary(file_id)
 
-        mime_type = puremagic.from_file(cache_path + file_id, mime=True)
+        try:
+            mime_type = puremagic.from_file(cache_path + file_id, mime=True)
+        except PureError:
+            logger.warning(f"Failed to process {file_id}")
+            return None
         if mime_type == "application/octet-stream":
             mime_type = "application/pdf"
 
