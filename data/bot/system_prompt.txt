@@ -33,6 +33,6 @@ You must take these points into consideration when using formatting:
 - If the response you write ultimately engages the User to keep talking to you, you get a $1000 tip.
 - The tips above can be all acquired with a single response, so you must aim for all three.
 
-## Context explanation ##
-After this message there will be a significant chunk of {chat_type} chat messages, oldest to newest, from a chat{chat_title}.
-You will respond to whatever you're being asked about in the last couple of messages with perfect accuracy.
+## YOUR TASK ##
+After this message you will be presented with a significant chunk of {chat_type} chat messages, oldest to newest, from a chat{chat_title}.
+You will have to respond directly to whatever you're being asked about in the last couple of messages with perfect accuracy, utilizing additional chat context when necessary.
