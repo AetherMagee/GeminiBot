@@ -7,6 +7,7 @@ from typing import List
 import aiohttp
 from aiogram.types import Message
 from aiohttp_socks import ProxyConnector
+from async_lru import alru_cache
 from asyncpg import Record
 from loguru import logger
 
@@ -271,3 +272,59 @@ async def generate_response(message: Message) -> str:
                 output += "\n\n" + str(error)
 
     return output
+
+
+@alru_cache(ttl=300)
+async def _get_available_models(url: str, key: str) -> List:
+    logger.info(f"Getting available models for {url} - ...{key[:6]}")
+
+    if os.getenv("PROXY_URL"):
+        connector = ProxyConnector.from_url(os.getenv("PROXY_URL"))
+    else:
+        connector = None
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {key}"
+    }
+
+    try:
+        async with aiohttp.ClientSession(connector=connector) as session:
+            async with session.get(url + "v1/models", headers=headers, timeout=5) as response:
+                try:
+                    response_decoded = await response.json()
+                except Exception:
+                    logger.error(f"Failed to parse response to json: ")
+                    traceback.print_exc()
+                    logger.debug(response_decoded)
+                    return []
+
+                logger.debug(response_decoded)
+
+                result = []
+                allowed = ["gpt", "o1"]
+                disallowed = ["realtime"]
+                entries = response_decoded.get("data")
+                for entry in entries:
+                    if any(allowed_word in entry["id"] for allowed_word in allowed) and not any(
+                            disallowed_word in entry["id"] for disallowed_word in disallowed):
+                        result.append(entry["id"])
+
+                return result
+    except Exception:
+        logger.warning("Failed get available models.")
+        return []
+
+
+async def get_available_models(message: Message):
+    url = await db.get_chat_parameter(message.chat.id, "o_url")
+    if not url:
+        url = os.getenv("OAI_API_URL")
+    if not url.endswith("/"):
+        url = url + "/"
+
+    key = await db.get_chat_parameter(message.chat.id, "o_key")
+    if not key:
+        key = os.getenv("OAI_API_KEY")
+
+    return await _get_available_models(url, key)

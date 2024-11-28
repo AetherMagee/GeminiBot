@@ -11,7 +11,7 @@ from loguru import logger
 
 import db
 from main import ADMIN_IDS, bot
-from utils import log_command, get_message_text
+from utils import get_message_text, log_command
 from utils.definitions import chat_configs
 from utils.frange import FloatRange
 
@@ -132,7 +132,14 @@ async def settings_command(message: Message) -> None:
             accepted_values = f"{_value_range.start}-{_value_range.stop}"
         elif isinstance(_value_range, FloatRange):
             accepted_values = f"{_value_range[0]}—{_value_range[-1]}, шаг {round(_value_range[1] - _value_range[0], 2)}"
+        elif callable(_value_range):
+            accepted_values = await _value_range(message)
+            if not accepted_values:
+                _value_range = None
+            elif isinstance(accepted_values, list):
+                accepted_values = ", ".join(accepted_values)
         else:
+            logger.debug(type(_value_range))
             try:
                 accepted_values = ", ".join(_value_range)
             except TypeError:
@@ -286,6 +293,10 @@ async def set_command(message: Message) -> None:
     if accepted_values:
         if isinstance(accepted_values, range):
             accepted_values = range(accepted_values.start, accepted_values.stop + 1)
+        elif callable(accepted_values):
+            accepted_values = await accepted_values(message)
+            if not accepted_values:
+                _value_range = None
         if requested_value_parsed not in accepted_values:
             if param_type == "text":
                 # Try to find accepted values that start with the requested_value

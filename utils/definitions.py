@@ -231,7 +231,7 @@ chat_configs = {
             "description": "Используемая ботом модель",
             "type": "text",
             "default_value": "\'gpt-4o\'",
-            "accepted_values": None,
+            "accepted_values": api.openai.get_available_models,
             "protected": False,
             "advanced": False,
             "private": False
