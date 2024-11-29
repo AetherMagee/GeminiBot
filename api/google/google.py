@@ -13,7 +13,7 @@ from loguru import logger
 import db
 from api.prompt import get_system_prompt
 from main import bot
-from utils import get_message_text, simulate_typing
+from utils import simulate_typing
 from .keys import ApiKeyManager, OutOfBillingKeysException, OutOfKeysException
 from .prompts import _prepare_prompt, get_system_messages
 
@@ -45,8 +45,6 @@ async def _get_api_key(billing_only=False) -> str:
 async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, model_name: str, token_to_use: str,
                            temperature: float, top_p: float, top_k: int, max_output_tokens: int, code_execution: bool,
                            safety_threshold: str, grounding: bool, grounding_threshold: float):
-    global api_keys_error_counts, resource_exhausted_error_counts
-
     headers = {
         "Content-Type": "application/json"
     }
@@ -71,6 +69,7 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
         }
     }
     if code_execution:
+        # noinspection PyTypedDict
         data["tools"] = [{'code_execution': {}}]
 
     if grounding:
@@ -275,7 +274,6 @@ async def _handle_api_response(
 async def generate_response(message: Message) -> str:
     request_id = random.randint(100000, 999999)
     token = await _get_api_key()
-    message_text = await get_message_text(message)
 
     logger.info(
         f"R: {request_id} | U: {message.from_user.id} ({message.from_user.first_name}) | C: {message.chat.id} ({message.chat.title}) | M: {message.message_id}"
@@ -388,7 +386,6 @@ def get_available_models():
         key = active_keys[0]
         
         proxy = os.getenv("PROXY_URL")
-        proxies = {}
 
         if proxy:
             if proxy.startswith("socks"):
