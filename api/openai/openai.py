@@ -52,6 +52,7 @@ async def _send_request(
 
     if "o1" in model and "trycloudflare" not in url:
         data["max_completion_tokens"] = max_output_tokens
+        del data["max_tokens"]
 
     logger.info(f"{request_id} | Sending request to {url}")
 
@@ -293,7 +294,7 @@ async def generate_response(message: Message) -> str:
 
 
 @alru_cache(ttl=300)
-async def _get_available_models(url: str, key: str) -> List[str]:
+async def _get_available_models(url: str, key: str, get_all_models=False) -> List[str]:
     logger.info(f"Getting available models for {url} - ...{key[-6:]}")
 
     connector = ProxyConnector.from_url(PROXY_URL) if PROXY_URL else None
@@ -312,14 +313,15 @@ async def _get_available_models(url: str, key: str) -> List[str]:
                 allowed_keywords = ["gpt", "o1"]
                 disallowed_keywords = ["realtime"]
 
-                models = [
-                    entry["id"]
-                    for entry in response_decoded.get("data", [])
-                    if any(kw in entry["id"] for kw in allowed_keywords)
-                       and not any(dkw in entry["id"] for dkw in disallowed_keywords)
-                ]
+                if not get_all_models:
+                    return [
+                        entry["id"]
+                        for entry in response_decoded.get("data", [])
+                        if any(kw in entry["id"] for kw in allowed_keywords)
+                           and not any(dkw in entry["id"] for dkw in disallowed_keywords)
+                    ]
 
-                return models
+                return [entry["id"] for entry in response_decoded.get("data", [])]
     except Exception as e:
         logger.warning("Failed to get available models.")
         logger.exception(e)
