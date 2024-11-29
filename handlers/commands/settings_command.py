@@ -189,14 +189,15 @@ async def set_command(message: Message) -> None:
             # /set [param-name] [value]
             requested_parameter = command_args[0].lower()
             requested_value = command_args[1]
+        elif len(command_args) == 1:
+            # /set [param-name]
+            requested_parameter = command_args[0]
+            requested_value = None
         else:
             await message.reply("❌ <b>Недостаточно аргументов.</b>")
             return
     else:
         # Non-admin users
-        if len(command_args) < 2:
-            await message.reply("❌ <b>Недостаточно аргументов.</b>")
-            return
         requested_parameter = command_args[0].lower()
         requested_value = command_args[1]
 
@@ -252,7 +253,7 @@ async def set_command(message: Message) -> None:
     accepted_values = available_parameters[requested_parameter]['accepted_values']
     param_type = available_parameters[requested_parameter]["type"]
 
-    if not accepted_values and requested_value.lower() in ["none", "null", "0"]:
+    if not accepted_values and isinstance(requested_value, str) and requested_value.lower() in ["none", "null", "0"]:
         await db.set_chat_parameter(target_chat_id, requested_parameter, None)
         await message.reply("✅ <b>Параметр сброшен.</b>")
         return
@@ -281,6 +282,11 @@ async def set_command(message: Message) -> None:
         except TelegramForbiddenError:
             logger.warning("Tried to send a private setting request but failed, waiting for a /start...")
         return
+
+    else:
+        if (not is_admin and len(command_args) < 2) or not requested_value:
+            await message.reply("❌ <b>Недостаточно аргументов.</b>")
+            return
 
     # Attempt to parse the requested value according to its type
     requested_value_parsed = await _parse_requested_value(param_type, requested_value)
