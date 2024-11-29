@@ -154,7 +154,8 @@ async def _handle_api_response(
         "RESOURCE_EXHAUSTED": "Ежедневный ресурс API закончился. Пожалуйста, попробуйте через несколько часов.",
         "INTERNAL": "Произошел сбой на стороне Google. Пожалуйста, попробуйте через пару минут",
         "UNAVAILABLE": "Выбранная модель недоступна на стороне Gemini API. Возможно, сервера Google перегружены.",
-        "NO_BILLING": "Ресурс веб-поиска закончился. Пожалуйста, попробуйте через несколько часов."
+        "NO_BILLING": "Ресурс веб-поиска закончился. Пожалуйста, попробуйте через несколько часов.",
+        "INVALID_ARGUMENT": "В API был отправлен неверный параметр."
     }
 
     try:
@@ -169,8 +170,14 @@ async def _handle_api_response(
 
             output = "❌ *Произошёл сбой Gemini API.*"
             if "status" in response["error"].keys():
-                if response["error"]["status"] in errordict.keys() and show_error_message:
+                status = response["error"]["status"]
+                if status in errordict.keys() and show_error_message:
                     output += f"\n\n{errordict[response['error']['status']]}"
+
+                current_model = await db.get_chat_parameter(message.chat.id, "g_model")
+                if status == "INVALID_ARGUMENT" and "grounding" in response["error"][
+                    "message"].lower() and current_model != "gemini-1.5-pro-latest":
+                    output += f"\n\nПопробуйте переключиться на стандартную _gemini-1.5-pro-latest_: `/set g_model gemini-1.5-pro-latest`"
 
             return output
 
