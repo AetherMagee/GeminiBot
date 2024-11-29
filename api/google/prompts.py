@@ -23,7 +23,7 @@ async def format_message_for_prompt(message: Record, add_reply_to: bool = True) 
         result += f"{name}: "
 
     if message["reply_to_message_id"] and add_reply_to:
-        result += f"[REPLY TO: {message['reply_to_message_trimmed_text']}] "
+        result += f"[> {message['reply_to_message_trimmed_text']}] "
 
     if message["text"]:
         result += message["text"]

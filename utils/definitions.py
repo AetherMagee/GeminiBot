@@ -52,7 +52,7 @@ chat_configs = {
             "private": False
         },
         "add_reply_to": {
-            "description": "Добавлять ли в сообщения \"REPLY TO\", чтобы показать модели, кто кому отвечает",
+            "description": "Добавлять ли в сообщения \"> \", чтобы показать модели, кто кому отвечает",
             "type": "boolean",
             "default_value": False,
             "accepted_values": [True, False],
