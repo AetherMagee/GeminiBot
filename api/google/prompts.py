@@ -28,7 +28,12 @@ async def format_message_for_prompt(message: Record, add_reply_to: bool = True) 
     if message["text"]:
         result += message["text"]
     else:
-        result += "*No text*"
+        if message["media_type"] == "photo":
+            result += "[photo.jpg]"
+        elif message["media_type"] == "other":
+            result += "[miscellaneous_file]"
+        else:
+            result += "*No text*"
     return result
 
 
