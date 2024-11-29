@@ -2,12 +2,13 @@ import asyncio
 import os
 import random
 import traceback
+from typing import List
 
 import aiohttp
-import requests
 from aiogram.types import Message
 from aiohttp import ContentTypeError
 from aiohttp_socks import ProxyConnector
+from async_lru import alru_cache
 from loguru import logger
 
 import db
@@ -382,36 +383,34 @@ async def count_tokens_for_chat(trigger_message: Message) -> int:
         return 0
 
 
-def get_available_models():
+@alru_cache(ttl=300)
+async def _get_available_models() -> List[str]:
     logger.info("GOOGLE | Getting available models...")
     model_list = []
     try:
-        active_keys = key_manager.get_active_keys()
-        if not active_keys:
-            logger.error("No active API keys available to fetch models.")
-            return model_list
-        key = active_keys[0]
-        
-        proxy = os.getenv("PROXY_URL")
+        key = await key_manager.get_api_key()
 
-        if proxy:
-            if proxy.startswith("socks"):
-                proto = "https"
-            else:
-                proto = proxy.split("://")[0]
-            proxies = {proto: proxy}
-        else:
-            proxies = {}
-        response = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={key}",
-                                proxies=proxies)
-        decoded_response = response.json()
+        proxy = os.getenv("PROXY_URL")
+        connector = ProxyConnector.from_url(proxy) if proxy else None
+
+        async with aiohttp.ClientSession(connector=connector) as session:
+            async with session.get(
+                    f"https://generativelanguage.googleapis.com/v1beta/models?key={key}",
+                    timeout=10
+            ) as response:
+                response.raise_for_status()
+                decoded_response = await response.json()
 
         hidden = ["bison", "aqa", "embedding", "gecko"]
         for model in decoded_response.get("models", []):
             if not any(hidden_word in model["name"] for hidden_word in hidden):
                 model_list.append(model["name"].replace("models/", ""))
+    except OutOfKeysException:
+        logger.error("No active keys to get models with!")
     except Exception as e:
         logger.error(f"Failed to get available models. Exception: {e}")
-        traceback.print_exc()
-
     return model_list
+
+
+async def get_available_models(message: Message) -> List[str]:
+    return await _get_available_models()
