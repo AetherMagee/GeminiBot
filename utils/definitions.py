@@ -111,7 +111,7 @@ chat_configs = {
         "g_model": {
             "description": "Используемая ботом модель Gemini",
             "type": "text",
-            "default_value": "\'gemini-1.5-pro-latest\'",
+            "default_value": "\'gemini-exp-1121\'",
             "accepted_values": api.google.get_available_models(),
             "protected": False,
             "advanced": False,
