@@ -249,13 +249,13 @@ async def _handle_api_response(
                 logger.debug(f"{request_id} | Response is grounded. {error_prone_len(chunks)} chunks and {error_prone_len(queries)} queries.")
                 output += "\n⎯⎯⎯⎯⎯\n"
 
-            if queries and await db.get_chat_parameter(message.chat.id, "g_web_search_show_queries"):
+            if queries and await db.get_chat_parameter(message.chat.id, "g_web_show_queries"):
                 output += "\n"
                 output += "*Поисковые запросы:*\n"
                 for query in queries:
                     output += f"- _{query}_\n"
 
-            if chunks and await db.get_chat_parameter(message.chat.id, "g_web_search_show_sources"):
+            if chunks and await db.get_chat_parameter(message.chat.id, "g_web_show_sources"):
                 output += "\n"
                 output += "*Источники:*\n"
                 for chunk in chunks:
@@ -323,7 +323,7 @@ async def generate_response(message: Message) -> str:
         bool(await db.get_chat_parameter(message.chat.id, "g_code_execution")),
         str(await db.get_chat_parameter(message.chat.id, "g_safety_threshold")),
         bool(await db.get_chat_parameter(message.chat.id, "g_web_search")),
-        float(await db.get_chat_parameter(message.chat.id, "g_web_search_threshold"))
+        float(await db.get_chat_parameter(message.chat.id, "g_web_threshold"))
     ))
 
     try:
