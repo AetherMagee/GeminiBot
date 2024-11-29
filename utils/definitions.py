@@ -210,7 +210,7 @@ chat_configs = {
     },
     "openai": {
         "o_url": {
-            "description": "Ссылка на эндпоинт, который будет использовать бот. \nБЕЗ /v1/chat/completions",
+            "description": "Ссылка на эндпоинт, который будет использовать бот. \nБЕЗ /v1/chat/completions\nЕсли не установлено, используется стандартный эндпоинт",
             "type": "text",
             "default_value": None,
             "accepted_values": None,

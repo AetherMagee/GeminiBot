@@ -174,7 +174,7 @@ async def generate_response(message: Message) -> str:
     user_id = message.from_user.id
     user_name = message.from_user.first_name
     chat_id = message.chat.id
-    chat_title = message.chat.title or "Private Chat"
+    chat_title = message.chat.title
     message_id = message.message_id
 
     logger.info(
