@@ -66,7 +66,7 @@ chat_configs = {
             "default_value": 0,
             "accepted_values": range(0, 127990),
             "protected": False,
-            "advanced": False,
+            "advanced": True,
             "private": False
         },
         "token_limit_action": {
@@ -75,7 +75,7 @@ chat_configs = {
             "default_value": "\'warn\'",
             "accepted_values": ["warn", "block"],
             "protected": False,
-            "advanced": False,
+            "advanced": True,
             "private": False
         },
         "max_output_tokens": {
@@ -173,21 +173,21 @@ chat_configs = {
             "type": "boolean",
             "default_value": False,
             "accepted_values": [True, False],
-            "protected": True,
+            "protected": False,
             "advanced": False,
             "private": False
         },
-        "g_web_search_threshold": {
+        "g_web_threshold": {
             "description": "Коэффициент требовательности к подтверждению моделей её слов. Грубо говоря, чем выше "
                            "значение, тем больше модель будет проверять себя с помощью веб-поиска",
             "type": "decimal",
-            "default_value": 0.7,
+            "default_value": 0.73,
             "accepted_values": frange(0, 1.0, 0.01),
             "protected": False,
             "advanced": True,
             "private": False
         },
-        "g_web_search_show_queries": {
+        "g_web_show_queries": {
             "description": "Добавлять ли в конец сообщения запросы, которые отправлял Gemini API в Google для "
                            "генерации ответа",
             "type": "boolean",
@@ -197,7 +197,7 @@ chat_configs = {
             "advanced": True,
             "private": False
         },
-        "g_web_search_show_sources": {
+        "g_web_show_sources": {
             "description": "Добавлять ли в конец сообщения источники, которыми воспользовался Gemini API для "
                            "генерации ответа",
             "type": "boolean",
