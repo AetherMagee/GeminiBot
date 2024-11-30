@@ -81,7 +81,7 @@ chat_configs = {
         "max_output_tokens": {
             "description": "Максимальная длина ответа, что может сгенерировать бот",
             "type": "integer",
-            "default_value": 4096,
+            "default_value": 1024,
             "accepted_values": range(0, 65536),
             "protected": False,
             "advanced": True,
@@ -343,7 +343,7 @@ chat_configs = {
 
 presets = {
     "default": {
-        "max_output_tokens": 2048,
+        "max_output_tokens": 1024,
         "o_model": "gpt-4o",
         "g_model": "gemini-1.5-pro-latest",
         "o_add_system_prompt": True,
