@@ -54,22 +54,25 @@ class ApiKeyManager:
 
             return key
 
-    async def handle_key_error(self, key, error_status, is_billing=False, admin_ids=None, bot=None):
+    async def handle_key_error(self, key, error_status, is_billing=False, bot=None):
         async with self.keys_lock:
             if error_status == "RESOURCE_EXHAUSTED":
-                self._handle_resource_exhausted_error(key, is_billing, admin_ids, bot)
+                self._handle_resource_exhausted_error(key, is_billing, bot)
             else:
                 error_counts = self.billing_api_keys_error_counts if is_billing else self.api_keys_error_counts
                 error_counts[key] += 1
 
-    async def _notify_admin(self, key, admin_ids, bot):
+    async def _notify_admin(self, key, bot):
+        target_id = int(os.getenv("FEEDBACK_TARGET_ID"))
+        if not target_id:
+            return
         try:
             await bot.send_message(
-                admin_ids[0],
+                target_id,
                 f"⚠️ <b>Ключ <code>{key[-6:]}</code> удалён из циркуляции.</b> (осталось {len(self.active_api_keys)} ключей)",
             )
         except Exception as e:
-            logger.error(f"Failed to send message to admin {admin_ids[0]}: {e}")
+            logger.error(f"Failed to send key removal notification: {e}")
 
     def _load_keys(self):
         if not os.path.exists(self.keys_file_path):
@@ -111,7 +114,7 @@ class ApiKeyManager:
         else:
             self.api_key_index += 1
 
-    def _handle_resource_exhausted_error(self, key, is_billing, admin_ids, bot):
+    def _handle_resource_exhausted_error(self, key, is_billing, bot):
         error_counts, active_keys = self._select_error_set(is_billing)
         error_counts[key] += 1
 
@@ -121,8 +124,8 @@ class ApiKeyManager:
             logger.warning(
                 f"Key {key} has reached RESOURCE_EXHAUSTED error threshold and is removed from active keys."
             )
-            if admin_ids and bot:
-                asyncio.create_task(self._notify_admin(key, admin_ids, bot))
+            if bot:
+                asyncio.create_task(self._notify_admin(key, bot))
 
     def _select_error_set(self, is_billing):
         if is_billing:
