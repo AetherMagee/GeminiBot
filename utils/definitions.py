@@ -128,7 +128,7 @@ chat_configs = {
         },
         "g_safety_threshold": {
             "description": "На каком уровне уверенности в небезопасности контента блокировать ответ бота.\nP.S. Даже "
-                           "при block_none всё равно происходит сканирование на наличие CSAM и подобного.",
+                           "при уровне <code>none</code> всё равно происходит сканирование на наличие CSAM и подобного.",
             "type": "text",
             "default_value": "\'none\'",
             "accepted_values": ["none", "only_high", "medium_and_above", "low_and_above"],
