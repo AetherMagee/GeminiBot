@@ -42,6 +42,15 @@ chat_configs = {
             "advanced": False,
             "private": False
         },
+        "process_markdown": {
+            "description": "Позволить ли Телеграму автоматически обрабатывать форматирование Markdown в ответах бота",
+            "type": "boolean",
+            "default_value": True,
+            "accepted_values": [True, False],
+            "protected": False,
+            "advanced": True,
+            "private": False
+        },
         "show_error_messages": {
             "description": "Показывать ли подробные сообщения об ошибке",
             "type": "boolean",

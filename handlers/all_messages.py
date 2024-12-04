@@ -1,12 +1,11 @@
 import datetime
 import os
+from typing import Optional
 
-from aiogram import html
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message, ReactionTypeEmoji
 from loguru import logger
-from more_itertools import sliced
 
 import api
 import api.openai
@@ -90,35 +89,46 @@ async def handle_forced_response(message: Message) -> bool:
 
 
 async def handle_response(message: Message, output: str) -> None:
-    try:
-        our_message = await message.reply(output, parse_mode=ParseMode.MARKDOWN)
-    except Exception as e:
+    async def send_reply(message: Message, text: str, parse_mode: str) -> Optional[Message]:
         try:
-            our_message = await message.reply(html.quote(output))
+            return await message.reply(text, parse_mode=parse_mode)
         except TelegramBadRequest:
-            if len(output) > 2000:
-                chunks = list(sliced(output, 1900))
-                logger.warning(
-                    f"Failed to send {len(output)} symbols at once, sending it in {len(chunks)} chunks instead...")
-                for index, chunk in enumerate(chunks):
-                    try:
-                        logger.debug(f"Sending chunk {index} to {message.chat.id}")
-                        our_message = await message.reply(chunk, parse_mode=ParseMode.MARKDOWN)
-                    except TelegramBadRequest:
-                        try:
-                            our_message = await message.reply(html.quote(chunk))
-                        except TelegramBadRequest:
-                            logger.error(f"Failed to send chunk {index} to {message.chat.id}")
-                            logger.debug(chunk)
-            else:
-                our_message = await message.reply(f"❌ <b>Telegram почему-то не принимает ответ бота.</b>")
-    finally:
-        if output.startswith("❌"):
-            output = ""
+            return None
 
-        output = output.split("⎯⎯⎯⎯⎯")[0]  # EXTREMELY gore way of not saving the grounding metadata but idc
+    process_markdown = await db.get_chat_parameter(message.chat.id, "process_markdown")
+    parse_mode = ParseMode.MARKDOWN if process_markdown else ParseMode.HTML
 
+    our_message = await send_reply(message, output, parse_mode)
+
+    if not our_message and process_markdown:
+        our_message = await send_reply(message, output, ParseMode.HTML)
+
+    if not our_message:
+        if len(output) > 2000:
+            chunks = [output[i:i + 1900] for i in range(0, len(output), 1900)]
+            logger.warning(
+                f"Failed to send {len(output)} characters at once. Sending it in {len(chunks)} chunks instead...")
+            for index, chunk in enumerate(chunks):
+                chunk_message = await send_reply(message, chunk, parse_mode)
+                if not chunk_message and process_markdown:
+                    chunk_message = await send_reply(message, chunk, ParseMode.HTML)
+                if not chunk_message:
+                    logger.error(f"Failed to send chunk {index} to {message.chat.id}")
+                else:
+                    our_message = chunk_message
+        else:
+            our_message = await send_reply(
+                message, "❌ <b>Telegram почему-то не принимает ответ бота.</b>", ParseMode.HTML)
+
+    if output.startswith("❌"):
+        output = ""
+
+    output = output.split("⎯⎯⎯⎯⎯")[0]  # Remove grounding metadata
+
+    if our_message:
         await db.save_our_message(message, output, our_message.message_id)
+    else:
+        logger.error(f"Failed to send message to {message.chat.id}")
 
 
 async def try_handle_feedback_response(message: Message) -> bool:
@@ -183,7 +193,7 @@ async def handle_new_message(message: Message) -> None:
 
     if await check_rate_limit(message):
         await message.reply(f"❌ <b>Вы достигли установленного лимита запросов в час. Попробуйте снова через некоторое "
-                            f"время.</b>\n<i>Подробнее - в /status и <code>/settings max_requests_per_hour</code></i>")
+                            f"время.</b>\n<i>Подробнее - в /status</i>")
         return
 
     output = await api.generate_response(message, endpoint)
