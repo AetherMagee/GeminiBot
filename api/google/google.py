@@ -46,10 +46,6 @@ async def _get_api_key(billing_only=False) -> str:
 async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, model_name: str, token_to_use: str,
                            temperature: float, top_p: float, top_k: int, max_output_tokens: int, code_execution: bool,
                            safety_threshold: str, grounding: bool, grounding_threshold: float):
-    headers = {
-        "Content-Type": "application/json"
-    }
-
     safety_settings = []
     for safety_setting in ["HARM_CATEGORY_SEXUALLY_EXPLICIT", "HARM_CATEGORY_HATE_SPEECH", "HARM_CATEGORY_HARASSMENT",
                            "HARM_CATEGORY_DANGEROUS_CONTENT", "HARM_CATEGORY_CIVIC_INTEGRITY"]:
@@ -108,8 +104,13 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
                     logger.error(f"{request_id} | No active API keys available.")
                     return {"error": {"status": "RESOURCE_EXHAUSTED", "message": "No active API keys available."}}
 
+            headers = {
+                "Content-Type": "application/json",
+                "x-goog-api-key": key
+            }
+
             logger.info(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS} (key ...{key[-6:]})")
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
             async with session.post(url, headers=headers, json=data) as response:
                 try:
                     decoded_response = await response.json()
