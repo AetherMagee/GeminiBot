@@ -50,8 +50,7 @@ async def main() -> None:
     from utils import BlacklistFilter
     from handlers import (handle_new_message, reset_command, settings_comand, set_command,
                           start_command, status_command, directsend_command, sql_command, restart_command,
-                          forget_command, replace_command, help_command, system_command, prune_command,
-                          feedback_command, stats_command, handle_message_edit, blacklist_command,
+                          forget_command, replace_command, help_command, system_command, feedback_command, stats_command, handle_message_edit, blacklist_command,
                           unblacklist_command, preset_command, hide_command, dropcaches_command)
 
     dp.message.register(directsend_command, Command("directsend"), adminMessageFilter)
@@ -59,7 +58,7 @@ async def main() -> None:
     dp.message.register(restart_command, Command("restart"), adminMessageFilter)
     dp.message.register(blacklist_command, Command("blacklist"), adminMessageFilter)
     dp.message.register(unblacklist_command, Command("unblacklist"), adminMessageFilter)
-    dp.message.register(prune_command, Command("prune"), adminMessageFilter)
+    # dp.message.register(prune_command, Command("prune"), adminMessageFilter)
     dp.message.register(stats_command, Command("stats"), adminMessageFilter)
     dp.message.register(dropcaches_command, Command("dropcaches"), adminMessageFilter)
 
