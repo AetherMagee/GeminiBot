@@ -260,10 +260,15 @@ async def generate_response(message: Message) -> str:
                 )
 
         if "oai-proxy-error" in output:
-            logger.debug(output)
-            output = "❌ *Произошел сбой эндпоинта OpenAI.*"
-            if show_errors:
-                output += f"\n\n{output}"
+            logger.warning(f"{request_id} | Response is OAI proxy error.")
+
+            new_out = "❌ *Произошел сбой эндпоинта OpenAI.*"
+
+            trigger_words = ["sk-", "AIzaSy"]
+            if show_errors and not any([word in output for word in trigger_words]):
+                new_out += f"\n\n{output}"
+
+            output = new_out
 
         usage = response.get("usage")
         if usage:
