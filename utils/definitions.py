@@ -389,18 +389,6 @@ prices = {
         "input": 5.00,
         "output": 15.00
     },
-    "gpt-4o-audio-preview": {
-        "text_input": 2.50,
-        "text_output": 10.00,
-        "audio_input": 100.00,
-        "audio_output": 200.00
-    },
-    "gpt-4o-audio-preview-2024-10-01": {
-        "text_input": 2.50,
-        "text_output": 10.00,
-        "audio_input": 100.00,
-        "audio_output": 200.00
-    },
 
     "gpt-4o-mini": {
         "input": 0.15,
