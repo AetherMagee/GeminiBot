@@ -30,7 +30,7 @@ async def set_chat_parameter(chat_id: int, parameter_name: str, value):
     except KeyError:
         available_parameters = chat_configs["all_endpoints"]
 
-    if available_parameters[parameter_name]["type"] == "text":
+    if available_parameters[parameter_name]["type"] == "text" and value:
         value = f"{value}"
 
     async with dbs.pool.acquire() as conn:
