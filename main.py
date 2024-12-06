@@ -1,6 +1,7 @@
 import asyncio
 import os
 import sys
+from datetime import datetime
 
 import aiogram
 from aiogram import Bot, Dispatcher, F
@@ -27,6 +28,8 @@ dp = Dispatcher()
 
 ADMIN_IDS = [int(admin_id) for admin_id in os.getenv("ADMIN_IDS").split(", ")]
 adminMessageFilter = F.from_user.id.in_(ADMIN_IDS)
+
+start_time = datetime.now()
 
 
 async def main() -> None:

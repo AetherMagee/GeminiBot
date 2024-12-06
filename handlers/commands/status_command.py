@@ -5,7 +5,26 @@ from aiogram.types import Message
 import api.google
 import api.openai
 import db
+from main import start_time
 from utils import log_command
+
+
+def format_timedelta(td):
+    total_seconds = int(td.total_seconds())
+    days = total_seconds // 86400
+    hours = (total_seconds % 86400) // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    parts = []
+    if days > 0:
+        parts.append(f"{days} дн")
+    if hours > 0:
+        parts.append(f"{hours} ч")
+    if minutes > 0:
+        parts.append(f"{minutes} мин")
+    if seconds > 0 or not parts:
+        parts.append(f"{seconds} сек")
+    return ', '.join(parts)
 
 
 async def status_command(message: Message):
@@ -51,6 +70,9 @@ async def status_command(message: Message):
     if current_endpoint not in ["openai", "google"]:
         text_to_send += ("\n⚠️ <b>Неизвестное значение параметра <code>endpoint</code></b>. Значительная часть функций "
                          "бота недоступна.")
+
+    uptime = datetime.datetime.now() - start_time
+    text_to_send += f"\n⏱ <b>Аптайм:</b> {format_timedelta(uptime)}"
 
     reply = await message.reply(text_to_send)
 
