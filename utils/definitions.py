@@ -120,7 +120,7 @@ chat_configs = {
         "g_model": {
             "description": "Используемая ботом модель Gemini",
             "type": "text",
-            "default_value": "\'gemini-1.5-pro-latest\'",
+            "default_value": "\'gemini-exp-1206\'",
             "accepted_values": api.google.get_available_models,
             "protected": False,
             "advanced": False,
@@ -354,7 +354,7 @@ presets = {
     "default": {
         "max_output_tokens": 1024,
         "o_model": "gpt-4o",
-        "g_model": "gemini-1.5-pro-latest",
+        "g_model": "gemini-exp-1206",
         "o_add_system_prompt": True,
         "o_add_system_messages": True,
         "o_timeout": 60,
