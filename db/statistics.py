@@ -7,7 +7,6 @@ from loguru import logger
 
 import db
 import db.shared as dbs
-import utils
 from utils.definitions import chat_configs, prices
 
 
@@ -440,8 +439,7 @@ async def get_cache_stats():
     """Get statistics about the various LRU caches"""
     caches = {
         "Черный список": db.chats.blacklist.is_blacklisted,
-        "Параметры": db.chats.chat_config.get_chat_parameter,
-        "Имена": utils.usernames.get_entity_title
+        "Параметры": db.chats.chat_config.get_chat_parameter
     }
 
     stats = {}
