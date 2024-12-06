@@ -7,6 +7,7 @@ from aiogram.types import Message
 from loguru import logger
 
 import db.statistics as stats
+from api.google.google import key_manager
 from utils import get_entity_title, log_command
 
 
@@ -129,6 +130,8 @@ async def stats_command(message: Message):
 
         # Build base response
         response = f"""📊 <b>Статистика бота</b> 
+        
+🔑 <b>Ключей:</b> {len(key_manager.active_api_keys)} из {len(key_manager.api_keys)} (биллинг: {len(key_manager.active_billing_api_keys)} из {len(key_manager.billing_api_keys)})
 
 👥 <b>Активные пользователи</b>
 • День: <b>{daily_active_count}</b>
