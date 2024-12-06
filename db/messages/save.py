@@ -4,8 +4,8 @@ from aiogram.types import Message
 from asyncpg import UndefinedTableError
 
 import db.shared as dbs
-from db.table_creator import create_message_table
 from api.media import get_file
+from db.table_creator import create_message_table
 from utils import get_message_text
 
 
@@ -59,6 +59,13 @@ async def _save_message(chat_id: int, message_id: int, time: datetime.datetime, 
 
 async def save_aiogram_message(message: Message):
     file_id, media_type = await get_file(message)
+    if message.quote:
+        reply_text = truncate_str(message.quote.text)
+    elif message.reply_to_message:
+        reply_text = truncate_str(await get_message_text(message.reply_to_message))
+    else:
+        reply_text = None
+
     await _save_message(
         message.chat.id,
         message.message_id,
@@ -68,7 +75,7 @@ async def save_aiogram_message(message: Message):
         message.from_user.first_name,
         await get_message_text(message, "before_forced"),
         message.reply_to_message.message_id if message.reply_to_message else None,
-        truncate_str(await get_message_text(message.reply_to_message)) if message.reply_to_message else None,
+        reply_text,
         file_id,
         media_type
     )
