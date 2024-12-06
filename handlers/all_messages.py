@@ -1,5 +1,7 @@
+import asyncio
 import datetime
 import os
+from collections import defaultdict
 from typing import Optional
 
 from aiogram.enums import ParseMode
@@ -18,6 +20,8 @@ from .commands.shared import is_allowed_to_alter_memory
 bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 bot_username = os.getenv("BOT_USERNAME")
 FEEDBACK_TARGET_ID = int(os.getenv("FEEDBACK_TARGET_ID"))
+
+chat_semaphores = defaultdict(lambda: asyncio.Semaphore(2))
 
 
 async def meets_endpoint_requirements(message: Message, endpoint: str) -> bool:
@@ -185,20 +189,24 @@ async def handle_new_message(message: Message) -> None:
     if not await should_generate_response(message):
         return
 
-    if await check_token_limit(message):
-        return
+    semaphore = chat_semaphores[message.chat.id]
 
-    if await handle_forced_response(message):
-        return
+    async with semaphore:
+        if await check_token_limit(message):
+            return
 
-    if await check_rate_limit(message):
-        await message.reply(f"❌ <b>Вы достигли установленного лимита запросов в час. Попробуйте снова через некоторое "
-                            f"время.</b>\n<i>Подробнее - в /status</i>")
-        return
+        if await handle_forced_response(message):
+            return
 
-    output = await api.generate_response(message, endpoint)
+        if await check_rate_limit(message):
+            await message.reply(
+                f"❌ <b>Вы достигли установленного лимита запросов в час. Попробуйте снова через некоторое "
+                f"время.</b>\n<i>Подробнее - в /status</i>")
+            return
 
-    await handle_response(message, output)
+        output = await api.generate_response(message, endpoint)
+
+        await handle_response(message, output)
 
 
 async def handle_message_edit(message: Message) -> None:
