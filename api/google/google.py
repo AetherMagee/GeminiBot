@@ -123,7 +123,7 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
                     error_status = decoded_response.get("error", {}).get("status", "")
                     if error_status == "RESOURCE_EXHAUSTED":
                         await key_manager.handle_key_error(
-                            key, error_status, is_billing=grounding, admin_ids=admin_ids, bot=bot
+                            key, error_status, is_billing=grounding, bot=bot
                         )
                         if not other_media_present:
                             continue
