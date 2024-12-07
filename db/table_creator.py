@@ -4,31 +4,34 @@ from loguru import logger
 from utils.definitions import chat_configs
 
 
-async def create_message_table(conn: Connection, chat_id: str) -> None:
+async def create_messages_table(conn: Connection) -> None:
     """
-    Creates a new table in the database for storing chat's messages and ensures the necessary indexes.
-    Fine to be called on every message.
+    Creates the messages table. Should only be called once at startup.
     """
-    table_name = f"messages{chat_id}"
-    await conn.execute(f"CREATE TABLE IF NOT EXISTS {table_name} ("
-                       f"umid serial PRIMARY KEY, "
-                       f"message_id bigint NOT NULL, "
-                       f"timestamp timestamp NOT NULL, "
-                       f"sender_id bigint NOT NULL, "
-                       f"sender_username text, "
-                       f"sender_name text, "
-                       f"text text, "
-                       f"reply_to_message_id bigint DEFAULT NULL, "
-                       f"reply_to_message_trimmed_text text DEFAULT NULL, "
-                       f"media_file_id text DEFAULT NULL, "
-                       f"media_type text DEFAULT NULL, "
-                       f"deleted boolean NOT NULL DEFAULT false)"
-                       )
-    # Create indexes for performance improvement
-    await conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_timestamp ON {table_name} (timestamp DESC)")
-    await conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_deleted ON {table_name} (deleted)")
-    await conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_message_id ON {table_name} (message_id)")
-    await conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_sender_id ON {table_name} (sender_id)")
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS messages (
+            umid serial PRIMARY KEY,
+            chat_id bigint NOT NULL,
+            message_id bigint NOT NULL,
+            timestamp timestamp NOT NULL,
+            sender_id bigint NOT NULL,
+            sender_username text,
+            sender_name text,
+            text text,
+            reply_to_message_id bigint DEFAULT NULL,
+            reply_to_message_trimmed_text text DEFAULT NULL,
+            media_file_id text DEFAULT NULL,
+            media_type text DEFAULT NULL,
+            deleted boolean NOT NULL DEFAULT false,
+            UNIQUE (chat_id, message_id)
+        )
+    """)
+    # Create indexes
+    await conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_messages_chat_id_timestamp ON messages (chat_id, timestamp DESC)")
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_messages_chat_id_message_id ON messages (chat_id, message_id)")
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_messages_chat_id_deleted ON messages (chat_id, deleted)")
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_messages_chat_id_sender_id ON messages (chat_id, sender_id)")
 
 
 async def create_chat_config_table(conn: Connection) -> None:
@@ -160,22 +163,3 @@ async def drop_orphan_columns(conn: Connection) -> None:
             await conn.execute(f"ALTER TABLE chat_config DROP COLUMN {column}")
         except Exception as e:
             logger.error(f"Failed to drop column {column} from chat_config: {e}")
-
-
-async def create_indexes(conn: Connection) -> None:
-    table_names = await conn.fetch(
-        "SELECT table_name FROM information_schema.tables "
-        "WHERE table_schema = 'public' AND table_name LIKE 'messages%'"
-    )
-
-    for table in table_names:
-        table_name = table['table_name']
-        # Add indexes if not present
-        await conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_timestamp ON "
-                           f"{table_name} (timestamp DESC)")
-        await conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_deleted ON "
-                           f"{table_name} (deleted)")
-        await conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_message_id ON "
-                           f"{table_name} (message_id)")
-        await conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_sender_id ON "
-                           f"{table_name} (sender_id)")

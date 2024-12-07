@@ -1,8 +1,7 @@
-from asyncpg import Record, UndefinedTableError
+from asyncpg import Record
 
 import db
 import db.shared as dbs
-from db.table_creator import create_message_table
 
 
 async def get_messages(chat_id: int, message_limit: int = None) -> list[Record]:
@@ -10,26 +9,22 @@ async def get_messages(chat_id: int, message_limit: int = None) -> list[Record]:
         message_limit = await db.get_chat_parameter(chat_id, 'message_limit')
 
     async with dbs.pool.acquire() as conn:
-        try:
-            results: list = await conn.fetch(f"SELECT * FROM messages{await dbs.sanitize_chat_id(chat_id)} "
-                                             f"WHERE deleted=false ORDER BY timestamp DESC "
-                                             f"LIMIT {message_limit}")
+        results = await conn.fetch("""
+            SELECT * FROM messages
+            WHERE chat_id = $1 AND deleted = false
+            ORDER BY timestamp DESC
+            LIMIT $2
+            """, chat_id, message_limit)
 
-            if not results:
-                return []
-            results.reverse()
-            return results
-        except UndefinedTableError:
-            await create_message_table(conn, await dbs.sanitize_chat_id(chat_id))
-            return await get_messages(chat_id)
-
+        if not results:
+            return []
+        results.reverse()
+        return results
 
 async def get_specific_message(chat_id: int, message_id: int) -> Record | None:
     async with dbs.pool.acquire() as conn:
-        try:
-            result: list = await conn.fetch(
-                f"SELECT * FROM messages{await dbs.sanitize_chat_id(chat_id)} WHERE deleted=false AND message_id={message_id}")
-            return result[0]
-        except UndefinedTableError:
-            await create_message_table(conn, await dbs.sanitize_chat_id(chat_id))
-            return None
+        result = await conn.fetchrow("""
+            SELECT * FROM messages 
+            WHERE chat_id = $1 AND message_id = $2 AND deleted = false
+            """, chat_id, message_id)
+        return result

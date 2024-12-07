@@ -1,11 +1,9 @@
 import datetime
 
 from aiogram.types import Message
-from asyncpg import UndefinedTableError
 
 import db.shared as dbs
 from api.media import get_file
-from db.table_creator import create_message_table
 from utils import get_message_text
 
 
@@ -35,26 +33,24 @@ async def _save_message(chat_id: int, message_id: int, time: datetime.datetime, 
                         sender_name: str, text: str, reply_to_message_id: int or None,
                         reply_to_message_text: str or None, media_file_id: str or None, media_type: str or None) -> None:
     async with dbs.pool.acquire() as conn:
-        sanitized_chat_id = await dbs.sanitize_chat_id(chat_id)
-        try:
-            await conn.execute(f"INSERT INTO messages{sanitized_chat_id} (message_id, timestamp, sender_id, "
-                               f"sender_username, sender_name, text, "
-                               f"reply_to_message_id, reply_to_message_trimmed_text, media_file_id, media_type) "
-                               f"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-                               message_id,
-                               time,
-                               sender_id,
-                               sender_uname,
-                               sender_name,
-                               text,
-                               reply_to_message_id,
-                               reply_to_message_text,
-                               media_file_id,
-                               media_type)
-        except UndefinedTableError:
-            await create_message_table(conn, sanitized_chat_id)
-            await _save_message(chat_id, message_id, time, sender_id, sender_uname,
-                                sender_name, text, reply_to_message_id, reply_to_message_text, media_file_id, media_type)
+        await conn.execute("""
+            INSERT INTO messages 
+            (chat_id, message_id, timestamp, sender_id, sender_username, sender_name, text, 
+             reply_to_message_id, reply_to_message_trimmed_text, media_file_id, media_type)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            """,
+                           chat_id,
+                           message_id,
+                           time,
+                           sender_id,
+                           sender_uname,
+                           sender_name,
+                           text,
+                           reply_to_message_id,
+                           reply_to_message_text,
+                           media_file_id,
+                           media_type
+                           )
 
 
 async def save_aiogram_message(message: Message):
