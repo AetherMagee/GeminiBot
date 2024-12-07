@@ -43,4 +43,5 @@ async def migrate_messages_tables(conn: asyncpg.Connection) -> None:
         total_migrated += 1
 
     if total_migrated:
+        await conn.execute("VACUUM FULL messages")
         logger.success(f"Migration completed. Total tables migrated: {total_migrated}")
