@@ -7,6 +7,8 @@ import db.shared as dbs
 
 
 async def delete_old_messages(retention_days: int, target_chat: int or None):
+    raise NotImplementedError("This function is outdated. TODO: repair")
+
     async with dbs.pool.acquire() as conn:
         cutoff_time = datetime.datetime.now() - datetime.timedelta(days=retention_days)
         deleted = {}
