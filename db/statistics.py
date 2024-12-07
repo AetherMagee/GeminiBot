@@ -480,10 +480,8 @@ async def get_database_stats() -> dict:
 
         # Size of messages tables
         messages_size = await conn.fetchval("""
-                    SELECT pg_size_pretty(
-                        sum(pg_total_relation_size(quote_ident(relname))))
+                    SELECT pg_size_pretty(pg_total_relation_size('messages'))
                     FROM pg_stat_user_tables
-                    WHERE relname LIKE 'messages%'
                 """)
         stats["messages_tables_size"] = messages_size
 
