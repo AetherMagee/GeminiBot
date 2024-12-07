@@ -54,7 +54,7 @@ async def main() -> None:
     logger.info("DB init complete")
 
     logger.info("Initializing handlers...")
-    if os.path.exists(os.getenv("DATA_PATH" + "drop_pending_updates")):
+    if os.path.exists(os.getenv("DATA_PATH") + "drop_pending_updates"):
         logger.warning("Dropping pending updates...")
         await bot.delete_webhook(drop_pending_updates=True)
 
