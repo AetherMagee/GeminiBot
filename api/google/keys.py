@@ -49,9 +49,6 @@ class ApiKeyManager:
             key = keys[index % len(keys)]
             self._increment_index(billing_only)
 
-            if index % 50 == 0 and index > 0:
-                logger.debug(f"{'Billing ' if billing_only else ''}Error counts: {dict(error_counts)}")
-
             return key
 
     async def handle_key_error(self, key, error_status, is_billing=False, bot=None):
