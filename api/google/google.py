@@ -239,6 +239,8 @@ async def _handle_api_response(
                 logger.warning(f"{request_id} | Failed to process token usage metadata.")
                 traceback.print_exc()
                 logger.debug(response)
+        else:
+            logger.warning(f"{request_id} | No token usage metadata.")
 
         output = response["candidates"][0]["content"]["parts"][0]["text"].replace("  ", " ")
 
