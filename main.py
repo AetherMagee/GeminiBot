@@ -48,7 +48,9 @@ async def main() -> None:
     logger.info("DB init complete")
 
     logger.info("Initializing handlers...")
-    await bot.delete_webhook(drop_pending_updates=True)
+    if os.path.exists(os.getenv("DATA_PATH" + "drop_pending_updates")):
+        logger.warning("Dropping pending updates...")
+        await bot.delete_webhook(drop_pending_updates=True)
 
     from utils import BlacklistFilter
     from handlers import (handle_new_message, reset_command, settings_comand, set_command,
