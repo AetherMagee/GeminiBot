@@ -1,10 +1,9 @@
+import asyncpg
 from loguru import logger
 
-import db.shared as dbs
 
-
-async def migrate_messages_tables():
-    async with dbs.pool.acquire() as conn:
+async def migrate_messages_tables(conn: asyncpg.Connection) -> None:
+    async with conn:
         table_list = await conn.fetch("""
             SELECT table_name 
             FROM information_schema.tables 

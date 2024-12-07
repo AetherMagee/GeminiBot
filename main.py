@@ -46,7 +46,7 @@ async def main() -> None:
 
         # Migrate if necessary
         await db.migrate_statistics_table(conn)
-        await db.migrate_messages_tables()
+        await db.migrate_messages_tables(conn)
 
         await db.drop_orphan_columns(conn)
 
