@@ -183,6 +183,36 @@ async def _handle_api_response(
 
             return output
 
+        if "promptFeedback" in response.keys() and "blockReason" in response["promptFeedback"].keys():
+            if response["promptFeedback"]["blockReason"] in ["OTHER", "PROHIBITED_CONTENT"]:
+                output = "❌ *Запрос был заблокирован цензурой Gemini API по неизвестным причинам.*"
+                output += "\nЕсли ошибка повторяется, попробуйте очистить память - /reset"
+                return output
+
+        usage = response.get("usageMetadata")
+
+        if usage:
+            try:
+                total_tokens = usage['totalTokenCount']
+                prompt_tokens = usage.get('promptTokenCount', 0)
+                completion_tokens = usage.get('candidatesTokenCount', 0)
+
+                logger.debug(
+                    f"{request_id} | Tokens: {total_tokens} total ({prompt_tokens} prompt, {completion_tokens} completion)")
+
+                await db.statistics.log_generation(
+                    message.chat.id,
+                    message.from_user.id,
+                    "google",
+                    prompt_tokens,
+                    completion_tokens,
+                    await db.get_chat_parameter(message.chat.id, "g_model")
+                )
+            except KeyError as error:
+                logger.exception(f"{request_id} | Failed to process token usage metadata.")
+        else:
+            logger.warning(f"{request_id} | No token usage metadata.")
+
         if "candidates" in response.keys():
             finish_reason = response.get("candidates")[0].get("finishReason")
             if finish_reason in ["SAFETY", "OTHER"]:
@@ -210,66 +240,39 @@ async def _handle_api_response(
 
                 return output
 
-        if "promptFeedback" in response.keys() and "blockReason" in response["promptFeedback"].keys():
-            if response["promptFeedback"]["blockReason"] in ["OTHER", "PROHIBITED_CONTENT"]:
-                output = "❌ *Запрос был заблокирован цензурой Gemini API по неизвестным причинам.*"
-                output += "\nЕсли ошибка повторяется, попробуйте очистить память - /reset"
-                return output
+            output = response["candidates"][0]["content"]["parts"][0]["text"].replace("  ", " ")
 
-        usage = response.get("usageMetadata")
+            grounding_metadata = response["candidates"][0].get("groundingMetadata")
+            if grounding_metadata:
+                chunks = grounding_metadata.get("groundingChunks")
+                queries = grounding_metadata.get("webSearchQueries")
 
-        if usage:
-            try:
-                total_tokens = usage['totalTokenCount']
-                prompt_tokens = usage.get('promptTokenCount')
-                completion_tokens = usage.get('candidatesTokenCount')
+                if chunks or queries:
+                    def error_prone_len(inp) -> int:
+                        try:
+                            return len(inp)
+                        except TypeError:
+                            return 0
 
-                logger.debug(
-                    f"{request_id} | Tokens: {total_tokens} total ({prompt_tokens} prompt, {completion_tokens} completion)")
+                    logger.debug(
+                        f"{request_id} | Response is grounded. {error_prone_len(chunks)} chunks and {error_prone_len(queries)} queries.")
+                    output += "\n⎯⎯⎯⎯⎯\n"
 
-                await db.statistics.log_generation(
-                    message.chat.id,
-                    message.from_user.id,
-                    "google",
-                    prompt_tokens,
-                    completion_tokens,
-                    await db.get_chat_parameter(message.chat.id, "g_model")
-                )
-            except KeyError:
-                logger.warning(f"{request_id} | Failed to process token usage metadata.")
-                traceback.print_exc()
-                logger.debug(response)
+                if queries and await db.get_chat_parameter(message.chat.id, "g_web_show_queries"):
+                    output += "\n"
+                    output += "*Поисковые запросы:*\n"
+                    for query in queries:
+                        output += f"- _{query}_\n"
+
+                if chunks and await db.get_chat_parameter(message.chat.id, "g_web_show_sources"):
+                    output += "\n"
+                    output += "*Источники:*\n"
+                    for chunk in chunks:
+                        output += f"- [{chunk['web']['title']}]({chunk['web']['uri']})\n"
+
         else:
-            logger.warning(f"{request_id} | No token usage metadata.")
-
-        output = response["candidates"][0]["content"]["parts"][0]["text"].replace("  ", " ")
-
-        grounding_metadata = response["candidates"][0].get("groundingMetadata")
-        if grounding_metadata:
-            chunks = grounding_metadata.get("groundingChunks")
-            queries = grounding_metadata.get("webSearchQueries")
-
-            if chunks or queries:
-                def error_prone_len(inp) -> int:
-                    try:
-                        return len(inp)
-                    except TypeError:
-                        return 0
-
-                logger.debug(f"{request_id} | Response is grounded. {error_prone_len(chunks)} chunks and {error_prone_len(queries)} queries.")
-                output += "\n⎯⎯⎯⎯⎯\n"
-
-            if queries and await db.get_chat_parameter(message.chat.id, "g_web_show_queries"):
-                output += "\n"
-                output += "*Поисковые запросы:*\n"
-                for query in queries:
-                    output += f"- _{query}_\n"
-
-            if chunks and await db.get_chat_parameter(message.chat.id, "g_web_show_sources"):
-                output += "\n"
-                output += "*Источники:*\n"
-                for chunk in chunks:
-                    output += f"- [{chunk['web']['title']}]({chunk['web']['uri']})\n"
+            logger.warning(f"{request_id} | No candidates in response: {response}")
+            output = "❌ *Gemini API не вернул никакого ответа.*\nБот, скорее всего, перегружен. Попробуйте снова через пару минут."
 
         return output
     except Exception as e:
