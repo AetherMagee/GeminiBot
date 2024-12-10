@@ -2,6 +2,7 @@ from typing import List
 
 from aiogram.types import Message
 from asyncpg import Record
+from loguru import logger
 
 
 async def get_file(message: Message) -> List[str] or None:
@@ -26,11 +27,12 @@ async def get_file_id_from_chain(
     if required_type not in ["photo", "other"]:
         raise ValueError("Unknown required_type")
 
-    lookup_dict = {sublist[1]: sublist for sublist in all_messages}
+    lookup_dict = {sublist["message_id"]: sublist for sublist in all_messages}
 
     try:
         trigger_message = lookup_dict[trigger_message_id]
-    except KeyError:
+    except KeyError as error:
+        logger.error(error)
         return None
 
     if trigger_message["media_file_id"] and trigger_message["media_type"] == required_type:
