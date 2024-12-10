@@ -27,8 +27,3 @@ cp .env.example .env
 ```shell
 docker compose up -d --build
 ```
-#### If experiencing error 403:
-If you are trying to host the bot somewhere where Gemini API region restrictions apply, use ControlD as the DNS for the bot instead:
-```shell
-docker compose -f docker-compose-ctrld.yml up -d --build
-```
