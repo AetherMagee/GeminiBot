@@ -40,43 +40,32 @@ async def status_command(message: Message):
     messages = await db.get_messages(message.chat.id)
 
     messages_limit = await db.get_chat_parameter(message.chat.id, "message_limit")
+    endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
+    model = await db.get_chat_parameter(message.chat.id, endpoint[0] + "_model")
+    rate_limit = await db.get_chat_parameter(message.chat.id, "max_requests_per_hour")
 
-    current_endpoint = await db.get_chat_parameter(message.chat.id, "endpoint")
-    if current_endpoint == "openai":
-        table_prefix = "o_"
-    elif current_endpoint == "google":
-        table_prefix = "g_"
-    else:
-        table_prefix = "o_"
-    current_model = await db.get_chat_parameter(message.chat.id, table_prefix + "model")
+    request_count = await db.get_request_count(message.chat.id, datetime.timedelta(hours=1))
+    uptime = datetime.datetime.now() - start_time
 
-    token_count = "⏱ Секунду..."
-
-    if current_endpoint == "openai":
-        token_count = str(await api.openai.count_tokens(message.chat.id)) + " токенов"
+    token_count_text = "⏱ Секунду..." if endpoint == "google" else str(
+        await api.openai.count_tokens(message.chat.id)) + " токенов"
+    quota_text = "не ограничен" if rate_limit == 0 else f"{request_count}/{rate_limit}"
+    if request_count >= rate_limit:
+        quota_text = quota_text + " ⚠️"
 
     text_to_send = f"""👋 <b>Я тут!</b>
 
-💬 <b>Память:</b> {len(messages)}/{messages_limit} сообщений <i>({token_count})</i>
-✨ <b>Модель:</b> <i>{current_model}</i>
-🆔 <b>ID чата:</b> <code>{message.chat.id}</code>"""
+💬 <b>Память:</b> {len(messages)}/{messages_limit} сообщений <i>({token_count_text})</i>
+✨ <b>Модель:</b> <i>{model}</i>
+📊 <b>Лимит запросов в час:</b> <i>{quota_text}</i>
 
-    rate_limit_per_hour = await db.get_chat_parameter(message.chat.id, "max_requests_per_hour")
-    request_count = await db.get_request_count(message.chat.id, datetime.timedelta(hours=1))
-    quota_text = "не ограничен" if rate_limit_per_hour == 0 else f"{request_count}/{rate_limit_per_hour}"
-
-    text_to_send += f"\n📊 <b>Лимит запросов в час:</b> <i>{quota_text}</i>"
-
-    if current_endpoint not in ["openai", "google"]:
-        text_to_send += ("\n⚠️ <b>Неизвестное значение параметра <code>endpoint</code></b>. Значительная часть функций "
-                         "бота недоступна.")
-
-    uptime = datetime.datetime.now() - start_time
-    text_to_send += f"\n⏱ <b>Аптайм:</b> {format_timedelta(uptime)}"
+🆔 <b>ID чата:</b> <code>{message.chat.id}</code>
+⏱ <b>Аптайм:</b> {format_timedelta(uptime)}
+"""
 
     reply = await message.reply(text_to_send)
 
-    if current_endpoint == "google":
-        token_count = await api.google.count_tokens_for_chat(message)
-        text_to_send = text_to_send.replace("⏱ Секунду...", f"{token_count} токенов")
+    if endpoint == "google":
+        token_count_text = await api.google.count_tokens_for_chat(message)
+        text_to_send = text_to_send.replace("⏱ Секунду...", f"{token_count_text} токенов")
         await reply.edit_text(text_to_send)
