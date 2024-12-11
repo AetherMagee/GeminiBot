@@ -40,6 +40,7 @@ async def _prepare_prompt(trigger_message: Message, chat_messages: List[Record],
     result = []
     message_buffer = []
     current_role = None
+    last_user_block = None
 
     for message in chat_messages:
         if message["sender_id"] == 727:
@@ -60,33 +61,50 @@ async def _prepare_prompt(trigger_message: Message, chat_messages: List[Record],
             message_buffer.append(formatted_message)
         else:
             # Flush the buffer when the role changes
-            result.append({
+            block = {
                 "role": current_role,
                 "parts": [{
                     "text": "\n".join(message_buffer)
                 }],
-            })
+            }
+            result.append(block)
+            # Update last_user_block if the current role is 'user'
+            if current_role == 'user':
+                last_user_block = block
             # Reset the buffer and update the current role
             message_buffer = [formatted_message]
             current_role = role
 
     # Flush any remaining messages in the buffer
     if message_buffer:
-        result.append({
+        block = {
             "role": current_role,
             "parts": [{
                 "text": "\n".join(message_buffer)
             }],
-        })
+        }
+        result.append(block)
+        # Update last_user_block if the current role is 'user'
+        if current_role == 'user':
+            last_user_block = block
 
-    # Ensure the last block has the "user" role
+    # If the last block is 'model', duplicate the last 'user' block
     if result[-1]["role"] != 'user':
-        result.append({
-            "role": 'user',
-            "parts": [{
-                "text": ""
-            }],
-        })
+        if last_user_block is not None:
+            # Append a copy of the last_user_block
+            duplicated_block = {
+                "role": 'user',
+                "parts": last_user_block["parts"].copy()
+            }
+            result.append(duplicated_block)
+        else:
+            # If no user messages were found, append an empty 'user' block
+            result.append({
+                "role": 'user',
+                "parts": [{
+                    "text": ""
+                }],
+            })
 
     # Handle images and other media files
     image = await get_photo(trigger_message, chat_messages)
