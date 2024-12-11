@@ -120,7 +120,7 @@ chat_configs = {
         "g_model": {
             "description": "Используемая ботом модель Gemini",
             "type": "text",
-            "default_value": "\'gemini-exp-1206\'",
+            "default_value": "\'gemini-2.0-flash-exp\'",
             "accepted_values": api.google.get_available_models,
             "protected": False,
             "advanced": False,
