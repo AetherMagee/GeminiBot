@@ -1,6 +1,7 @@
 import asyncio
 import os
 import random
+import time
 import traceback
 from typing import List
 
@@ -322,6 +323,8 @@ async def generate_response(message: Message) -> str:
         }
     }
 
+    gen_start_time = time.perf_counter()
+
     api_task = asyncio.create_task(_call_gemini_api(
         request_id,
         prompt,
@@ -349,7 +352,10 @@ async def generate_response(message: Message) -> str:
     except asyncio.CancelledError:
         pass
 
-    logger.info(f"{request_id} | Complete")
+    gen_end_time = time.perf_counter()
+    gen_timedelta = gen_end_time - gen_start_time
+
+    logger.info(f"{request_id} | Complete | {round(gen_timedelta, 2)}s")
 
     show_error_message = await db.get_chat_parameter(message.chat.id, "show_error_messages")
 

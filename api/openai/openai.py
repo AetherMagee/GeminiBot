@@ -1,6 +1,7 @@
 import asyncio
 import os
 import random
+import time
 from typing import List
 
 import aiohttp
@@ -58,6 +59,8 @@ async def _send_request(
 
     connector = ProxyConnector.from_url(PROXY_URL) if PROXY_URL else None
 
+    gen_start_time = time.perf_counter()
+
     async with aiohttp.ClientSession(connector=connector) as session:
         try:
             async with session.post(
@@ -67,7 +70,11 @@ async def _send_request(
                     timeout=timeout,
             ) as response:
                 response_decoded = await response.json()
-                logger.info(f"{request_id} | Сomplete | {response.status}")
+
+                gen_end_time = time.perf_counter()
+                gen_timedelta = gen_end_time - gen_start_time
+
+                logger.info(f"{request_id} | Сomplete | {response.status} | {round(gen_timedelta, 2)}s")
                 return response_decoded
         except Exception as e:
             logger.error("Failed to parse response to JSON.")
