@@ -3,7 +3,6 @@ from typing import Dict, List
 
 from aiogram.types import Message
 from asyncpg import Record
-from loguru import logger
 
 from api.google.media import get_other_media, get_photo
 
@@ -39,52 +38,62 @@ async def format_message_for_prompt(message: Record, add_reply_to: bool = True) 
 
 async def _prepare_prompt(trigger_message: Message, chat_messages: List[Record], token: str) -> List[Dict]:
     result = []
+    message_buffer = []
+    current_role = None
 
-    user_message_buffer = []
-    for index, message in enumerate(chat_messages):
-        if message["sender_id"] not in [0, 727]:
-            user_message_buffer.append(await format_message_for_prompt(message))
-            if index == len(chat_messages) - 1:
-                result.append({
-                    "role": "user",
-                    "parts": [{
-                        "text": "\n".join(user_message_buffer)
-                    }],
-                })
-                break
+    for message in chat_messages:
+        if message["sender_id"] == 727:
+            continue  # Skip system messages
+
+        if message["sender_id"] == 0:
+            role = 'model'
+            formatted_message = await format_message_for_prompt(message, False)
+            formatted_message = formatted_message.replace("You: ", "", 1)
         else:
-            if user_message_buffer:
-                result.append({
-                    "role": "user",
-                    "parts": [{
-                        "text": "\n".join(user_message_buffer)
-                    }],
-                })
-                user_message_buffer.clear()
-            if message["sender_id"] == 727:
-                continue
-            elif message["sender_id"] == 0:
-                result.append({
-                    "role": "model",
-                    "parts": [{
-                        "text": (await format_message_for_prompt(message, False)).replace("You: ", "", 1)
-                    }]
-                })
-            else:
-                logger.error("How did we get here?")
-                logger.debug(index)
-                logger.debug(message)
+            role = 'user'
+            formatted_message = await format_message_for_prompt(message)
 
-    image = await get_photo(
-        trigger_message,
-        chat_messages
-    )
+        if current_role is None:
+            current_role = role
+            message_buffer.append(formatted_message)
+        elif role == current_role:
+            message_buffer.append(formatted_message)
+        else:
+            # Flush the buffer when the role changes
+            result.append({
+                "role": current_role,
+                "parts": [{
+                    "text": "\n".join(message_buffer)
+                }],
+            })
+            # Reset the buffer and update the current role
+            message_buffer = [formatted_message]
+            current_role = role
+
+    # Flush any remaining messages in the buffer
+    if message_buffer:
+        result.append({
+            "role": current_role,
+            "parts": [{
+                "text": "\n".join(message_buffer)
+            }],
+        })
+
+    # Ensure the last block has the "user" role
+    if result[-1]["role"] != 'user':
+        result.append({
+            "role": 'user',
+            "parts": [{
+                "text": ""
+            }],
+        })
+
+    # Handle images and other media files
+    image = await get_photo(trigger_message, chat_messages)
     other_file = await get_other_media(trigger_message, token, chat_messages)
 
     if image:
-        index = -1
-        last_message = result[index]
-
+        last_message = result[-1]
         parts = last_message["parts"]
         parts.append({
             "inline_data": {
@@ -92,24 +101,19 @@ async def _prepare_prompt(trigger_message: Message, chat_messages: List[Record],
                 "data": image
             }
         })
-
         result[-1] = {
             "role": last_message["role"],
             "parts": parts
         }
-
     elif other_file:
-        index = -1
-        last_message = result[index]
+        last_message = result[-1]
         parts = last_message["parts"]
-
         parts.append({
             "file_data": {
                 "mime_type": other_file["mime_type"],
                 "file_uri": other_file["uri"]
             }
         })
-
         result[-1] = {
             "role": last_message["role"],
             "parts": parts
