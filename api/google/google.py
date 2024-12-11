@@ -364,7 +364,10 @@ async def generate_response(message: Message) -> str:
 async def count_tokens_for_chat(trigger_message: Message) -> int:
     key = await _get_api_key()
 
-    prompt = await _prepare_prompt(trigger_message, await db.get_messages(trigger_message.chat.id), key)
+    try:
+        prompt = await _prepare_prompt(trigger_message, await db.get_messages(trigger_message.chat.id), key)
+    except IndexError:
+        return 0
 
     headers = {
         "Content-Type": "application/json"
@@ -385,7 +388,7 @@ async def count_tokens_for_chat(trigger_message: Message) -> int:
     try:
         return decoded_response["totalTokens"]
     except Exception as e:
-        logger.error(f"Failed to count tokens: {e}")
+        logger.warning(f"Failed to count tokens: {e}")
         return 0
 
 
