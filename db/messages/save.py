@@ -94,9 +94,11 @@ async def save_our_message(trigger_message: Message, text: str, our_message_id: 
 
 
 async def save_system_message(chat_id: int, text: str):
+    message_id = int(-time.time() * 1e6)  # Goofy fix for the unique chat_id-message_id constraint
+
     await _save_message(
         chat_id,
-        0,
+        message_id,
         datetime.datetime.now(),
         727,
         "SYSTEM",
