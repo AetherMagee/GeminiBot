@@ -63,7 +63,7 @@ async def status_command(message: Message):
 🆔 <b>ID чата:</b> <code>{message.chat.id}</code>
 ⏱ <b>Аптайм:</b> {format_timedelta(uptime)}
 """
-    if random.randint(1, 6) == 3 or request_count >= rate_limit:
+    if random.randint(1, 6) == 3 or request_count >= rate_limit > 0:
         text_to_send += "\nℹ️ <b>Нужна помощь с ботом?</b> - /feedback"
 
     reply = await message.reply(text_to_send)
