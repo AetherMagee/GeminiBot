@@ -51,7 +51,7 @@ async def status_command(message: Message):
     token_count_text = "⏱ Секунду..." if endpoint == "google" else str(
         await api.openai.count_tokens(message.chat.id)) + " токенов"
     quota_text = "не ограничен" if rate_limit == 0 else f"{request_count}/{rate_limit}"
-    if request_count >= rate_limit > 0:
+    if request_count >= rate_limit * 0.8 > 0:
         quota_text = quota_text + " ⚠️"
 
     text_to_send = f"""👋 <b>Я тут!</b>
