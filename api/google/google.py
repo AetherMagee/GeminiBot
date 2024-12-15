@@ -307,6 +307,10 @@ async def generate_response(message: Message) -> str:
     chat_title = f" called {message.chat.title}" if message.from_user.id != message.chat.id else f" with {message.from_user.first_name}"
 
     sys_prompt_template = await get_system_prompt()
+    sys_prompt_template = sys_prompt_template.format(
+        chat_title=chat_title,
+        chat_type=chat_type,
+    )
 
     additional_sys_messages = await get_system_messages(chat_messages)
     if additional_sys_messages:
@@ -316,10 +320,7 @@ async def generate_response(message: Message) -> str:
 
     system_prompt = {
         "parts": {
-            "text": sys_prompt_template.format(
-                chat_title=chat_title,
-                chat_type=chat_type,
-            )
+            "text": sys_prompt_template
         }
     }
 
