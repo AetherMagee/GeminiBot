@@ -88,6 +88,9 @@ class ApiKeyManager:
                 if line.startswith("AIzaSy"):
                     key_parts = line.split(" ", maxsplit=1)
                     key = key_parts[0]
+                    if key in self.api_keys:
+                        logger.warning(f"Key {key[-6:]} has duplicates in the list file.")
+                        continue
                     self.api_keys.append(key)
                     if len(key_parts) > 1 and key_parts[1].lower() in ["b", "| billing enabled"]:
                         self.billing_api_keys.append(key)
