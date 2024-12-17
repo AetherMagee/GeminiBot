@@ -128,10 +128,18 @@ async def stats_command(message: Message):
                                  f"{usage['total_tokens']:,} токенов"
                                  f"{f' (${cost:.2f})' if cost > 0 else ''}")
 
+        key_statuses = key_manager.get_key_statuses()
+
+        key_stats_text = (
+            f"🔑 <b>Ключи:</b>\n"
+            f"• Активные: {key_statuses['active']['api_keys']} / {key_statuses['total']['api_keys']} (Биллинг: {key_statuses['active']['billing_api_keys']} / {key_statuses['total']['billing_api_keys']})\n"
+            f"• Истощённые: {key_statuses['exhausted']['api_keys']} (Биллинг: {key_statuses['exhausted']['billing_api_keys']})"
+        )
+
         # Build base response
         response = f"""📊 <b>Статистика бота</b> 
-        
-🔑 <b>Ключей:</b> {len(key_manager.active_api_keys)} из {len(key_manager.api_keys)} (биллинг: {len(key_manager.active_billing_api_keys)} из {len(key_manager.billing_api_keys)})
+
+{key_stats_text}
 
 👥 <b>Активные пользователи</b>
 • День: <b>{daily_active_count}</b>

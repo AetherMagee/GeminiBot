@@ -121,17 +121,13 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
                 if response.status != 200:
                     logger.error(f"{request_id} | Got an error: {decoded_response} | Key: ...{key[-6:]}")
 
-                    error_status = decoded_response.get("error", {}).get("status", "")
-                    if error_status == "RESOURCE_EXHAUSTED":
-                        await key_manager.handle_key_error(
-                            key, error_status, is_billing=grounding, bot=bot
-                        )
-                        if not other_media_present:
-                            continue
-                    else:
-                        await key_manager.handle_key_error(key, error_status, is_billing=grounding)
-                        if attempt != MAX_API_ATTEMPTS:
-                            continue
+                    should_retry = await key_manager.handle_key_error(key, decoded_response, is_billing=grounding,
+                                                                      bot=bot)
+                    if not should_retry:
+                        break
+
+                    if attempt != MAX_API_ATTEMPTS:
+                        continue
                 else:
                     return decoded_response
 
@@ -209,7 +205,7 @@ async def _handle_api_response(
                     completion_tokens,
                     await db.get_chat_parameter(message.chat.id, "g_model")
                 )
-            except KeyError as error:
+            except KeyError:
                 logger.exception(f"{request_id} | Failed to process token usage metadata.")
         else:
             logger.warning(f"{request_id} | No token usage metadata.")
