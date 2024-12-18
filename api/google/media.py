@@ -5,18 +5,16 @@ import traceback
 from typing import Dict, List
 
 import aiohttp
-import puremagic
+import magic
 from aiogram.types import Message
 from asyncpg import Record
 from loguru import logger
-from puremagic import PureError
 
 import db
 from main import bot
 from ..media import get_file_id_from_chain
 
 cache_path = os.getenv('CACHE_PATH')
-
 
 async def _download_if_necessary(file_id: str):
     if not os.path.exists(cache_path + file_id):
@@ -36,9 +34,9 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
         await _download_if_necessary(file_id)
 
         try:
-            mime_type = puremagic.from_file(cache_path + file_id, mime=True)
-        except PureError:
-            logger.warning(f"Failed to process {file_id}")
+            mime_type = magic.from_file(cache_path + file_id, mime=True)
+        except Exception as e:
+            logger.warning(f"Failed to process {file_id}: {e}")
             return None
         if not mime_type:
             logger.warning(f"Unable to guess mime type for {file_id}, skipping")
@@ -51,7 +49,7 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
                 ["wav", "mp3", "aiff", "aac", "ogg", "flac"]]) and mime_type.startswith("application/"):
             mime_type = mime_type.replace("application/", "audio/")
 
-        logger.info(f"Uploading {file_id} of type {mime_type} on token {gemini_token}")
+        logger.info(f"Uploading {file_id} of type {mime_type} on token ...{gemini_token[-6:]}")
 
         # Set up headers and data for the resumable upload request
         session_headers = {
@@ -94,7 +92,7 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
                 logger.info("Waiting for the file to become available...")
                 sleep_time = 0.25
                 total_sleep_time = 0
-                max_sleep_time = 5
+                max_sleep_time = 7
                 while total_sleep_time < max_sleep_time:
                     await asyncio.sleep(sleep_time)
                     async with session.get(upload_result['file']['uri'] + f"?key={gemini_token}",

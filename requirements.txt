@@ -6,6 +6,6 @@ asyncpg~=0.30.0
 loguru~=0.7.3
 more-itertools~=10.5.0
 python-dotenv~=1.0.1
-puremagic~=1.28
+python-magic~=0.4.27
 requests[socks]~=2.32.3
 tiktoken~=0.8.0

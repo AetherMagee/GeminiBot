@@ -6,5 +6,6 @@ RUN --mount=type=cache,target=/root/.cache/pip pip3 install -r requirements.txt
 FROM python:3.13-alpine
 COPY --from=builder /usr/local/lib/python3.13 /usr/local/lib/python3.13
 WORKDIR /bot
+RUN apk add --no-cache libmagic
 COPY . .
 ENTRYPOINT ["python3", "/bot/main.py"]
