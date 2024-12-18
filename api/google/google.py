@@ -123,7 +123,7 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
 
                     should_retry = await key_manager.handle_key_error(key, decoded_response, is_billing=grounding,
                                                                       bot=bot)
-                    if not should_retry:
+                    if not should_retry and other_media_present:
                         break
 
                     if attempt != MAX_API_ATTEMPTS:
