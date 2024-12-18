@@ -3,7 +3,6 @@ import datetime
 import os
 from collections import defaultdict
 from typing import Optional
-import traceback
 
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
@@ -97,8 +96,8 @@ async def handle_response(message: Message, output: str) -> None:
     async def send_reply(message: Message, text: str, parse_mode: str) -> Optional[Message]:
         try:
             return await message.reply(text, parse_mode=parse_mode)
-        except TelegramBadRequest:
-            traceback.print_exc()
+        except TelegramBadRequest as error:
+            logger.warning(f"Unable to reply to {message.message_id} in {message.chat.id}: {error.message}")
             return None
 
     process_markdown = await db.get_chat_parameter(message.chat.id, "process_markdown")
