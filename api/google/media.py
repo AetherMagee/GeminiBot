@@ -40,6 +40,10 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
         except PureError:
             logger.warning(f"Failed to process {file_id}")
             return None
+        if not mime_type:
+            logger.warning(f"Unable to guess mime type for {file_id}, skipping")
+            return None
+        
         if mime_type == "application/octet-stream":
             mime_type = "application/pdf"
 
