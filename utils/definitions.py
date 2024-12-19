@@ -105,6 +105,24 @@ chat_configs = {
             "advanced": True,
             "private": False
         },
+        "add_system_prompt": {
+            "description": "Добавлять ли встроенное системное сообщение, нацеленное на улучшение качества ответов",
+            "type": "boolean",
+            "default_value": True,
+            "accepted_values": [True, False],
+            "protected": False,
+            "advanced": True,
+            "private": False
+        },
+        "add_system_messages": {
+            "description": "Добавлять ли любые системные сообщения в контекст. При отключении скрывает и встроенный системный промпт, и сообщения, добавленные через /system",
+            "type": "boolean",
+            "default_value": True,
+            "accepted_values": [True, False],
+            "protected": False,
+            "advanced": True,
+            "private": False
+        },
         "max_requests_per_hour": {
             "description": "Сколько запросов в час можно отправлять в бота. Устанавливается администраторами бота. Можно "
                            "запросить повышение лимита через команду обратной связи",
@@ -263,24 +281,6 @@ chat_configs = {
             "advanced": False,
             "private": False
         },
-        "o_add_system_prompt": {
-            "description": "Добавлять ли встроенное системное сообщение, нацеленное на улучшение качества ответов",
-            "type": "boolean",
-            "default_value": True,
-            "accepted_values": [True, False],
-            "protected": False,
-            "advanced": True,
-            "private": False
-        },
-        "o_add_system_messages": {
-            "description": "Добавлять ли любые системные сообщения в контекст. При отключении скрывает и встроенный системный промпт, и сообщения, добавленные через /system",
-            "type": "boolean",
-            "default_value": True,
-            "accepted_values": [True, False],
-            "protected": False,
-            "advanced": True,
-            "private": False
-        },
         "o_clarify_target_message": {
             "description": "Добавлять ли дополнительное системное сообщение, чтобы помочь модели понять, на что нужно "
                            "отвечать",
@@ -364,8 +364,8 @@ presets = {
         "max_output_tokens": 1024,
         "o_model": "gpt-4o",
         "g_model": "gemini-exp-1206",
-        "o_add_system_prompt": True,
-        "o_add_system_messages": True,
+        "add_system_prompt": True,
+        "add_system_messages": True,
         "o_timeout": 60,
         "o_vision": True,
         "o_clarify_target_message": True

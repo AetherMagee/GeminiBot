@@ -56,7 +56,6 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
         })
 
     data = {
-        "system_instruction": system_prompt,
         "contents": prompt,
         "safetySettings": safety_settings,
         "generationConfig": {
@@ -66,6 +65,9 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
             "maxOutputTokens": max_output_tokens,
         }
     }
+    if system_prompt:
+        data["system_instruction"] = system_prompt
+
     if code_execution:
         # noinspection PyTypedDict
         data["tools"] = [{'code_execution': {}}]
@@ -313,23 +315,27 @@ async def generate_response(message: Message) -> str:
     chat_type = "direct message (DM)" if message.from_user.id == message.chat.id else "group"
     chat_title = f" called {message.chat.title}" if message.from_user.id != message.chat.id else f" with {message.from_user.first_name}"
 
-    sys_prompt_template = await get_system_prompt()
-    sys_prompt_template = sys_prompt_template.format(
-        chat_title=chat_title,
-        chat_type=chat_type,
-    )
+    if await db.get_chat_parameter(message.chat.id, "add_system_prompt"):
+        sys_prompt_template = await get_system_prompt()
+        sys_prompt_template = sys_prompt_template.format(
+            chat_title=chat_title,
+            chat_type=chat_type,
+        )
 
-    additional_sys_messages = await get_system_messages(chat_messages)
-    if additional_sys_messages:
-        sys_prompt_template += "\n\n<behaviour_rules>\n"
-        sys_prompt_template += "\n".join(["- " + text for text in additional_sys_messages])
-        sys_prompt_template += "\n</behaviour_rules>"
+        if await db.get_chat_parameter(message.chat.id, "add_system_messages"):
+            additional_sys_messages = await get_system_messages(chat_messages)
+            if additional_sys_messages:
+                sys_prompt_template += "\n\n<behaviour_rules>\n"
+                sys_prompt_template += "\n".join(["- " + text for text in additional_sys_messages])
+                sys_prompt_template += "\n</behaviour_rules>"
 
-    system_prompt = {
-        "parts": {
-            "text": sys_prompt_template
+        system_prompt = {
+            "parts": {
+                "text": sys_prompt_template
+            }
         }
-    }
+    else:
+        system_prompt = None
 
     gen_start_time = time.perf_counter()
 

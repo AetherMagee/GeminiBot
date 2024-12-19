@@ -196,8 +196,8 @@ async def generate_response(message: Message) -> str:
         raise NotImplementedError("OpenAI endpoint is disabled globally.")
 
     show_errors = await db.get_chat_parameter(chat_id, "show_error_messages")
-    append_system_prompt = await db.get_chat_parameter(chat_id, "o_add_system_prompt")
-    add_system_messages = await db.get_chat_parameter(chat_id, "o_add_system_messages")
+    append_system_prompt = await db.get_chat_parameter(chat_id, "add_system_prompt")
+    add_system_messages = await db.get_chat_parameter(chat_id, "add_system_messages")
 
     messages = await db.get_messages(chat_id)
     model = await db.get_chat_parameter(chat_id, "o_model")
