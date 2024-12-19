@@ -237,9 +237,9 @@ async def _handle_api_response(
 
                 return output
 
-            output = response["candidates"][0]["content"]["parts"][0]["text"].replace("  ", " ")
+            output = response["candidates"][-1]["content"]["parts"][0]["text"].replace("  ", " ")
 
-            grounding_metadata = response["candidates"][0].get("groundingMetadata")
+            grounding_metadata = response["candidates"][-1].get("groundingMetadata")
             if grounding_metadata:
                 chunks = grounding_metadata.get("groundingChunks")
                 queries = grounding_metadata.get("webSearchQueries")
