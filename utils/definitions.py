@@ -215,6 +215,15 @@ chat_configs = {
             "protected": False,
             "advanced": True,
             "private": False
+        },
+        "g_show_thinking": {
+            "description": "Для thinking-моделей, включать ли в сообщение их поток мыслей. Не рекомендуется при обычном использовании.",
+            "type": "boolean",
+            "default_value": False,
+            "accepted_values": [True, False],
+            "protected": False,
+            "advanced": True,
+            "private": False
         }
     },
     "openai": {

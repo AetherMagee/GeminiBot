@@ -237,9 +237,15 @@ async def _handle_api_response(
 
                 return output
 
-            output = response["candidates"][-1]["content"]["parts"][0]["text"].replace("  ", " ")
+            current_model = await db.get_chat_parameter(message.chat.id, "g_model")
+            if "thinking" in current_model and len(response["candidates"][0]["content"]["parts"]) > 1:
+                part = -1  # use the last part since the first one is reasoning
+            else:
+                part = 0
 
-            grounding_metadata = response["candidates"][-1].get("groundingMetadata")
+            output = response["candidates"][0]["content"]["parts"][part]["text"].replace("  ", " ")
+
+            grounding_metadata = response["candidates"][0].get("groundingMetadata")
             if grounding_metadata:
                 chunks = grounding_metadata.get("groundingChunks")
                 queries = grounding_metadata.get("webSearchQueries")
@@ -266,6 +272,11 @@ async def _handle_api_response(
                     output += "*Источники:*\n"
                     for chunk in chunks:
                         output += f"- [{chunk['web']['title']}]({chunk['web']['uri']})\n"
+
+            if part == -1 and await db.get_chat_parameter(message.chat.id, "g_show_thinking"):
+                output += "\n⎯⎯⎯⎯⎯\n\n"
+                output += response["candidates"][0]["content"]["parts"][0]["text"].replace("  ", " ")
+
 
         else:
             logger.warning(f"{request_id} | No candidates in response: {response}")
