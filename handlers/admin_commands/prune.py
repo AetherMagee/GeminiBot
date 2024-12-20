@@ -1,5 +1,3 @@
-import asyncio
-
 from aiogram.types import Message
 
 import db
@@ -25,8 +23,5 @@ async def prune_command(message: Message):
     response = await message.reply(f"🕔 <b>Удаление сообщений, отправленных ранее {cutoff_days} дн. назад...</b>")
     result = await db.delete_old_messages(cutoff_days, target_chat_id)
 
-    total_deleted = sum([amount for amount in result.values()])
-
-    await asyncio.sleep(1)
-
-    await response.edit_text(f"✅ <b>Удалено <code>{total_deleted}</code> сообщений. Подробности в логах.</b>")
+    await response.edit_text(
+        f"✅ <b>Удалено <code>{result['deleted_count']}</code> сообщений <i>({result['freed_space']})</i></b>")
