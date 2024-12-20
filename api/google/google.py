@@ -315,7 +315,8 @@ async def generate_response(message: Message) -> str:
     chat_type = "direct message (DM)" if message.from_user.id == message.chat.id else "group"
     chat_title = f" called {message.chat.title}" if message.from_user.id != message.chat.id else f" with {message.from_user.first_name}"
 
-    if await db.get_chat_parameter(message.chat.id, "add_system_prompt"):
+    if await db.get_chat_parameter(message.chat.id, "add_system_prompt") and await db.get_chat_parameter(
+            message.chat.id, "add_system_messages"):
         sys_prompt_template = await get_system_prompt()
         sys_prompt_template = sys_prompt_template.format(
             chat_title=chat_title,
