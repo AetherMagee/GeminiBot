@@ -4,6 +4,7 @@ import os
 from collections import defaultdict
 from typing import Optional
 
+from aiogram import html
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message, ReactionTypeEmoji
@@ -97,7 +98,6 @@ async def handle_response(message: Message, output: str) -> None:
         try:
             return await message.reply(text, parse_mode=parse_mode)
         except TelegramBadRequest as error:
-            logger.warning(f"Unable to reply to {message.message_id} in {message.chat.id}: {error.message}")
             return None
 
     process_markdown = await db.get_chat_parameter(message.chat.id, "process_markdown")
@@ -106,7 +106,7 @@ async def handle_response(message: Message, output: str) -> None:
     our_message = await send_reply(message, output, parse_mode)
 
     if not our_message and process_markdown:
-        our_message = await send_reply(message, output, ParseMode.HTML)
+        our_message = await send_reply(message, html.quote(output), ParseMode.HTML)
 
     if not our_message:
         if len(output) > 2000:
@@ -116,7 +116,7 @@ async def handle_response(message: Message, output: str) -> None:
             for index, chunk in enumerate(chunks):
                 chunk_message = await send_reply(message, chunk, parse_mode)
                 if not chunk_message and process_markdown:
-                    chunk_message = await send_reply(message, chunk, ParseMode.HTML)
+                    chunk_message = await send_reply(message, html.quote(chunk), ParseMode.HTML)
                 if not chunk_message:
                     logger.error(f"Failed to send chunk {index} to {message.chat.id}")
                 else:
