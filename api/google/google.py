@@ -130,8 +130,15 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
 
                     if attempt != MAX_API_ATTEMPTS:
                         continue
-                else:
-                    return decoded_response
+
+                if "promptFeedback" in decoded_response.keys() and "blockReason" in decoded_response[
+                    "promptFeedback"].keys():
+                    if decoded_response["promptFeedback"]["blockReason"] in ["OTHER",
+                                                                             "PROHIBITED_CONTENT"] and attempt < MAX_API_ATTEMPTS:
+                        logger.warning(f"{request_id} | Got censored for no apparent reason, retrying...")
+                        continue
+
+                return decoded_response
 
         return decoded_response
 
