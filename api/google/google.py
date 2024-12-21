@@ -289,7 +289,7 @@ async def _handle_api_response(
                         output += f"- [{chunk['web']['title']}]({chunk['web']['uri']})\n"
 
             if part == -1 and await db.get_chat_parameter(message.chat.id, "g_show_thinking"):
-                output += "\n⎯⎯⎯⎯⎯\n\n"
+                output += "\n⎯⎯⎯⎯⎯\n\n💭 "
                 output += response["candidates"][0]["content"]["parts"][0]["text"].replace("  ", " ")
 
 
