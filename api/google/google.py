@@ -117,7 +117,8 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
                 "x-goog-api-key": key
             }
 
-            logger.info(f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS} (key ...{key[-6:]})")
+            logger.info(
+                f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS} (key ...{key[-6:]}, model {model_name})")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
             async with session.post(url, headers=headers, json=data) as response:
                 try:
