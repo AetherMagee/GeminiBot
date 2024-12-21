@@ -17,8 +17,14 @@ if __name__ == "__main__":
     if os.path.exists(".env"):
         load_dotenv()
 
-    logger.add(os.getenv("LOGS_PATH") + "{time}.log", rotation="12 hours", backtrace=True, diagnose=True,
-               compression="gz")
+    logger.add(
+        os.getenv("LOGS_PATH") + "{time}.log",
+        rotation="4 hours",
+        backtrace=True,
+        diagnose=True,
+        enqueue=True,
+        retention="7 days"
+    )
 
 proxy = os.getenv("PROXY_URL")
 session = AiohttpSession(proxy=proxy)
@@ -110,6 +116,7 @@ async def main() -> None:
 if __name__ == "__main__":
     try:
         import uvloop
+
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
         logger.success("Running with uvloop!")
     except ImportError:
