@@ -139,7 +139,6 @@ async def settings_command(message: Message) -> None:
             elif isinstance(accepted_values, list):
                 accepted_values = ", ".join(accepted_values)
         else:
-            logger.debug(type(_value_range))
             try:
                 accepted_values = ", ".join(_value_range)
             except TypeError:
