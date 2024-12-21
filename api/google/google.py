@@ -188,9 +188,9 @@ async def _handle_api_response(
                 if status in errordict.keys() and show_error_message:
                     output += f"\n\n{errordict[response['error']['status']]}"
 
-                current_model = await db.get_chat_parameter(message.chat.id, "g_model")
-                if status == "INVALID_ARGUMENT" and "grounding" in response["error"][
-                    "message"].lower() and current_model != "gemini-1.5-pro-latest":
+                non_default_model = await db.get_chat_parameter(message.chat.id, "g_model") == "gemini-1.5-pro-latest"
+                grounding_enabled = await db.get_chat_parameter(message.chat.id, "g_web_search")
+                if status == "INVALID_ARGUMENT" and grounding_enabled and non_default_model:
                     output += f"\n\nПопробуйте переключиться на стандартную _gemini-1.5-pro-latest_: `/set g_model gemini-1.5-pro-latest`"
 
             return output
@@ -252,8 +252,8 @@ async def _handle_api_response(
 
                 return output
 
-            current_model = await db.get_chat_parameter(message.chat.id, "g_model")
-            if "thinking" in current_model and len(response["candidates"][0]["content"]["parts"]) > 1:
+            non_default_model = await db.get_chat_parameter(message.chat.id, "g_model")
+            if "thinking" in non_default_model and len(response["candidates"][0]["content"]["parts"]) > 1:
                 part = -1  # use the last part since the first one is reasoning
             else:
                 part = 0
