@@ -73,14 +73,20 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
         data["tools"] = [{'code_execution': {}}]
 
     if grounding:
-        data["tools"] = [{
-            "google_search_retrieval": {
-                "dynamic_retrieval_config": {
-                    "mode": "MODE_DYNAMIC",
-                    "dynamic_threshold": grounding_threshold,
+        if "2.0" in model_name:
+            # noinspection PyTypedDict
+            data["tools"] = [{
+                "googleSearch": {}
+            }]
+        else:
+            data["tools"] = [{
+                "googleSearchRetrieval": {
+                    "dynamic_retrieval_config": {
+                        "mode": "MODE_DYNAMIC",
+                        "dynamic_threshold": grounding_threshold,
+                    }
                 }
-            }
-        }]
+            }]
 
     other_media_present = any("file_data" in part for part in prompt[-1]["parts"])
     if other_media_present:
