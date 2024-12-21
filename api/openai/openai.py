@@ -214,44 +214,38 @@ async def generate_response(message: Message) -> str:
     url = url.rstrip("/") + "/"
 
     key = await db.get_chat_parameter(chat_id, "o_key") or OPENAI_API_KEY
-    typing_task = asyncio.create_task(simulate_typing(chat_id))
 
-    try:
-        response = await _send_request(
-            messages_list=prompt,
-            url=url,
-            key=key,
-            model=model,
-            request_id=request_id,
-            temperature=float(await db.get_chat_parameter(chat_id, "o_temperature")),
-            top_p=float(await db.get_chat_parameter(chat_id, "o_top_p")),
-            frequency_penalty=float(
-                await db.get_chat_parameter(chat_id, "o_frequency_penalty")
-            ),
-            presence_penalty=float(
-                await db.get_chat_parameter(chat_id, "o_presence_penalty")
-            ),
-            max_output_tokens=int(
-                await db.get_chat_parameter(chat_id, "max_output_tokens")
-            ),
-            timeout=timeout,
-        )
-    except asyncio.TimeoutError:
-        output = (
-            f"❌ *Превышено время ожидания ответа от эндпоинта OpenAI.*\n"
-            f"Нынешний таймаут: `{timeout}`"
-        )
-        return output
-    except Exception as e:
-        logger.exception(e)
-        output = "❌ *Произошёл неизвестный сбой.*\n\nПожалуйста, попробуйте позже."
-        return output
-    finally:
-        typing_task.cancel()
+    async with simulate_typing(message.chat.id):
         try:
-            await typing_task
-        except asyncio.CancelledError:
-            pass
+            response = await _send_request(
+                messages_list=prompt,
+                url=url,
+                key=key,
+                model=model,
+                request_id=request_id,
+                temperature=float(await db.get_chat_parameter(chat_id, "o_temperature")),
+                top_p=float(await db.get_chat_parameter(chat_id, "o_top_p")),
+                frequency_penalty=float(
+                    await db.get_chat_parameter(chat_id, "o_frequency_penalty")
+                ),
+                presence_penalty=float(
+                    await db.get_chat_parameter(chat_id, "o_presence_penalty")
+                ),
+                max_output_tokens=int(
+                    await db.get_chat_parameter(chat_id, "max_output_tokens")
+                ),
+                timeout=timeout,
+            )
+        except asyncio.TimeoutError:
+            output = (
+                f"❌ *Превышено время ожидания ответа от эндпоинта OpenAI.*\n"
+                f"Нынешний таймаут: `{timeout}`"
+            )
+            return output
+        except Exception as e:
+            logger.exception(e)
+            output = "❌ *Произошёл неизвестный сбой.*\n\nПожалуйста, попробуйте позже."
+            return output
 
     try:
         choice = response["choices"][0]

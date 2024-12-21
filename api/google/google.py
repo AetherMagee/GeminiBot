@@ -1,4 +1,3 @@
-import asyncio
 import os
 import random
 import time
@@ -317,7 +316,6 @@ async def generate_response(message: Message) -> str:
     )
 
     chat_messages = await db.get_messages(message.chat.id)
-    typing_task = asyncio.create_task(simulate_typing(message.chat.id))
 
     prompt = await _prepare_prompt(message, chat_messages, token)
     if not prompt:
@@ -353,32 +351,26 @@ async def generate_response(message: Message) -> str:
 
     gen_start_time = time.perf_counter()
 
-    api_task = asyncio.create_task(_call_gemini_api(
-        request_id,
-        prompt,
-        system_prompt,
-        model_name,
-        token,
-        float(await db.get_chat_parameter(message.chat.id, "g_temperature")),
-        float(await db.get_chat_parameter(message.chat.id, "g_top_p")),
-        int(await db.get_chat_parameter(message.chat.id, "g_top_k")),
-        int(await db.get_chat_parameter(message.chat.id, "max_output_tokens")),
-        bool(await db.get_chat_parameter(message.chat.id, "g_code_execution")),
-        str(await db.get_chat_parameter(message.chat.id, "g_safety_threshold")),
-        bool(await db.get_chat_parameter(message.chat.id, "g_web_search")),
-        float(await db.get_chat_parameter(message.chat.id, "g_web_threshold"))
-    ))
-
-    try:
-        response = await api_task
-    except Exception as api_error:
-        traceback.print_exc()
-        response = api_error
-    typing_task.cancel()
-    try:
-        await typing_task
-    except asyncio.CancelledError:
-        pass
+    async with simulate_typing(message.chat.id):
+        try:
+            response = await _call_gemini_api(
+                request_id,
+                prompt,
+                system_prompt,
+                model_name,
+                token,
+                float(await db.get_chat_parameter(message.chat.id, "g_temperature")),
+                float(await db.get_chat_parameter(message.chat.id, "g_top_p")),
+                int(await db.get_chat_parameter(message.chat.id, "g_top_k")),
+                int(await db.get_chat_parameter(message.chat.id, "max_output_tokens")),
+                bool(await db.get_chat_parameter(message.chat.id, "g_code_execution")),
+                str(await db.get_chat_parameter(message.chat.id, "g_safety_threshold")),
+                bool(await db.get_chat_parameter(message.chat.id, "g_web_search")),
+                float(await db.get_chat_parameter(message.chat.id, "g_web_threshold"))
+            )
+        except Exception as api_error:
+            traceback.print_exc()
+            response = api_error
 
     gen_end_time = time.perf_counter()
     gen_timedelta = gen_end_time - gen_start_time
