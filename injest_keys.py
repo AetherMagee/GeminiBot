@@ -38,7 +38,7 @@ def main():
 
     # Write the updated and deduplicated lines back to the file
     with open(filename, 'w') as f:
-        for line in sorted(file_lines_set):
+        for line in file_lines_set:
             f.write(line + '\n')
 
     # Output the required statistics
