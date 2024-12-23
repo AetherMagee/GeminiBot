@@ -1,4 +1,4 @@
-aiogram[fast]~=3.15.0
+aiogram[fast]~=3.16.0
 aiohttp
 aiohttp-socks
 async-lru~=2.0.4
