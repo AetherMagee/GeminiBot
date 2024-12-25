@@ -140,7 +140,7 @@ async def _call_gemini_api(request_id: int, trigger_message: Message, messages: 
                             bad_key_attempts += 1
                             if bad_key_attempts <= MAX_API_ATTEMPTS:
                                 continue
-                        if status_code == "INVALID_ARGUMENT":
+                        elif status_code == "INVALID_ARGUMENT":
                             retry = False
                             for detail in error.get('details', []):
                                 reason = detail.get('reason', '')
@@ -152,6 +152,8 @@ async def _call_gemini_api(request_id: int, trigger_message: Message, messages: 
                                         retry = True
                             if retry:
                                 continue
+                        else:
+                            logger.debug(f"{request_id} | {error}")
                     else:
                         logger.error(f"Unknown error: {decoded_response}")
 
