@@ -15,7 +15,7 @@ class OutOfBillingKeysException(Exception):
 
 
 class ApiKeyManager:
-    def __init__(self, keys_file_path, resource_exhausted_threshold=3, exhausted_key_lifetime=4 * 3600):
+    def __init__(self, keys_file_path, resource_exhausted_threshold=3, exhausted_key_lifetime=12 * 3600):
         self.keys_file_path = keys_file_path
         self.resource_exhausted_threshold = resource_exhausted_threshold
         self.exhausted_key_lifetime = exhausted_key_lifetime  # in seconds

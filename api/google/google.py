@@ -23,7 +23,7 @@ bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 keys_path = os.path.join(os.getenv("DATA_PATH"), "gemini_api_keys.txt")
 key_manager = ApiKeyManager(keys_path)
 
-MAX_API_ATTEMPTS = 3
+MAX_API_ATTEMPTS = 15
 admin_ids_str = os.getenv("ADMIN_IDS", "")
 admin_ids = [int(x.strip()) for x in admin_ids_str.split(",") if x.strip()]
 
