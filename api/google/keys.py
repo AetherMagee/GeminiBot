@@ -1,9 +1,11 @@
 import asyncio
 import os
-import time  # Added for timestamp management
+import time
 from collections import defaultdict
 
 from loguru import logger
+
+from main import bot
 
 
 class OutOfKeysException(Exception):
@@ -15,10 +17,9 @@ class OutOfBillingKeysException(Exception):
 
 
 class ApiKeyManager:
-    def __init__(self, keys_file_path, resource_exhausted_threshold=3, exhausted_key_lifetime=12 * 3600):
+    def __init__(self, keys_file_path, exhaust_bantime=18 * 3600):
         self.keys_file_path = keys_file_path
-        self.resource_exhausted_threshold = resource_exhausted_threshold
-        self.exhausted_key_lifetime = exhausted_key_lifetime  # in seconds
+        self.exhausted_key_lifetime = exhaust_bantime  # in seconds
 
         self.api_keys = []
         self.billing_api_keys = []
@@ -56,23 +57,6 @@ class ApiKeyManager:
             self._increment_index(billing_only)
 
             return key
-
-    async def handle_key_error(self, key, error_response, is_billing=False, bot=None) -> bool:
-        async with self.keys_lock:
-            error_status = error_response.get('error', {}).get('status', '')
-
-            if error_status == 'RESOURCE_EXHAUSTED':
-                self._handle_resource_exhausted_error(key, is_billing)
-                return True
-            elif self._is_invalid_key_error(error_response):
-                self._remove_key_permanently(key, is_billing)
-                if bot:
-                    asyncio.create_task(self._notify_admin(key, bot, reason='Invalid API key'))
-                return False
-            else:
-                error_counts = self.billing_api_keys_error_counts if is_billing else self.api_keys_error_counts
-                error_counts[key] += 1
-                return True
 
     def _load_keys(self):
         if not os.path.exists(self.keys_file_path):
@@ -118,7 +102,7 @@ class ApiKeyManager:
         else:
             self.api_key_index += 1
 
-    def _handle_resource_exhausted_error(self, key, is_billing):
+    def timeout_key(self, key, is_billing):
         now = time.time()
         if is_billing:
             if key in self.active_billing_api_keys:
@@ -131,16 +115,7 @@ class ApiKeyManager:
             self.exhausted_api_keys[key] = now
             logger.info(f"API key {key[-6:]} exhausted and moved to exhausted list.")
 
-    def _is_invalid_key_error(self, error_response):
-        error = error_response.get('error', {})
-        if error.get('status') == 'INVALID_ARGUMENT':
-            for detail in error.get('details', []):
-                reason = detail.get('reason', '')
-                if reason == 'API_KEY_INVALID':
-                    return True
-        return False
-
-    def _remove_key_permanently(self, key, is_billing):
+    def remove_key_permanently(self, key, is_billing):
         if is_billing:
             self.active_billing_api_keys = [k for k in self.active_billing_api_keys if k != key]
             self.exhausted_billing_api_keys.pop(key, None)
@@ -149,6 +124,8 @@ class ApiKeyManager:
             self.active_api_keys = [k for k in self.active_api_keys if k != key]
             self.exhausted_api_keys.pop(key, None)
             logger.warning(f"API key {key[-6:]} removed permanently due to invalidity.")
+
+        asyncio.create_task(self._notify_admin(key, bot, "Invalid API key"))
 
     async def _notify_admin(self, key, bot, reason=''):
         target_id = int(os.getenv("FEEDBACK_TARGET_ID"))

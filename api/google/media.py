@@ -41,7 +41,7 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
         if not mime_type:
             logger.warning(f"Unable to guess mime type for {file_id}, skipping")
             return None
-        
+
         if mime_type == "application/octet-stream":
             mime_type = "application/pdf"
 
@@ -55,7 +55,7 @@ async def get_other_media(message: Message, gemini_token: str, all_messages: Lis
         session_headers = {
             "X-Goog-Upload-Protocol": "resumable",
             "X-Goog-Upload-Command": "start",
-            "X-Goog-Upload-Header-Content-Length": str(os.path.getsize("/cache/" + file_id)),
+            "X-Goog-Upload-Header-Content-Length": str(os.path.getsize(cache_path + file_id)),
             "X-Goog-Upload-Header-Content-Type": mime_type,
             "Content-Type": "application/json"
         }

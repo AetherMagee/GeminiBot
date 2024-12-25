@@ -9,11 +9,11 @@ from aiogram.types import Message
 from aiohttp import ContentTypeError
 from aiohttp_socks import ProxyConnector
 from async_lru import alru_cache
+from asyncpg import Record
 from loguru import logger
 
 import db
 from api.prompt import get_system_prompt
-from main import bot
 from utils import simulate_typing
 from .keys import ApiKeyManager, OutOfBillingKeysException, OutOfKeysException
 from .prompts import _prepare_prompt, get_system_messages
@@ -23,7 +23,6 @@ bot_id = int(os.getenv("TELEGRAM_TOKEN").split(":")[0])
 keys_path = os.path.join(os.getenv("DATA_PATH"), "gemini_api_keys.txt")
 key_manager = ApiKeyManager(keys_path)
 
-MAX_API_ATTEMPTS = 15
 admin_ids_str = os.getenv("ADMIN_IDS", "")
 admin_ids = [int(x.strip()) for x in admin_ids_str.split(",") if x.strip()]
 
@@ -43,54 +42,9 @@ async def _get_api_key(billing_only=False) -> str:
         raise e
 
 
-async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, model_name: str, token_to_use: str,
-                           temperature: float, top_p: float, top_k: int, max_output_tokens: int, code_execution: bool,
-                           safety_threshold: str, grounding: bool, grounding_threshold: float):
-    safety_settings = []
-    for safety_setting in ["HARM_CATEGORY_SEXUALLY_EXPLICIT", "HARM_CATEGORY_HATE_SPEECH", "HARM_CATEGORY_HARASSMENT",
-                           "HARM_CATEGORY_DANGEROUS_CONTENT", "HARM_CATEGORY_CIVIC_INTEGRITY"]:
-        safety_settings.append({
-            "category": safety_setting,
-            "threshold": "BLOCK_" + safety_threshold.upper()
-        })
-
-    data = {
-        "contents": prompt,
-        "safetySettings": safety_settings,
-        "generationConfig": {
-            "temperature": temperature,
-            "topP": top_p,
-            "topK": top_k,
-            "maxOutputTokens": max_output_tokens,
-        }
-    }
-    if system_prompt:
-        data["system_instruction"] = system_prompt
-
-    if code_execution:
-        # noinspection PyTypedDict
-        data["tools"] = [{'code_execution': {}}]
-
-    if grounding:
-        if "2.0" in model_name:
-            # noinspection PyTypedDict
-            data["tools"] = [{
-                "googleSearch": {}
-            }]
-        else:
-            data["tools"] = [{
-                "googleSearchRetrieval": {
-                    "dynamic_retrieval_config": {
-                        "mode": "MODE_DYNAMIC",
-                        "dynamic_threshold": grounding_threshold,
-                    }
-                }
-            }]
-
-    other_media_present = any("file_data" in part for part in prompt[-1]["parts"])
-    if other_media_present:
-        logger.info(f"{request_id} | Found other media in prompt, will not rotate keys.")
-
+async def _call_gemini_api(request_id: int, trigger_message: Message, messages: List[Record], system_prompt: dict,
+                           model_name: str, temperature: float, top_p: float, top_k: int, max_output_tokens: int,
+                           code_execution: bool, safety_threshold: str, grounding: bool, grounding_threshold: float):
     if os.getenv("GROUNDING_PROXY_URL") and grounding:
         connector = ProxyConnector.from_url(os.getenv("GROUNDING_PROXY_URL"))
     elif os.getenv("PROXY_URL"):
@@ -99,54 +53,116 @@ async def _call_gemini_api(request_id: int, prompt: list, system_prompt: dict, m
         connector = None
 
     async with aiohttp.ClientSession(connector=connector) as session:
-        for attempt in range(1, MAX_API_ATTEMPTS + 1):
-            if other_media_present:
-                key = token_to_use
-            else:
-                try:
-                    key = await key_manager.get_api_key(billing_only=grounding)
-                except OutOfBillingKeysException:
-                    logger.error(f"{request_id} | No billing API keys available.")
-                    return {"error": {"status": "NO_BILLING", "message": "No billing API keys available."}}
-                except OutOfKeysException:
-                    logger.error(f"{request_id} | No active API keys available.")
-                    return {"error": {"status": "RESOURCE_EXHAUSTED", "message": "No active API keys available."}}
+
+        MAX_API_ATTEMPTS = int(os.getenv("MAX_KEY_ROTATION_ATTEMPTS"))
+
+        censor_evade_attempts = 0
+        bad_key_attempts = 0
+        generating = True
+        while generating:
+            try:
+                key = await key_manager.get_api_key(billing_only=grounding)
+            except OutOfBillingKeysException:
+                logger.error(f"{request_id} | No billing API keys available.")
+                return {"error": {"status": "NO_BILLING", "message": "No billing API keys available."}}
+            except OutOfKeysException:
+                logger.error(f"{request_id} | No active API keys available.")
+                return {"error": {"status": "RESOURCE_EXHAUSTED", "message": "No active API keys available."}}
+
+            prompt = await _prepare_prompt(trigger_message, messages, key)
+
+            safety_settings = []
+            for safety_setting in ["HARM_CATEGORY_SEXUALLY_EXPLICIT", "HARM_CATEGORY_HATE_SPEECH",
+                                   "HARM_CATEGORY_HARASSMENT", "HARM_CATEGORY_DANGEROUS_CONTENT",
+                                   "HARM_CATEGORY_CIVIC_INTEGRITY"]:
+                safety_settings.append({
+                    "category": safety_setting,
+                    "threshold": "BLOCK_" + safety_threshold.upper()
+                })
+
+            data = {
+                "contents": prompt,
+                "safetySettings": safety_settings,
+                "generationConfig": {
+                    "temperature": temperature,
+                    "topP": top_p,
+                    "topK": top_k,
+                    "maxOutputTokens": max_output_tokens,
+                }
+            }
+            if system_prompt:
+                data["system_instruction"] = system_prompt
+
+            if code_execution:
+                # noinspection PyTypedDict
+                data["tools"] = [{'code_execution': {}}]
+
+            if grounding:
+                if "2.0" in model_name:
+                    # noinspection PyTypedDict
+                    data["tools"] = [{
+                        "googleSearch": {}
+                    }]
+                else:
+                    data["tools"] = [{
+                        "googleSearchRetrieval": {
+                            "dynamic_retrieval_config": {
+                                "mode": "MODE_DYNAMIC",
+                                "dynamic_threshold": grounding_threshold,
+                            }
+                        }
+                    }]
 
             headers = {
                 "Content-Type": "application/json",
                 "x-goog-api-key": key
             }
 
-            logger.info(
-                f"{request_id} | Generating, attempt {attempt}/{MAX_API_ATTEMPTS} (key ...{key[-6:]}, model {model_name})")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
+            logger.info(f"{request_id} | Generating: key ...{key[-6:]}, model {model_name}")
             async with session.post(url, headers=headers, json=data) as response:
                 try:
                     decoded_response = await response.json()
                 except ContentTypeError:
                     logger.error(f"{request_id} Response is not JSON, but {response.content_type}")
                     logger.debug(await response.text())
+                    return {'error': {'status': 'INTERNAL', 'message': 'Response is not JSON.'}}
+
                 if response.status != 200:
-                    logger.error(f"{request_id} | Got an error: {decoded_response} | Key: ...{key[-6:]}")
+                    error = decoded_response.get('error', {})
+                    status_code = error.get('status', '')
+                    if status_code:
+                        logger.error(f"{request_id} | Got an error: {status_code} | Key: ...{key[-6:]}")
+                        if status_code == "RESOURCE_EXHAUSTED":
+                            logger.warning(f"{request_id} | Key {key[-6:]} is exhausted")
+                            key_manager.timeout_key(key, grounding)
 
-                    should_retry = await key_manager.handle_key_error(key, decoded_response, is_billing=grounding,
-                                                                      bot=bot)
-                    if not should_retry and other_media_present:
-                        break
+                            bad_key_attempts += 1
+                            if bad_key_attempts <= MAX_API_ATTEMPTS:
+                                continue
+                        if status_code == "INVALID_ARGUMENT":
+                            retry = False
+                            for detail in error.get('details', []):
+                                reason = detail.get('reason', '')
+                                if reason == 'API_KEY_INVALID':
+                                    key_manager.remove_key_permanently(key, grounding)
 
-                    if attempt != MAX_API_ATTEMPTS:
-                        continue
+                                    bad_key_attempts += 1
+                                    if bad_key_attempts <= MAX_API_ATTEMPTS:
+                                        retry = True
+                            if retry:
+                                continue
+                    else:
+                        logger.error(f"Unknown error: {decoded_response}")
 
-                if "promptFeedback" in decoded_response.keys() and "blockReason" in decoded_response[
-                    "promptFeedback"].keys():
-                    if decoded_response["promptFeedback"]["blockReason"] in ["OTHER",
-                                                                             "PROHIBITED_CONTENT"] and attempt < MAX_API_ATTEMPTS:
-                        logger.warning(f"{request_id} | Got censored for no apparent reason, retrying...")
+                if decoded_response.get("promptFeedback", {}).get("blockReason", "") in ["OTHER", "PROHIBITED_CONTENT"]:
+                    logger.warning(f"{request_id} | Got censored for no apparent reason")
+
+                    censor_evade_attempts += 1
+                    if censor_evade_attempts <= 3:
                         continue
 
                 return decoded_response
-
-        return decoded_response
 
 
 async def _handle_api_response(
@@ -310,17 +326,12 @@ async def _handle_api_response(
 
 async def generate_response(message: Message) -> str:
     request_id = random.randint(100000, 999999)
-    token = await _get_api_key()
 
     logger.info(
         f"R: {request_id} | U: {message.from_user.id} ({message.from_user.first_name}) | C: {message.chat.id} ({message.chat.title}) | M: {message.message_id}"
     )
 
     chat_messages = await db.get_messages(message.chat.id)
-
-    prompt = await _prepare_prompt(message, chat_messages, token)
-    if not prompt:
-        return ERROR_MESSAGES["censored"]
 
     model_name = await db.get_chat_parameter(message.chat.id, "g_model")
 
@@ -356,10 +367,10 @@ async def generate_response(message: Message) -> str:
         try:
             response = await _call_gemini_api(
                 request_id,
-                prompt,
+                message,
+                chat_messages,
                 system_prompt,
                 model_name,
-                token,
                 float(await db.get_chat_parameter(message.chat.id, "g_temperature")),
                 float(await db.get_chat_parameter(message.chat.id, "g_top_p")),
                 int(await db.get_chat_parameter(message.chat.id, "g_top_k")),
