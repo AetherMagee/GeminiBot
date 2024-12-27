@@ -208,8 +208,11 @@ async def _handle_api_response(
 
                 non_default_model = await db.get_chat_parameter(message.chat.id, "g_model") == "gemini-1.5-pro-latest"
                 grounding_enabled = await db.get_chat_parameter(message.chat.id, "g_web_search")
-                if status == "INVALID_ARGUMENT" and grounding_enabled and non_default_model:
-                    output += f"\n\nПопробуйте переключиться на стандартную _gemini-1.5-pro-latest_: `/set g_model gemini-1.5-pro-latest`"
+                if status == "INVALID_ARGUMENT":
+                    if grounding_enabled and non_default_model:
+                        output += f"\n\nПопробуйте переключиться на стандартную _gemini-1.5-pro-latest_: `/set g_model gemini-1.5-pro-latest`"
+                    elif "mime" in response.get("error", {}).get('message', '').lower():
+                        output += f"\n\nGemini API пока не умеет обрабатывать файлы такого формата."
 
             return output
 
