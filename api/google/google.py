@@ -184,7 +184,7 @@ async def _handle_api_response(
     }
     errordict = {
         "RESOURCE_EXHAUSTED": "Ежедневный ресурс API закончился. Пожалуйста, попробуйте через несколько часов.",
-        "INTERNAL": "Произошел сбой на стороне Google. Пожалуйста, попробуйте через пару минут",
+        "INTERNAL": "Произошел сбой на стороне Google. Пожалуйста, попробуйте через пару минут.",
         "UNAVAILABLE": "Выбранная модель недоступна на стороне Gemini API. Возможно, сервера Google перегружены.",
         "NO_BILLING": "Ресурс веб-поиска закончился. Пожалуйста, попробуйте через несколько часов.",
         "INVALID_ARGUMENT": "В API был отправлен неверный параметр."
@@ -343,26 +343,29 @@ async def generate_response(message: Message) -> str:
     chat_type = "direct message (DM)" if message.from_user.id == message.chat.id else "group"
     chat_title = f" called {message.chat.title}" if message.from_user.id != message.chat.id else f" with {message.from_user.first_name}"
 
-    if await db.get_chat_parameter(message.chat.id, "add_system_prompt") and await db.get_chat_parameter(
-            message.chat.id, "add_system_messages"):
-        sys_prompt_template = await get_system_prompt()
-        sys_prompt_template = sys_prompt_template.format(
-            chat_title=chat_title,
-            chat_type=chat_type,
-        )
+    if await db.get_chat_parameter(message.chat.id, "add_system_messages"):
+        sys_prompt = ""
+        additional_sys_messages = await get_system_messages(chat_messages)
+        if additional_sys_messages:
+            sys_prompt += "\n\n<behaviour_rules>\n"
+            sys_prompt += "\n".join(["- " + text for text in additional_sys_messages])
+            sys_prompt += "\n</behaviour_rules>"
 
-        if await db.get_chat_parameter(message.chat.id, "add_system_messages"):
-            additional_sys_messages = await get_system_messages(chat_messages)
-            if additional_sys_messages:
-                sys_prompt_template += "\n\n<behaviour_rules>\n"
-                sys_prompt_template += "\n".join(["- " + text for text in additional_sys_messages])
-                sys_prompt_template += "\n</behaviour_rules>"
+        if await db.get_chat_parameter(message.chat.id, "add_system_prompt"):
+            sys_prompt_template = await get_system_prompt()
+            sys_prompt = sys_prompt_template.format(
+                chat_title=chat_title,
+                chat_type=chat_type,
+            ) + sys_prompt
 
-        system_prompt = {
-            "parts": {
-                "text": sys_prompt_template
+        if sys_prompt:
+            system_prompt = {
+                "parts": {
+                    "text": sys_prompt
+                }
             }
-        }
+        else:
+            system_prompt = None
     else:
         system_prompt = None
 
